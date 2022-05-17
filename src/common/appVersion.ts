@@ -24,7 +24,7 @@ console.info(
   `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
 );
 
-// Monitors server version of the web site and if newer, triggers a force reload to ensure latest web is shown
+// Monitors server version of the web site and if newer, triggers a force reload to ensure latest web is shown,
 export const useAppVersionMonitor = () => {
   const [isActive] = useActivity();
   const timerRef = useRef<any>();
