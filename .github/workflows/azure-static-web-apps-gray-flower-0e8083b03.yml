@@ -25,9 +25,9 @@ jobs:
       - shell: bash
         run: |
           sed -i "s/%REACT_APP_BUILD_TIME%/$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00/g" env
-          sed -i "s/%REACT_APP_BUILD_TIME%/$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00/g" Web/public/manifest.json
+          sed -i "s/%REACT_APP_BUILD_TIME%/$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00/g" public/manifest.json
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" env
-          sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" Web/public/manifest.json
+          sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" public/manifest.json
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
