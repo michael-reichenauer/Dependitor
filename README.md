@@ -1,9 +1,10 @@
 # Dependitor
 
-Dependitor is a Cloud Architecture diagram app focused on Azure, AWS, and GCP.
-<img src="doc/example.svg" >
+[Dependitor](dependitor.com) is a Cloud Architecture diagram app focused on Azure, AWS, and GCP.
 
-## App
+![Azure example](doc/example.svg)
+
+## Web App
 
 Available at: [dependitor.com](https://dependitor.com)
 
