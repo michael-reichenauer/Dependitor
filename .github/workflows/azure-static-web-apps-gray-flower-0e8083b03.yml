@@ -19,9 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout branch
+        uses: actions/checkout@v2
         with:
           submodules: true
+
       - name: Update git sha and build time
         shell: bash
         run: |
@@ -29,6 +31,7 @@ jobs:
           sed -i "s/%REACT_APP_BUILD_TIME%/$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00/g" public/manifest.json
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" .env
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" public/manifest.json
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
