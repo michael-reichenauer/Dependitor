@@ -25,6 +25,7 @@ jobs:
         shell: bash
         run: |
           BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00"
+          echo $BUILD_TIME ${{github.sha}}
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" .env
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" public/manifest.json
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" .env
