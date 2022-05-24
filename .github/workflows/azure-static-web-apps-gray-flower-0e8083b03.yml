@@ -42,25 +42,9 @@ jobs:
           app_location: "/" # App source code path
           api_location: "api" # Api source code path - optional
           output_location: "build" # Built app content directory - optional
-          app_build_command: "npm run test-and-build"
+          app_build_command: "npm run test-and-build" # First run some unit tests and then build
           ###### End of Repository/Build Configurations ######
           production_branch: "master"
-
-  tests:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
-    runs-on: ubuntu-latest
-    name: Unit tests
-
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Run tests
-        run: |
-          npm install
-          npm test
 
   # When a pull request is closed, the temporary Azure environment is deleted as well
   close_pull_request_job:
