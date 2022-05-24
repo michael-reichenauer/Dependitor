@@ -2,28 +2,25 @@ name: Azure Static Web Apps CI/CD
 
 on:
   push:
-    branches:
-      - master
-      - preview
-      - dev
+    branches: [master, preview, dev]
   pull_request:
     types: [opened, synchronize, reopened, closed]
-    branches:
-      - master
-      - preview
-      - dev
+    branches: [master, preview, dev]
 
 jobs:
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
+
     steps:
       - name: Checkout branch
         uses: actions/checkout@v2
         with:
           submodules: true
 
+      # Update .env and manifest file with current build time and git sha id to support
+      # version handling of the web site to automatically upgrade to latest version faster
       - name: Update git sha and build time
         shell: bash
         run: |
@@ -32,6 +29,7 @@ jobs:
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" .env
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" public/manifest.json
 
+      # Build Azure Static Web App and deploy to Azure
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -47,6 +45,21 @@ jobs:
           ###### End of Repository/Build Configurations ######
           production_branch: "master"
 
+  test:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Unit tests
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Run tests
+        run: npm test
+
+  # When a pull request is closed, the temporary Azure environment is deleted as well
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
