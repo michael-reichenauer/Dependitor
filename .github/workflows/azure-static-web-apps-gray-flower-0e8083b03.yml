@@ -57,7 +57,9 @@ jobs:
           submodules: true
 
       - name: Run tests
-        run: npm test
+        run: |
+          npm install
+          npm test
 
   # When a pull request is closed, the temporary Azure environment is deleted as well
   close_pull_request_job:
