@@ -13,7 +13,7 @@ describe("Test LocalData", () => {
       version: 0,
     });
 
-    expect(expectValue(local.tryReadValue<string>("0"))).toEqual("aa");
+    expect(expectValue(local.tryReadValue<string>("0"))).toEqual("baa");
     expect(local.getUnsyncedKeys().length).toEqual(1);
     expect(isError(local.tryReadValue<string>("1"))).toEqual(true);
 
