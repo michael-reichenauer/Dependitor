@@ -24,8 +24,9 @@ jobs:
       - name: Update git sha and build time
         shell: bash
         run: |
-          sed -i "s/%REACT_APP_BUILD_TIME%/$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00/g" .env
-          sed -i "s/%REACT_APP_BUILD_TIME%/$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00/g" public/manifest.json
+          BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00"
+          sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" .env
+          sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" public/manifest.json
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" .env
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" public/manifest.json
 
