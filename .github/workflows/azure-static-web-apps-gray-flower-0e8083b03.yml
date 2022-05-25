@@ -16,8 +16,6 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v2
-        with:
-          submodules: true
 
       # Update .env and manifest file with current build time and git sha id to support
       # version handling of the web site to automatically upgrade to latest version faster
