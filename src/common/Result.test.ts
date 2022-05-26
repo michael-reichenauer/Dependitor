@@ -15,7 +15,7 @@ describe("Test Result<T> type using isError(value) type guard for narrowing", ()
     const value = getValue("ok");
     if (isError(value)) {
       // Since value is ok, this path will not occur, but value would be Error type if it did
-      const errorValue: Error = value;
+      const errorValue: Error = value as Error;
       expect(errorValue.message).toBeFalsy();
       assert.fail();
       return;
