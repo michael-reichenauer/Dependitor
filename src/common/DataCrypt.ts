@@ -1,6 +1,10 @@
 import { ICrypt, ICryptKey } from "./crypt";
 import { di, diKey, singleton } from "./di";
 import { User } from "./Api";
+import { Buffer } from "buffer";
+
+// @ts-ignore
+window.Buffer = Buffer;
 
 export const IDataCryptKey = diKey<IDataCrypt>();
 export interface IDataCrypt {
