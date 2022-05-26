@@ -15,6 +15,7 @@
     "@types/node": "^16.11.36",
     "@types/react": "^17.0.45",
     "@types/react-dom": "^17.0.17",
+    "assert": "^2.0.0",
     "axios": "^0.21.1",
     "cuid": "^2.1.8",
     "draw2d": "^1.0.38",
