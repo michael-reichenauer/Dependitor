@@ -7,9 +7,6 @@
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.61",
     "@material-ui/styles": "^4.11.5",
-    "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^11.2.7",
-    "@testing-library/user-event": "^12.8.3",
     "@types/humanize-duration": "^3.27.1",
     "@types/jest": "^27.5.1",
     "@types/node": "^16.11.36",
@@ -43,6 +40,9 @@
     "web-vitals": "^0.2.4"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^11.2.7",
+    "@testing-library/user-event": "^12.8.3",
     "@types/file-saver": "^2.0.5",
     "@types/pubsub-js": "^1.8.3",
     "@types/react-window": "^1.8.5"
