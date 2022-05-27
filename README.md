@@ -3,7 +3,7 @@
 [Dependitor](dependitor.com) is a Cloud Architecture diagram app focused on Azure, AWS, and GCP.
 
 | ![Azure example](doc/example.svg)|
-|:--:|
+|:--|
 | **Figure 1:**  Example of an Azure image classification diagram created with Dependitor.
 ## Web App
 
