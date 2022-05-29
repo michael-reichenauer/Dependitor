@@ -5,6 +5,7 @@ import { localBuildTime, localSha } from "../common/appVersion";
 import { SetAtom } from 'jotai/core/types';
 //import { useLogin } from "./Login";
 
+// Test
 const aboutAtom = atom(false)
 
 export const useAbout:()=> [boolean, SetAtom<boolean>] = () => useAtom(aboutAtom)
