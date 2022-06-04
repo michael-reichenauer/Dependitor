@@ -9,6 +9,8 @@ describe("Test LocalData", () => {
     local.write({
       key: "0",
       etag: "1",
+      syncedEtag: "",
+      remoteEtag: "",
       value: "aa",
       version: 0,
     });
@@ -21,6 +23,8 @@ describe("Test LocalData", () => {
     local.write({
       key: "1",
       etag: "1",
+      syncedEtag: "",
+      remoteEtag: "",
       value: "bb",
       version: 0,
     });
@@ -44,6 +48,8 @@ describe("Test LocalData", () => {
     local.write({
       key: "0",
       etag: "",
+      syncedEtag: "",
+      remoteEtag: "",
       value: "aa",
       version: 0,
     });
@@ -63,6 +69,7 @@ describe("Test LocalData", () => {
     local.write({
       key: "0",
       etag: "1",
+      remoteEtag: "",
       syncedEtag: "1",
       value: "aa",
       version: 0,
@@ -70,6 +77,7 @@ describe("Test LocalData", () => {
     local.write({
       key: "1",
       etag: "2",
+      remoteEtag: "",
       syncedEtag: "1",
       value: "bb",
       version: 0,

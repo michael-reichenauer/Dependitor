@@ -7,15 +7,14 @@
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.61",
     "@material-ui/styles": "^4.11.5",
-    "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^11.2.7",
-    "@testing-library/user-event": "^12.8.3",
     "@types/humanize-duration": "^3.27.1",
     "@types/jest": "^27.5.1",
     "@types/node": "^16.11.36",
     "@types/react": "^17.0.45",
     "@types/react-dom": "^17.0.17",
+    "assert": "^2.0.0",
     "axios": "^0.21.1",
+    "buffer": "^6.0.3",
     "cuid": "^2.1.8",
     "draw2d": "^1.0.38",
     "file-saver": "^2.0.5",
@@ -33,15 +32,24 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-loading-overlay": "^1.0.1",
-    "react-scripts": "4.0.1",
+    "react-scripts": "^5.0.1",
     "react-window": "^1.8.7",
     "shifty": "^2.17.1",
     "typescript": "^3.9.10",
     "use-long-press": "^1.2.0",
     "web-vitals": "^0.2.4"
   },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^11.2.7",
+    "@testing-library/user-event": "^12.8.3",
+    "@types/file-saver": "^2.0.5",
+    "@types/pubsub-js": "^1.8.3",
+    "@types/react-window": "^1.8.5"
+  },
   "scripts": {
     "start": "react-scripts start",
+    "test-and-build": "react-scripts test && react-scripts build",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -80,10 +88,5 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:7071/",
-  "devDependencies": {
-    "@types/file-saver": "^2.0.5",
-    "@types/pubsub-js": "^1.8.3",
-    "@types/react-window": "^1.8.5"
-  }
+  "proxy": "http://localhost:7071/"
 }
