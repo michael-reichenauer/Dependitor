@@ -46,7 +46,8 @@
     "@testing-library/user-event": "^12.8.3",
     "@types/file-saver": "^2.0.5",
     "@types/pubsub-js": "^1.8.3",
-    "@types/react-window": "^1.8.5"
+    "@types/react-window": "^1.8.5",
+    "azurite": "^3.17.1"
   },
   "scripts": {
     "start": "react-scripts start",
