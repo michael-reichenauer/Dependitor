@@ -41,11 +41,11 @@
   // 		"onAutoForward": "silent"
   // },
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": [
+  "postCreateCommand": 
     "cp ${containerWorkspaceFolder}/api/default-local.settings.json ${containerWorkspaceFolder}/api/local.settings.json"
     // "npm install --prefix ${containerWorkspaceFolder}/api",
     // "npm install"
-  ],
+  ,
   // Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   "remoteUser": "node"
   // "mounts": [
