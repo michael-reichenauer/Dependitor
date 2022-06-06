@@ -13,6 +13,9 @@
 # production
 /build
 
+# azurite db
+/.azuritedb
+
 # misc
 .DS_Store
 .env.local

@@ -20,7 +20,7 @@ class Icons {
     // Parse all svg files into an array of objects
     this.svgIcons = svgFiles.keys().map((path: string) => {
       const file = svgFiles(path);
-      const src = file.default;
+      const src = file;
 
       const key = path.replaceAll(" ", "_");
       const name = path.replaceAll("-", " ");
