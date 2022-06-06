@@ -51,9 +51,10 @@
     "concurrently": "^7.2.1"
   },
   "scripts": {
-    "dev": "concurrently --kill-others \"npm run azurite\" \"npm run swa\"",
+    "dev": "concurrently --kill-others \"npm run azurite\" \"npm run api\" \"npm start\"",
     "swa": "npx @azure/static-web-apps-cli start",
     "azurite": "npx azurite --location .azuritedb",
+    "api": "cd api && npx azure-functions-core-tools start && cd ..",
     "start": "react-scripts start",
     "test-and-build": "react-scripts test && react-scripts build",
     "build": "react-scripts build",
