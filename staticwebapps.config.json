@@ -1,13 +1,21 @@
 {
-    "routes": [
-      {
-        "route": "/api/Connect",
-        "allowedRoles": ["authenticated"]
-      },
-      {
-        "route": "/*",
-        "serve": "/index.html",
-        "statusCode": 200
+  "routes": [
+    {
+      "route": "/api/Connect",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/*",
+      "serve": "/index.html",
+      "statusCode": 200
+    },
+    {
+      "route": "/static/*.{png,jpg,gif,svg}",
+      "headers": {
+        "Cache-Control": "public, max-age=604800, immutable"
       }
-    ]
-  }
+    }
+  ]
+}
