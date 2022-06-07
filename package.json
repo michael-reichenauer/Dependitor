@@ -12,7 +12,6 @@
     "@types/node": "^16.11.36",
     "@types/react": "^17.0.45",
     "@types/react-dom": "^17.0.17",
-    "assert": "^2.0.0",
     "axios": "^0.21.1",
     "buffer": "^6.0.3",
     "cuid": "^2.1.8",
