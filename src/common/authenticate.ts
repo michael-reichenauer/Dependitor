@@ -5,7 +5,7 @@ import { IKeyVaultConfigure, IKeyVaultConfigureKey } from "./keyVault";
 import Result, { isError } from "./Result";
 import { IDataCrypt, IDataCryptKey } from "./DataCrypt";
 
-// IAuthenticate provides crate account and login functionality
+// IAuthenticate provides crate account and login functionality.
 export const IAuthenticateKey = diKey<IAuthenticate>();
 export interface IAuthenticate {
   check(): Promise<Result<void>>;
