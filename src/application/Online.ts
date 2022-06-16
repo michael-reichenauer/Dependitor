@@ -129,7 +129,7 @@ export class Online implements IOnline, ILoginProvider {
 
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
-        showLoginDlg(this);
+        this.showLoginDialog();
         return checkRsp;
       }
 
@@ -165,6 +165,10 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
+  private showLoginDialog() : void {
+    showLoginDlg(this);
+  }
+
   // disableSync called when disabling device sync
   public disableSync(): void {
     const wasEnabled = this.isEnabled
@@ -172,9 +176,9 @@ export class Online implements IOnline, ILoginProvider {
     this.isEnabled = false;
     this.isError = false;
     this.setDatabaseSync(false);
-    this.authenticate.resetLogin();
     clearErrorMessages();
     if (wasEnabled){
+      this.authenticate.resetLogin();
       setInfoMessage("Device sync is disabled");
     }
    
