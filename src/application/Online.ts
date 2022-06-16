@@ -107,6 +107,10 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
+  public cancelLogin() : void {
+    this.disableSync()
+  }
+
   // enableSync called when device sync should be enabled
   public async enableSync(): Promise<Result<void>> {
     try {
@@ -163,13 +167,17 @@ export class Online implements IOnline, ILoginProvider {
 
   // disableSync called when disabling device sync
   public disableSync(): void {
+    const wasEnabled = this.isEnabled
     this.setPersistentIsEnabled(false);
     this.isEnabled = false;
     this.isError = false;
     this.setDatabaseSync(false);
     this.authenticate.resetLogin();
     clearErrorMessages();
-    setInfoMessage("Device sync is disabled");
+    if (wasEnabled){
+      setInfoMessage("Device sync is disabled");
+    }
+   
     showSyncState(SyncState.Disabled);
   }
 
