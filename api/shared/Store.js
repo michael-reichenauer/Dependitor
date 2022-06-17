@@ -72,6 +72,8 @@ const rpID = 'localhost';
 // The URL at which registrations and authentications should occur
 // const origin = `https://${rpID}`;
 
+const expectedOrigin = `http://localhost:${3000}`;
+
 const inMemoryUserDeviceDB = {
     user1: {
         id: loggedInUserId,
@@ -109,28 +111,23 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
             userName: username,
             timeout: 60000,
             attestationType: 'none',
-            /**
-             * Passing in a user's list of already-registered authenticator IDs here prevents users from
-             * registering the same device multiple times. The authenticator will simply throw an error in
-             * the browser if it's asked to perform registration when one of these ID's already resides
-             * on it.
-             */
+
+            //  Passing in a user's list of already-registered authenticator IDs here prevents users from
+            //  registering the same device multiple times. The authenticator will simply throw an error in
+            //  the browser if it's asked to perform registration when one of these ID's already resides
+            //  on it.     
             excludeCredentials: devices.map(dev => ({
                 id: dev.credentialID,
                 type: 'public-key',
                 transports: dev.transports,
             })),
-            /**
-             * The optional authenticatorSelection property allows for specifying more constraints around
-             * the types of authenticators that users to can use for registration
-             */
+
+            //  The optional authenticatorSelection property allows for specifying more constraints 
+            //  userVerification:     "discouraged", "preferred",  "required"
             authenticatorSelection: {
-                userVerification: 'required',
+                userVerification: 'preferred',
             },
-            /**
-             * Support the two most common algorithms: ES256, and RS256
-             */
-            supportedAlgorithmIDs: [-7, -257],
+
         };
 
         const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
@@ -156,8 +153,6 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
         context.log('db:', inMemoryUserDeviceDB);
         context.log('data:', data);
         const body = data;
-
-        const expectedOrigin = `http://localhost:${3000}`;
 
         const user = inMemoryUserDeviceDB[loggedInUserId];
 
@@ -271,7 +266,6 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
         if (!dbAuthenticator) {
             throw new Error(`could not find authenticator matching ${body.id}`);
         }
-        const expectedOrigin = `http://localhost:${3000}`;
 
         let verification;
         try {

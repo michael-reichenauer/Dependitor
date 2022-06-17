@@ -51,7 +51,7 @@
     "azurite": "npx azurite --location .azuritedb",
     "api": "cd api && npx azure-functions-core-tools start && cd ..",
     "web": "react-scripts start",
-    "start": "concurrently --kill-others \"npm run azurite\" \"npm run api\" \"react-scripts start\"",
+    "start": "concurrently --kill-others \"npm run azurite\" \"npm run api\" \"BROWSER=none react-scripts start\"",
     "test-and-build": "react-scripts test && react-scripts build",
     "build": "react-scripts build",
     "test": "react-scripts test",
