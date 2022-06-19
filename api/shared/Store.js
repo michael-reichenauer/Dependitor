@@ -116,18 +116,18 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
             //  registering the same device multiple times. The authenticator will simply throw an error in
             //  the browser if it's asked to perform registration when one of these ID's already resides
             //  on it.     
-            excludeCredentials: devices.map(dev => ({
-                id: dev.credentialID,
-                type: 'public-key',
-                transports: dev.transports,
-            })),
+            // excludeCredentials: devices.map(dev => ({
+            //     id: dev.credentialID,
+            //     type: 'public-key',
+            //     transports: dev.transports,
+            // })),
 
             //  The optional authenticatorSelection property allows for specifying more constraints 
             //  userVerification:     "discouraged", "preferred",  "required"
             authenticatorSelection: {
                 userVerification: 'preferred',
             },
-
+            supportedAlgorithmIDs: [-7, -257],
         };
 
         const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
@@ -227,12 +227,13 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         const options = SimpleWebAuthnServer.generateAuthenticationOptions(opts);
 
+        context.log('options', options)
         /**
          * The server needs to temporarily remember this value for verification, so don't lose it until
          * after you verify an authenticator response.
          */
         inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
-
+        context.log('db:', inMemoryUserDeviceDB);
         return options;
     } catch (err) {
         if (err.message.includes(emulatorErrorText)) {
