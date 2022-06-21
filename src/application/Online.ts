@@ -247,9 +247,9 @@ export class Online implements IOnline, ILoginProvider {
     }
 
     console.log("asseResp1", asseResp);
+    alert("Authenticated on device ok: " + asseResp.response.userHandle);
     asseResp.response.userHandle = asseResp.response.userHandle.substring(5);
     console.log("asseResp2", asseResp);
-    alert("Authenticated on device ok");
 
     // POST the response to the endpoint that calls
     // @simplewebauthn/server -> verifyAuthenticationResponse()
