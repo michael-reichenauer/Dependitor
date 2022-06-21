@@ -25,7 +25,7 @@ import { useCanRedo, useCanUndo, useTitle } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { showPrompt } from "./../common/PromptDialog";
 import { di } from "../common/di";
-import { base64ToBuffer, bufferToBase64, sha256Hash } from "../common/utils";
+import { bufferToBase64, sha256Hash } from "../common/utils";
 
 type ApplicationBarProps = {
   height: number;
@@ -81,7 +81,7 @@ const register = async () => {
 let credId: string = "";
 
 const verify = async () => {
-  console.log("verify");
+  console.log("verify", credId);
   try {
     var options: PublicKeyCredentialRequestOptions = {
       challenge: Uint8Array.from(randomStringFromServer, (c) =>
