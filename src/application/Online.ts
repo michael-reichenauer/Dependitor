@@ -174,12 +174,18 @@ export class Online implements IOnline, ILoginProvider {
   private async showLoginDialog(): Promise<void> {
     const isAvailable = await platformAuthenticatorIsAvailable();
     console.log("platformAuthenticatorIsAvailable", isAvailable);
-    const options = await this.authenticate.getWebAuthnRegistrationOptions();
-    if (isError(options)) {
-      console.error("error", options);
+    const optionsx = await this.authenticate.getWebAuthnRegistrationOptions();
+    if (isError(optionsx)) {
+      console.error("error", optionsx);
+      alert("Error: Failed to get registration options from server" + optionsx);
       return;
     }
-    console.log("options:", options);
+    alert("Got verification options from server: OK");
+
+    const options: any = optionsx;
+    console.log("options1:", options);
+    options.user.id = "12345" + options.user.id;
+    console.log("options2:", options);
 
     let attResp;
     try {
@@ -190,6 +196,7 @@ export class Online implements IOnline, ILoginProvider {
       const e = error as Error;
       console.error("Error", error);
       console.error("name", e.name);
+      alert("Error: Failed to register on device" + error);
       // if (error.name === 'InvalidStateError') {
       //   elemError.innerText = 'Error: Authenticator was probably already registered by user';
       // } else {
@@ -199,9 +206,23 @@ export class Online implements IOnline, ILoginProvider {
       return;
     }
     console.log("attResp", attResp);
+    alert("Registered on device: OK " + attResp.id);
 
     const rsp = await this.authenticate.verifyWebAuthnRegistration(attResp);
-    console.log("rsp", rsp);
+    if (isError(rsp)) {
+      console.error("error", optionsx);
+      alert("Error: Failed to verify registration on server" + rsp);
+      return;
+    }
+
+    if (!(rsp as any).verified) {
+      console.error("error", optionsx);
+      alert("Error: Failed to verify registration on server: " + rsp);
+      return;
+    }
+
+    console.log("verified registration", rsp);
+    alert("Registration verified by server: " + (rsp as any).verified);
 
     // GET authentication options from the endpoint that calls
     // @simplewebauthn/server -> generateAuthenticationOptions()
@@ -209,8 +230,11 @@ export class Online implements IOnline, ILoginProvider {
       await this.authenticate.getWebAuthnAuthenticationOptions();
     if (isError(authOptions)) {
       console.error("error", authOptions);
+      alert("Error: failed to get authentication options from server");
       return;
     }
+    console.log("authOptions", authOptions);
+    alert("Got authentication options from server OK ");
 
     let asseResp;
     try {
@@ -218,14 +242,32 @@ export class Online implements IOnline, ILoginProvider {
       asseResp = await startAuthentication(authOptions);
     } catch (error) {
       console.error("Error", error);
+      alert("Error: Failed to authenticate on device" + error);
       return;
     }
+
+    console.log("asseResp1", asseResp);
+    asseResp.response.userHandle = asseResp.response.userHandle.substring(5);
+    console.log("asseResp2", asseResp);
+    alert("Authenticated on device ok");
 
     // POST the response to the endpoint that calls
     // @simplewebauthn/server -> verifyAuthenticationResponse()
     const verificationResp =
       await this.authenticate.verifyWebAuthnAuthentication(asseResp);
     console.log("rsp", verificationResp);
+
+    if (isError(verificationResp)) {
+      console.error("error", verificationResp);
+      alert(
+        "Error: Failed to verify authentication on server: " + verificationResp
+      );
+      return;
+    }
+
+    alert(
+      "Authenticated verified by server" + (verificationResp as any).verified
+    );
 
     //showLoginDlg(this);
   }

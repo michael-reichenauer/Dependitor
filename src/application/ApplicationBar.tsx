@@ -89,13 +89,13 @@ const verify = async () => {
       ),
       timeout: 60000,
       userVerification: "preferred",
-      allowCredentials: [
-        {
-          id: base64ToBuffer(credId),
-          type: "public-key",
-          transports: ["internal", "usb", "ble", "nfc"],
-        },
-      ],
+      // allowCredentials: [
+      //   {
+      //     id: base64ToBuffer(credId),
+      //     type: "public-key",
+      //     transports: ["internal", "usb", "ble", "nfc"],
+      //   },
+      // ],
     };
 
     const credential = (await navigator.credentials.get({
