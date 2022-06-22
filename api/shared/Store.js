@@ -2,7 +2,7 @@ const azure = require('azure-storage');
 const crypto = require("crypto")
 const bcrypt = require("bcryptjs")
 // const base64url = require("base64url")
-// const SimpleWebAuthnServer = require('@simplewebauthn/server');
+const SimpleWebAuthnServer = require('@simplewebauthn/server');
 var table = require('../shared/table.js');
 
 
@@ -142,7 +142,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         // inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
 
         // // (Pseudocode) Remember the challenge for this user
-        // context.log('options:', options);
+        context.log('options:', options);
         // context.log('db:', inMemoryUserDeviceDB);
         //setUserCurrentChallenge(user, options.challenge);
 
