@@ -23,6 +23,9 @@ import { IStore, IStoreKey } from "./diagram/Store";
 import { activityEventName } from "../common/activity";
 import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
 import { orDefault } from "./../common/Result";
+import SimpleWebAuthnBrowser, {
+  platformAuthenticatorIsAvailable,
+} from "@simplewebauthn/browser";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
@@ -107,8 +110,8 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
-  public cancelLogin() : void {
-    this.disableSync()
+  public cancelLogin(): void {
+    this.disableSync();
   }
 
   // enableSync called when device sync should be enabled
@@ -129,7 +132,7 @@ export class Online implements IOnline, ILoginProvider {
 
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
-        this.showLoginDialog();
+        await this.showLoginDialog();
         return checkRsp;
       }
 
@@ -165,23 +168,26 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
-  private showLoginDialog() : void {
+  private async showLoginDialog(): Promise<void> {
+    const isAvailable = await platformAuthenticatorIsAvailable();
+    console.log("platformAuthenticatorIsAvailable", isAvailable);
+
     showLoginDlg(this);
   }
 
   // disableSync called when disabling device sync
   public disableSync(): void {
-    const wasEnabled = this.isEnabled
+    const wasEnabled = this.isEnabled;
     this.setPersistentIsEnabled(false);
     this.isEnabled = false;
     this.isError = false;
     this.setDatabaseSync(false);
     clearErrorMessages();
-    if (wasEnabled){
+    if (wasEnabled) {
       this.authenticate.resetLogin();
       setInfoMessage("Device sync is disabled");
     }
-   
+
     showSyncState(SyncState.Disabled);
   }
 
