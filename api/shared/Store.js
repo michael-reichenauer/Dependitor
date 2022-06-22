@@ -136,9 +136,9 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
             supportedAlgorithmIDs: [-7, -257],
         };
         context.log('opts', opts)
-        const options = {}
 
-        // const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
+
+        const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
         // inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
 
         // // (Pseudocode) Remember the challenge for this user
