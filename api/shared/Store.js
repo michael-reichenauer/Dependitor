@@ -107,7 +107,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         context.log('User:', user);
         const opts = {
             rpName: rpName,
-            rpID: rpID,
+            // rpID: rpID,
             userID: loggedInUserId,
             userName: username,
             timeout: 60000,
@@ -139,12 +139,11 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 
 
         const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
-        // inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
+        inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
 
         // // (Pseudocode) Remember the challenge for this user
         context.log('options:', options);
-        // context.log('db:', inMemoryUserDeviceDB);
-        //setUserCurrentChallenge(user, options.challenge);
+        context.log('db:', inMemoryUserDeviceDB);
 
         return options;
     } catch (err) {
