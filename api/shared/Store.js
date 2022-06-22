@@ -228,11 +228,11 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         const opts = {
             timeout: 60000,
-            allowCredentials: user.devices.map(dev => ({
-                id: dev.credentialID,
-                type: 'public-key',
-                transports: dev.transports ?? ['internal', 'usb', 'ble', 'nfc'],
-            })),
+            // allowCredentials: user.devices.map(dev => ({
+            //     id: dev.credentialID,
+            //     type: 'public-key',
+            //     transports: dev.transports ?? ['internal', 'usb', 'ble', 'nfc'],
+            // })),
             userVerification: 'required',
             rpID,
         };
