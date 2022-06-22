@@ -107,7 +107,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         context.log('User:', user);
         const opts = {
             rpName: rpName,
-            // rpID: rpID,
+            //rpID: rpID,
             userID: loggedInUserId,
             userName: username,
             timeout: 60000,
@@ -155,14 +155,15 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 }
 
 exports.verifyWebAuthnRegistration = async (context, data) => {
-    //context.log('connectUser', context, data)
+    context.log('connectUser', context, data)
 
     try {
         context.log('db:', inMemoryUserDeviceDB);
-        context.log('data:', data);
+        //context.log('data:', data);
+        //context.log('url', context.req.headers.origin, context.req.headers.referer)
         const body = data;
 
-        const expectedOrigin = `http://localhost:${3000}`;
+        //const expectedOrigin = `http://localhost:${3000}`;
 
         const user = inMemoryUserDeviceDB[loggedInUserId];
 
@@ -173,7 +174,7 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
             const opts = {
                 credential: body,
                 expectedChallenge: `${expectedChallenge}`,
-                expectedOrigin,
+                expectedOrigin: [context.req.headers.origin.slice(0, -1), context.req.headers.referer.slice(0, -1)],
                 //expectedRPID: rpID,
                 requireUserVerification: true,
             };
