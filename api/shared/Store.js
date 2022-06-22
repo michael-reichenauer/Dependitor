@@ -63,32 +63,33 @@ exports.createUser = async (context, data) => {
     }
 }
 
-// const loggedInUserId = 'user1'
-// // Human-readable title for your website
-// // Human-readable title for your website
-// const rpName = 'Dependitor';
-// // A unique identifier for your website
-// const rpID = 'localhost';
-// // The URL at which registrations and authentications should occur
-// // const origin = `https://${rpID}`;
+const loggedInUserId = 'user1'
+// Human-readable title for your website
+// Human-readable title for your website
+const rpName = 'Dependitor';
+// A unique identifier for your website
+const rpID = 'localhost';
+// The URL at which registrations and authentications should occur
+// const origin = `https://${rpID}`;
 
-// const inMemoryUserDeviceDB = {
-//     user1: {
-//         id: loggedInUserId,
-//         username: `user@${rpID}`,
-//         devices: [],
-//         /**
-//          * A simple way of storing a user's current challenge being signed by registration or authentication.
-//          * It should be expired after `timeout` milliseconds (optional argument for `generate` methods,
-//          * defaults to 60000ms)
-//          */
-//         currentChallenge: undefined,
+const inMemoryUserDeviceDB = {
+    user1: {
+        id: loggedInUserId,
+        username: `user@${rpID}`,
+        devices: [],
+        /**
+         * A simple way of storing a user's current challenge being signed by registration or authentication.
+         * It should be expired after `timeout` milliseconds (optional argument for `generate` methods,
+         * defaults to 60000ms)
+         */
+        currentChallenge: undefined,
 
-//     }
-// };
+    }
+};
 
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     //context.log('connectUser', context, data)
+    context.log('dataxx', loggedInUserId, rpName, rpID, inMemoryUserDeviceDB)
     return {}
 
     // try {
