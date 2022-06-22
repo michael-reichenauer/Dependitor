@@ -60,6 +60,11 @@ export interface IApi {
   tryReadBatch(queries: Query[]): Promise<Result<ApiEntity[]>>;
   writeBatch(entities: ApiEntity[]): Promise<Result<ApiEntityRsp[]>>;
   removeBatch(keys: string[]): Promise<Result<void>>;
+
+  getWebAuthnRegistrationOptions(): Promise<Result<any>>;
+  verifyWebAuthnRegistration(data: any): Promise<Result<any>>;
+  getWebAuthnAuthenticationOptions(): Promise<Result<any>>;
+  verifyWebAuthnAuthentication(data: any): Promise<Result<any>>;
 }
 
 @singleton(IApiKey)
@@ -73,6 +78,38 @@ export class Api implements IApi {
   config(onOK: () => void, onError: (error: Error) => void): void {
     this.onOK = onOK;
     this.onError = onError;
+  }
+
+  public async getWebAuthnRegistrationOptions(): Promise<Result<any>> {
+    const rsp = await this.post("/api/GetWebAuthnRegistrationOptions", {});
+    if (isError(rsp)) {
+      return rsp;
+    }
+    return rsp as any;
+  }
+
+  public async verifyWebAuthnRegistration(data: any): Promise<Result<any>> {
+    const rsp = await this.post("/api/VerifyWebAuthnRegistration", data);
+    if (isError(rsp)) {
+      return rsp;
+    }
+    return rsp as any;
+  }
+
+  public async getWebAuthnAuthenticationOptions(): Promise<Result<any>> {
+    const rsp = await this.post("/api/GetWebAuthnAuthenticationOptions", {});
+    if (isError(rsp)) {
+      return rsp;
+    }
+    return rsp as any;
+  }
+
+  public async verifyWebAuthnAuthentication(data: any): Promise<Result<any>> {
+    const rsp = await this.post("/api/VerifyWebAuthnAuthentication", data);
+    if (isError(rsp)) {
+      return rsp;
+    }
+    return rsp as any;
   }
 
   public async login(user: User): Promise<Result<LoginRsp>> {

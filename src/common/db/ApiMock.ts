@@ -15,6 +15,18 @@ const prefix = "ApiMock-";
 
 export class ApiMock implements IApi {
   constructor(private local: ILocalStore = di(ILocalStoreKey)) {}
+  getWebAuthnAuthenticationOptions(): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
+  verifyWebAuthnAuthentication(data: any): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
+  verifyWebAuthnRegistration(data: any): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
+  getWebAuthnRegistrationOptions(): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
   logoff(): Promise<Result<void>> {
     throw new Error("Method not implemented.");
   }

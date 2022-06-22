@@ -12,6 +12,11 @@ export interface IAuthenticate {
   createUser(user: User): Promise<Result<void>>;
   login(user: User): Promise<Result<void>>;
   resetLogin(): void;
+
+  getWebAuthnRegistrationOptions(): Promise<Result<any>>;
+  verifyWebAuthnRegistration(data: any): Promise<Result<any>>;
+  getWebAuthnAuthenticationOptions(): Promise<Result<any>>;
+  verifyWebAuthnAuthentication(data: any): Promise<Result<any>>;
 }
 
 const minUserName = 2;
@@ -24,6 +29,19 @@ export class Authenticate implements IAuthenticate {
     private keyVaultConfigure: IKeyVaultConfigure = di(IKeyVaultConfigureKey),
     private dataCrypt: IDataCrypt = di(IDataCryptKey)
   ) {}
+
+  public async getWebAuthnRegistrationOptions(): Promise<Result<any>> {
+    return await this.api.getWebAuthnRegistrationOptions();
+  }
+  public async verifyWebAuthnRegistration(data: any): Promise<Result<any>> {
+    return await this.api.verifyWebAuthnRegistration(data);
+  }
+  public async getWebAuthnAuthenticationOptions(): Promise<Result<any>> {
+    return await this.api.getWebAuthnAuthenticationOptions();
+  }
+  public async verifyWebAuthnAuthentication(data: any): Promise<Result<any>> {
+    return await this.api.verifyWebAuthnAuthentication(data);
+  }
 
   public async check(): Promise<Result<void>> {
     if (!this.keyVaultConfigure.getDek()) {

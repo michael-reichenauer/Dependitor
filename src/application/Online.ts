@@ -2,7 +2,7 @@ import { atom, useAtom } from "jotai";
 import { di, diKey, singleton } from "./../common/di";
 import { SetAtom } from "jotai/core/types";
 import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
-import { ILoginProvider, showLoginDlg } from "./LoginDlg";
+import { ILoginProvider } from "./LoginDlg";
 import {
   IApi,
   User,
@@ -23,7 +23,11 @@ import { IStore, IStoreKey } from "./diagram/Store";
 import { activityEventName } from "../common/activity";
 import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
 import { orDefault } from "./../common/Result";
-import { platformAuthenticatorIsAvailable } from "@simplewebauthn/browser";
+import {
+  platformAuthenticatorIsAvailable,
+  startAuthentication,
+  startRegistration,
+} from "@simplewebauthn/browser";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
@@ -108,6 +112,7 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
+  // cancelLogin called by LoginDlg if user cancels/closes the dialog
   public cancelLogin(): void {
     this.disableSync();
   }
@@ -169,8 +174,60 @@ export class Online implements IOnline, ILoginProvider {
   private async showLoginDialog(): Promise<void> {
     const isAvailable = await platformAuthenticatorIsAvailable();
     console.log("platformAuthenticatorIsAvailable", isAvailable);
+    const options = await this.authenticate.getWebAuthnRegistrationOptions();
+    if (isError(options)) {
+      console.error("error", options);
+      return;
+    }
+    console.log("options:", options);
 
-    showLoginDlg(this);
+    let attResp;
+    try {
+      // Pass the options to the authenticator and wait for a response
+      attResp = await startRegistration(options);
+    } catch (error) {
+      // Some basic error handling
+      const e = error as Error;
+      console.error("Error", error);
+      console.error("name", e.name);
+      // if (error.name === 'InvalidStateError') {
+      //   elemError.innerText = 'Error: Authenticator was probably already registered by user';
+      // } else {
+      //   elemError.innerText = error;
+      // }
+
+      return;
+    }
+    console.log("attResp", attResp);
+
+    const rsp = await this.authenticate.verifyWebAuthnRegistration(attResp);
+    console.log("rsp", rsp);
+
+    // GET authentication options from the endpoint that calls
+    // @simplewebauthn/server -> generateAuthenticationOptions()
+    const authOptions =
+      await this.authenticate.getWebAuthnAuthenticationOptions();
+    if (isError(authOptions)) {
+      console.error("error", authOptions);
+      return;
+    }
+
+    let asseResp;
+    try {
+      // Pass the options to the authenticator and wait for a response
+      asseResp = await startAuthentication(authOptions);
+    } catch (error) {
+      console.error("Error", error);
+      return;
+    }
+
+    // POST the response to the endpoint that calls
+    // @simplewebauthn/server -> verifyAuthenticationResponse()
+    const verificationResp =
+      await this.authenticate.verifyWebAuthnAuthentication(asseResp);
+    console.log("rsp", verificationResp);
+
+    //showLoginDlg(this);
   }
 
   // disableSync called when disabling device sync
