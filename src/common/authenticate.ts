@@ -26,6 +26,7 @@ export class Authenticate implements IAuthenticate {
   ) {}
 
   public async check(): Promise<Result<void>> {
+    console.log("checking ...");
     if (!this.keyVaultConfigure.getDek()) {
       console.log("No DEK.");
       return new AuthenticateError();
