@@ -219,39 +219,39 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
 
 exports.getWebAuthnAuthenticationOptions = async (context, data) => {
     //context.log('connectUser', context, data)
-    return {}
-    // try {
-    //     context.log('db:', inMemoryUserDeviceDB);
-    //     // (Pseudocode) Retrieve the user from the database after they've logged in
-    //     // You need to know the user by this point
-    //     const user = inMemoryUserDeviceDB[loggedInUserId];
 
-    //     const opts = {
-    //         timeout: 60000,
-    //         allowCredentials: user.devices.map(dev => ({
-    //             id: dev.credentialID,
-    //             type: 'public-key',
-    //             transports: dev.transports ?? ['usb', 'ble', 'nfc', 'internal'],
-    //         })),
-    //         userVerification: 'required',
-    //         rpID,
-    //     };
+    try {
+        context.log('db:', inMemoryUserDeviceDB);
+        // (Pseudocode) Retrieve the user from the database after they've logged in
+        // You need to know the user by this point
+        const user = inMemoryUserDeviceDB[loggedInUserId];
 
-    //     const options = SimpleWebAuthnServer.generateAuthenticationOptions(opts);
+        const opts = {
+            timeout: 60000,
+            allowCredentials: user.devices.map(dev => ({
+                id: dev.credentialID,
+                type: 'public-key',
+                transports: dev.transports ?? ['internal', 'usb', 'ble', 'nfc'],
+            })),
+            userVerification: 'required',
+            rpID,
+        };
 
-    //     /**
-    //      * The server needs to temporarily remember this value for verification, so don't lose it until
-    //      * after you verify an authenticator response.
-    //      */
-    //     inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
+        const options = SimpleWebAuthnServer.generateAuthenticationOptions(opts);
 
-    //     return options;
-    // } catch (err) {
-    //     if (err.message.includes(emulatorErrorText)) {
-    //         throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-    //     }
-    //     throw new Error(authenticateError)
-    // }
+        /**
+         * The server needs to temporarily remember this value for verification, so don't lose it until
+         * after you verify an authenticator response.
+         */
+        inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
+
+        return options;
+    } catch (err) {
+        if (err.message.includes(emulatorErrorText)) {
+            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+        }
+        throw new Error(authenticateError)
+    }
 }
 
 exports.verifyWebAuthnAuthentication = async (context, data) => {
