@@ -2,7 +2,7 @@ import { atom, useAtom } from "jotai";
 import { di, diKey, singleton } from "./../common/di";
 import { SetAtom } from "jotai/core/types";
 import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
-import { ILoginProvider, showLoginDlg } from "./LoginDlg";
+import { ILoginProvider } from "./LoginDlg";
 import {
   IApi,
   User,
@@ -136,7 +136,8 @@ export class Online implements IOnline, ILoginProvider {
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
         //await this.showLoginDialog();
-        showLoginDlg(this);
+        await this.useWebAuthn();
+        // showLoginDlg(this);
         return checkRsp;
       }
 
@@ -172,7 +173,7 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
-  private async showLoginDialog(): Promise<void> {
+  private async useWebAuthn(): Promise<void> {
     const isAvailable = await platformAuthenticatorIsAvailable();
     console.log("platformAuthenticatorIsAvailable", isAvailable);
     const optionsx = await this.authenticate.getWebAuthnRegistrationOptions();
