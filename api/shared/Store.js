@@ -90,67 +90,69 @@ const inMemoryUserDeviceDB = {
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     //context.log('connectUser', context, data)
     context.log('dataxx', loggedInUserId, rpName, rpID, inMemoryUserDeviceDB)
-    return {}
 
-    // try {
-    //     context.log('db:', inMemoryUserDeviceDB);
-    //     // (Pseudocode) Retrieve the user from the database after they've logged in
-    //     const user = inMemoryUserDeviceDB[loggedInUserId];
-    //     const {
-    //         /**
-    //          * The username can be a human-readable name, email, etc... as it is intended only for display.
-    //          */
-    //         username,
-    //         devices,
-    //     } = user;
 
-    //     context.log('User:', user);
-    //     const opts = {
-    //         rpName: rpName,
-    //         rpID: rpID,
-    //         userID: loggedInUserId,
-    //         userName: username,
-    //         timeout: 60000,
-    //         attestationType: 'none',
-    //         /**
-    //          * Passing in a user's list of already-registered authenticator IDs here prevents users from
-    //          * registering the same device multiple times. The authenticator will simply throw an error in
-    //          * the browser if it's asked to perform registration when one of these ID's already resides
-    //          * on it.
-    //          */
-    //         excludeCredentials: devices.map(dev => ({
-    //             id: dev.credentialID,
-    //             type: 'public-key',
-    //             transports: dev.transports,
-    //         })),
-    //         /**
-    //          * The optional authenticatorSelection property allows for specifying more constraints around
-    //          * the types of authenticators that users to can use for registration
-    //          */
-    //         authenticatorSelection: {
-    //             userVerification: 'required',
-    //         },
-    //         /**
-    //          * Support the two most common algorithms: ES256, and RS256
-    //          */
-    //         supportedAlgorithmIDs: [-7, -257],
-    //     };
+    try {
+        context.log('db:', inMemoryUserDeviceDB);
+        // (Pseudocode) Retrieve the user from the database after they've logged in
+        const user = inMemoryUserDeviceDB[loggedInUserId];
+        const {
+            /**
+             * The username can be a human-readable name, email, etc... as it is intended only for display.
+             */
+            username,
+            devices,
+        } = user;
 
-    //     const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
-    //     inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
+        context.log('User:', user);
+        const opts = {
+            rpName: rpName,
+            rpID: rpID,
+            userID: loggedInUserId,
+            userName: username,
+            timeout: 60000,
+            attestationType: 'none',
+            /**
+             * Passing in a user's list of already-registered authenticator IDs here prevents users from
+             * registering the same device multiple times. The authenticator will simply throw an error in
+             * the browser if it's asked to perform registration when one of these ID's already resides
+             * on it.
+             */
+            excludeCredentials: devices.map(dev => ({
+                id: dev.credentialID,
+                type: 'public-key',
+                transports: dev.transports,
+            })),
+            /**
+             * The optional authenticatorSelection property allows for specifying more constraints around
+             * the types of authenticators that users to can use for registration
+             */
+            authenticatorSelection: {
+                userVerification: 'required',
+            },
+            /**
+             * Support the two most common algorithms: ES256, and RS256
+             */
+            supportedAlgorithmIDs: [-7, -257],
+        };
+        context.log('opts', opts)
+        const options = {}
 
-    //     // (Pseudocode) Remember the challenge for this user
-    //     context.log('options:', options);
-    //     context.log('db:', inMemoryUserDeviceDB);
-    //     //setUserCurrentChallenge(user, options.challenge);
+        // const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
+        // inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
 
-    //     return options;
-    // } catch (err) {
-    //     if (err.message.includes(emulatorErrorText)) {
-    //         throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-    //     }
-    //     throw new Error(authenticateError)
-    // }
+        // // (Pseudocode) Remember the challenge for this user
+        // context.log('options:', options);
+        // context.log('db:', inMemoryUserDeviceDB);
+        //setUserCurrentChallenge(user, options.challenge);
+
+        return options;
+    } catch (err) {
+        if (err.message.includes(emulatorErrorText)) {
+            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+        }
+        throw new Error(authenticateError)
+    }
 }
 
 exports.verifyWebAuthnRegistration = async (context, data) => {
