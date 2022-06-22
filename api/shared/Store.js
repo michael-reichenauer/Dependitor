@@ -1,8 +1,8 @@
 const azure = require('azure-storage');
 const crypto = require("crypto")
 const bcrypt = require("bcryptjs")
-const base64url = require("base64url")
-const SimpleWebAuthnServer = require('@simplewebauthn/server');
+// const base64url = require("base64url")
+// const SimpleWebAuthnServer = require('@simplewebauthn/server');
 var table = require('../shared/table.js');
 
 
@@ -63,248 +63,254 @@ exports.createUser = async (context, data) => {
     }
 }
 
-const loggedInUserId = 'user1'
-// Human-readable title for your website
-// Human-readable title for your website
-const rpName = 'Dependitor';
-// A unique identifier for your website
-const rpID = 'localhost';
-// The URL at which registrations and authentications should occur
-// const origin = `https://${rpID}`;
+// const loggedInUserId = 'user1'
+// // Human-readable title for your website
+// // Human-readable title for your website
+// const rpName = 'Dependitor';
+// // A unique identifier for your website
+// const rpID = 'localhost';
+// // The URL at which registrations and authentications should occur
+// // const origin = `https://${rpID}`;
 
-const inMemoryUserDeviceDB = {
-    user1: {
-        id: loggedInUserId,
-        username: `user@${rpID}`,
-        devices: [],
-        /**
-         * A simple way of storing a user's current challenge being signed by registration or authentication.
-         * It should be expired after `timeout` milliseconds (optional argument for `generate` methods,
-         * defaults to 60000ms)
-         */
-        currentChallenge: undefined,
+// const inMemoryUserDeviceDB = {
+//     user1: {
+//         id: loggedInUserId,
+//         username: `user@${rpID}`,
+//         devices: [],
+//         /**
+//          * A simple way of storing a user's current challenge being signed by registration or authentication.
+//          * It should be expired after `timeout` milliseconds (optional argument for `generate` methods,
+//          * defaults to 60000ms)
+//          */
+//         currentChallenge: undefined,
 
-    }
-};
+//     }
+// };
 
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     //context.log('connectUser', context, data)
-    try {
-        context.log('db:', inMemoryUserDeviceDB);
-        // (Pseudocode) Retrieve the user from the database after they've logged in
-        const user = inMemoryUserDeviceDB[loggedInUserId];
-        const {
-            /**
-             * The username can be a human-readable name, email, etc... as it is intended only for display.
-             */
-            username,
-            devices,
-        } = user;
+    return {}
 
-        context.log('User:', user);
-        const opts = {
-            rpName: rpName,
-            rpID: rpID,
-            userID: loggedInUserId,
-            userName: username,
-            timeout: 60000,
-            attestationType: 'none',
-            /**
-             * Passing in a user's list of already-registered authenticator IDs here prevents users from
-             * registering the same device multiple times. The authenticator will simply throw an error in
-             * the browser if it's asked to perform registration when one of these ID's already resides
-             * on it.
-             */
-            excludeCredentials: devices.map(dev => ({
-                id: dev.credentialID,
-                type: 'public-key',
-                transports: dev.transports,
-            })),
-            /**
-             * The optional authenticatorSelection property allows for specifying more constraints around
-             * the types of authenticators that users to can use for registration
-             */
-            authenticatorSelection: {
-                userVerification: 'required',
-            },
-            /**
-             * Support the two most common algorithms: ES256, and RS256
-             */
-            supportedAlgorithmIDs: [-7, -257],
-        };
+    // try {
+    //     context.log('db:', inMemoryUserDeviceDB);
+    //     // (Pseudocode) Retrieve the user from the database after they've logged in
+    //     const user = inMemoryUserDeviceDB[loggedInUserId];
+    //     const {
+    //         /**
+    //          * The username can be a human-readable name, email, etc... as it is intended only for display.
+    //          */
+    //         username,
+    //         devices,
+    //     } = user;
 
-        const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
-        inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
+    //     context.log('User:', user);
+    //     const opts = {
+    //         rpName: rpName,
+    //         rpID: rpID,
+    //         userID: loggedInUserId,
+    //         userName: username,
+    //         timeout: 60000,
+    //         attestationType: 'none',
+    //         /**
+    //          * Passing in a user's list of already-registered authenticator IDs here prevents users from
+    //          * registering the same device multiple times. The authenticator will simply throw an error in
+    //          * the browser if it's asked to perform registration when one of these ID's already resides
+    //          * on it.
+    //          */
+    //         excludeCredentials: devices.map(dev => ({
+    //             id: dev.credentialID,
+    //             type: 'public-key',
+    //             transports: dev.transports,
+    //         })),
+    //         /**
+    //          * The optional authenticatorSelection property allows for specifying more constraints around
+    //          * the types of authenticators that users to can use for registration
+    //          */
+    //         authenticatorSelection: {
+    //             userVerification: 'required',
+    //         },
+    //         /**
+    //          * Support the two most common algorithms: ES256, and RS256
+    //          */
+    //         supportedAlgorithmIDs: [-7, -257],
+    //     };
 
-        // (Pseudocode) Remember the challenge for this user
-        context.log('options:', options);
-        context.log('db:', inMemoryUserDeviceDB);
-        //setUserCurrentChallenge(user, options.challenge);
+    //     const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
+    //     inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
 
-        return options;
-    } catch (err) {
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
-        throw new Error(authenticateError)
-    }
+    //     // (Pseudocode) Remember the challenge for this user
+    //     context.log('options:', options);
+    //     context.log('db:', inMemoryUserDeviceDB);
+    //     //setUserCurrentChallenge(user, options.challenge);
+
+    //     return options;
+    // } catch (err) {
+    //     if (err.message.includes(emulatorErrorText)) {
+    //         throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+    //     }
+    //     throw new Error(authenticateError)
+    // }
 }
 
 exports.verifyWebAuthnRegistration = async (context, data) => {
     //context.log('connectUser', context, data)
-    try {
-        context.log('db:', inMemoryUserDeviceDB);
-        context.log('data:', data);
-        const body = data;
+    return {}
+    // try {
+    //     context.log('db:', inMemoryUserDeviceDB);
+    //     context.log('data:', data);
+    //     const body = data;
 
-        const expectedOrigin = `http://localhost:${3000}`;
+    //     const expectedOrigin = `http://localhost:${3000}`;
 
-        const user = inMemoryUserDeviceDB[loggedInUserId];
+    //     const user = inMemoryUserDeviceDB[loggedInUserId];
 
-        const expectedChallenge = user.currentChallenge;
+    //     const expectedChallenge = user.currentChallenge;
 
-        let verification;
-        try {
-            const opts = {
-                credential: body,
-                expectedChallenge: `${expectedChallenge}`,
-                expectedOrigin,
-                expectedRPID: rpID,
-                requireUserVerification: true,
-            };
-            verification = await SimpleWebAuthnServer.verifyRegistrationResponse(opts);
-        } catch (error) {
-            context.log('Error', error)
-            throw new Error(error)
-        }
+    //     let verification;
+    //     try {
+    //         const opts = {
+    //             credential: body,
+    //             expectedChallenge: `${expectedChallenge}`,
+    //             expectedOrigin,
+    //             expectedRPID: rpID,
+    //             requireUserVerification: true,
+    //         };
+    //         verification = await SimpleWebAuthnServer.verifyRegistrationResponse(opts);
+    //     } catch (error) {
+    //         context.log('Error', error)
+    //         throw new Error(error)
+    //     }
 
-        const { verified, registrationInfo } = verification;
+    //     const { verified, registrationInfo } = verification;
 
-        if (verified && registrationInfo) {
-            const { credentialPublicKey, credentialID, counter } = registrationInfo;
+    //     if (verified && registrationInfo) {
+    //         const { credentialPublicKey, credentialID, counter } = registrationInfo;
 
-            const existingDevice = user.devices.find(device => device.credentialID === credentialID);
+    //         const existingDevice = user.devices.find(device => device.credentialID === credentialID);
 
-            if (!existingDevice) {
-                /**
-                 * Add the returned device to the user's list of devices
-                 */
-                const newDevice = {
-                    credentialPublicKey,
-                    credentialID,
-                    counter,
-                    transports: body.transports,
-                };
-                user.devices.push(newDevice);
-            }
-        }
+    //         if (!existingDevice) {
+    //             /**
+    //              * Add the returned device to the user's list of devices
+    //              */
+    //             const newDevice = {
+    //                 credentialPublicKey,
+    //                 credentialID,
+    //                 counter,
+    //                 transports: body.transports,
+    //             };
+    //             user.devices.push(newDevice);
+    //         }
+    //     }
 
-        context.log('db:', inMemoryUserDeviceDB);
-        return { verified };
+    //     context.log('db:', inMemoryUserDeviceDB);
+    //     return { verified };
 
-    } catch (err) {
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
-        throw new Error(authenticateError)
-    }
+    // } catch (err) {
+    //     if (err.message.includes(emulatorErrorText)) {
+    //         throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+    //     }
+    //     throw new Error(authenticateError)
+    // }
 }
 
 
 exports.getWebAuthnAuthenticationOptions = async (context, data) => {
     //context.log('connectUser', context, data)
-    try {
-        context.log('db:', inMemoryUserDeviceDB);
-        // (Pseudocode) Retrieve the user from the database after they've logged in
-        // You need to know the user by this point
-        const user = inMemoryUserDeviceDB[loggedInUserId];
+    return {}
+    // try {
+    //     context.log('db:', inMemoryUserDeviceDB);
+    //     // (Pseudocode) Retrieve the user from the database after they've logged in
+    //     // You need to know the user by this point
+    //     const user = inMemoryUserDeviceDB[loggedInUserId];
 
-        const opts = {
-            timeout: 60000,
-            allowCredentials: user.devices.map(dev => ({
-                id: dev.credentialID,
-                type: 'public-key',
-                transports: dev.transports ?? ['usb', 'ble', 'nfc', 'internal'],
-            })),
-            userVerification: 'required',
-            rpID,
-        };
+    //     const opts = {
+    //         timeout: 60000,
+    //         allowCredentials: user.devices.map(dev => ({
+    //             id: dev.credentialID,
+    //             type: 'public-key',
+    //             transports: dev.transports ?? ['usb', 'ble', 'nfc', 'internal'],
+    //         })),
+    //         userVerification: 'required',
+    //         rpID,
+    //     };
 
-        const options = SimpleWebAuthnServer.generateAuthenticationOptions(opts);
+    //     const options = SimpleWebAuthnServer.generateAuthenticationOptions(opts);
 
-        /**
-         * The server needs to temporarily remember this value for verification, so don't lose it until
-         * after you verify an authenticator response.
-         */
-        inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
+    //     /**
+    //      * The server needs to temporarily remember this value for verification, so don't lose it until
+    //      * after you verify an authenticator response.
+    //      */
+    //     inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
 
-        return options;
-    } catch (err) {
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
-        throw new Error(authenticateError)
-    }
+    //     return options;
+    // } catch (err) {
+    //     if (err.message.includes(emulatorErrorText)) {
+    //         throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+    //     }
+    //     throw new Error(authenticateError)
+    // }
 }
 
 exports.verifyWebAuthnAuthentication = async (context, data) => {
     //context.log('connectUser', context, data)
-    try {
-        context.log('db:', inMemoryUserDeviceDB);
-        context.log('data:', data);
-        const body = data;
+    return {}
 
-        const user = inMemoryUserDeviceDB[loggedInUserId];
+    // try {
+    //     context.log('db:', inMemoryUserDeviceDB);
+    //     context.log('data:', data);
+    //     const body = data;
 
-        const expectedChallenge = user.currentChallenge;
+    //     const user = inMemoryUserDeviceDB[loggedInUserId];
 
-        let dbAuthenticator;
-        const bodyCredIDBuffer = base64url.toBuffer(body.rawId);
-        // "Query the DB" here for an authenticator matching `credentialID`
-        for (const dev of user.devices) {
-            if (dev.credentialID.equals(bodyCredIDBuffer)) {
-                dbAuthenticator = dev;
-                break;
-            }
-        }
+    //     const expectedChallenge = user.currentChallenge;
 
-        if (!dbAuthenticator) {
-            throw new Error(`could not find authenticator matching ${body.id}`);
-        }
-        const expectedOrigin = `http://localhost:${3000}`;
+    //     let dbAuthenticator;
+    //     const bodyCredIDBuffer = base64url.toBuffer(body.rawId);
+    //     // "Query the DB" here for an authenticator matching `credentialID`
+    //     for (const dev of user.devices) {
+    //         if (dev.credentialID.equals(bodyCredIDBuffer)) {
+    //             dbAuthenticator = dev;
+    //             break;
+    //         }
+    //     }
 
-        let verification;
-        try {
-            const opts = {
-                credential: body,
-                expectedChallenge: `${expectedChallenge}`,
-                expectedOrigin,
-                expectedRPID: rpID,
-                authenticator: dbAuthenticator,
-                requireUserVerification: true,
-            };
-            verification = SimpleWebAuthnServer.verifyAuthenticationResponse(opts);
-        } catch (error) {
-            context.log('Error', error)
-            throw new Error(error)
-        }
+    //     if (!dbAuthenticator) {
+    //         throw new Error(`could not find authenticator matching ${body.id}`);
+    //     }
+    //     const expectedOrigin = `http://localhost:${3000}`;
 
-        const { verified, authenticationInfo } = verification;
+    //     let verification;
+    //     try {
+    //         const opts = {
+    //             credential: body,
+    //             expectedChallenge: `${expectedChallenge}`,
+    //             expectedOrigin,
+    //             expectedRPID: rpID,
+    //             authenticator: dbAuthenticator,
+    //             requireUserVerification: true,
+    //         };
+    //         verification = SimpleWebAuthnServer.verifyAuthenticationResponse(opts);
+    //     } catch (error) {
+    //         context.log('Error', error)
+    //         throw new Error(error)
+    //     }
 
-        if (verified) {
-            // Update the authenticator's counter in the DB to the newest count in the authentication
-            dbAuthenticator.counter = authenticationInfo.newCounter;
-        }
+    //     const { verified, authenticationInfo } = verification;
 
-        context.log('db:', inMemoryUserDeviceDB);
-        return { verified };
+    //     if (verified) {
+    //         // Update the authenticator's counter in the DB to the newest count in the authentication
+    //         dbAuthenticator.counter = authenticationInfo.newCounter;
+    //     }
 
-    } catch (err) {
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
-        throw new Error(authenticateError)
-    }
+    //     context.log('db:', inMemoryUserDeviceDB);
+    //     return { verified };
+
+    // } catch (err) {
+    //     if (err.message.includes(emulatorErrorText)) {
+    //         throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+    //     }
+    //     throw new Error(authenticateError)
+    // }
 }
 
 exports.login = async (context, data) => {
