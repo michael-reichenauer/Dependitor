@@ -156,63 +156,63 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 
 exports.verifyWebAuthnRegistration = async (context, data) => {
     //context.log('connectUser', context, data)
-    return {}
-    // try {
-    //     context.log('db:', inMemoryUserDeviceDB);
-    //     context.log('data:', data);
-    //     const body = data;
 
-    //     const expectedOrigin = `http://localhost:${3000}`;
+    try {
+        context.log('db:', inMemoryUserDeviceDB);
+        context.log('data:', data);
+        const body = data;
 
-    //     const user = inMemoryUserDeviceDB[loggedInUserId];
+        const expectedOrigin = `http://localhost:${3000}`;
 
-    //     const expectedChallenge = user.currentChallenge;
+        const user = inMemoryUserDeviceDB[loggedInUserId];
 
-    //     let verification;
-    //     try {
-    //         const opts = {
-    //             credential: body,
-    //             expectedChallenge: `${expectedChallenge}`,
-    //             expectedOrigin,
-    //             expectedRPID: rpID,
-    //             requireUserVerification: true,
-    //         };
-    //         verification = await SimpleWebAuthnServer.verifyRegistrationResponse(opts);
-    //     } catch (error) {
-    //         context.log('Error', error)
-    //         throw new Error(error)
-    //     }
+        const expectedChallenge = user.currentChallenge;
 
-    //     const { verified, registrationInfo } = verification;
+        let verification;
+        try {
+            const opts = {
+                credential: body,
+                expectedChallenge: `${expectedChallenge}`,
+                expectedOrigin,
+                //expectedRPID: rpID,
+                requireUserVerification: true,
+            };
+            verification = await SimpleWebAuthnServer.verifyRegistrationResponse(opts);
+        } catch (error) {
+            context.log('Error', error)
+            throw new Error(error)
+        }
 
-    //     if (verified && registrationInfo) {
-    //         const { credentialPublicKey, credentialID, counter } = registrationInfo;
+        const { verified, registrationInfo } = verification;
 
-    //         const existingDevice = user.devices.find(device => device.credentialID === credentialID);
+        if (verified && registrationInfo) {
+            const { credentialPublicKey, credentialID, counter } = registrationInfo;
 
-    //         if (!existingDevice) {
-    //             /**
-    //              * Add the returned device to the user's list of devices
-    //              */
-    //             const newDevice = {
-    //                 credentialPublicKey,
-    //                 credentialID,
-    //                 counter,
-    //                 transports: body.transports,
-    //             };
-    //             user.devices.push(newDevice);
-    //         }
-    //     }
+            const existingDevice = user.devices.find(device => device.credentialID === credentialID);
 
-    //     context.log('db:', inMemoryUserDeviceDB);
-    //     return { verified };
+            if (!existingDevice) {
+                /**
+                 * Add the returned device to the user's list of devices
+                 */
+                const newDevice = {
+                    credentialPublicKey,
+                    credentialID,
+                    counter,
+                    transports: body.transports,
+                };
+                user.devices.push(newDevice);
+            }
+        }
 
-    // } catch (err) {
-    //     if (err.message.includes(emulatorErrorText)) {
-    //         throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-    //     }
-    //     throw new Error(authenticateError)
-    // }
+        context.log('db:', inMemoryUserDeviceDB);
+        return { verified };
+
+    } catch (err) {
+        if (err.message.includes(emulatorErrorText)) {
+            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+        }
+        throw new Error(authenticateError)
+    }
 }
 
 
