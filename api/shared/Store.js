@@ -72,7 +72,7 @@ const rpID = 'localhost';
 // The URL at which registrations and authentications should occur
 // const origin = `https://${rpID}`;
 
-const expectedOrigin = `http://localhost:${3000}`;
+//const expectedOrigin = `http://localhost:${3000}`;
 
 const inMemoryUserDeviceDB = {
     user1: {
@@ -103,7 +103,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         context.log('User:', user);
         const opts = {
             rpName: rpName,
-            rpID: rpID,
+            //rpID: rpID,
             userID: loggedInUserId,
             userName: username,
             timeout: 60000,
@@ -155,13 +155,19 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
 
         const expectedChallenge = user.currentChallenge;
 
+
+        const clientDataJSON = base64url.decode(body.response.clientDataJSON);
+        const clientData = JSON.parse(clientDataJSON);
+        const expectedOrigin = clientData.origin
+        context.log('client data origin', clientData.origin)
+
         let verification;
         try {
             const opts = {
                 credential: body,
                 expectedChallenge: `${expectedChallenge}`,
                 expectedOrigin,
-                expectedRPID: rpID,
+                // expectedRPID: rpID,
                 requireUserVerification: true,
             };
             verification = await SimpleWebAuthnServer.verifyRegistrationResponse(opts);
@@ -195,6 +201,7 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
         return { verified };
 
     } catch (err) {
+        context.log('Error:', err)
         if (err.message.includes(emulatorErrorText)) {
             throw new Error(invalidRequestError + ': ' + emulatorErrorText)
         }
@@ -270,6 +277,24 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
         if (!dbAuthenticator) {
             throw new Error(`could not find authenticator matching ${body.id}`);
         }
+
+        const clientDataJSON = base64url.decode(body.response.clientDataJSON);
+        const clientData = JSON.parse(clientDataJSON);
+        const expectedOrigin = clientData.origin
+        context.log('client data origin', clientData.origin)
+
+        const authDataBuffer = base64url.toBuffer(body.response.authenticatorData);
+        if (authDataBuffer.byteLength < 37) {
+            throw new Error(
+                `Authenticator data was ${authDataBuffer.byteLength} bytes, expected at least 37 bytes`,
+            );
+        }
+
+        let pointer = 0;
+
+        const rpIdHash = authDataBuffer.slice(pointer, (pointer += 32));
+        context.log('rpIdHash', rpIdHash)
+        //const expectedRPID = ['localhost']
 
         let verification;
         try {
