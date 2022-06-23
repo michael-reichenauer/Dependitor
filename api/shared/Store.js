@@ -232,6 +232,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
                 }
             }),
             userVerification: 'required',
+            rpID: 'azurestaticapps.net'
             // rpID,
         };
 
@@ -294,6 +295,8 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
         const rpIdHash = authDataBuffer.slice(pointer, (pointer += 32));
         context.log('rpIdHash', rpIdHash)
+        const idhash = crypto.createHash('SHA256').update(Buffer.from(rpID, 'ascii')).digest();
+        context.log('idhash', idhash)
         //const expectedRPID = ['localhost']
 
         let verification;
