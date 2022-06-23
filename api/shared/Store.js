@@ -1,7 +1,7 @@
 const azure = require('azure-storage');
 const crypto = require("crypto")
 const bcrypt = require("bcryptjs")
-// const base64url = require("base64url")
+const base64url = require("base64url")
 const SimpleWebAuthnServer = require('@simplewebauthn/server');
 var table = require('../shared/table.js');
 
@@ -226,13 +226,14 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
         // You need to know the user by this point
         const user = inMemoryUserDeviceDB[loggedInUserId];
 
+
         const opts = {
             timeout: 60000,
-            // allowCredentials: user.devices.map(dev => ({
-            //     id: dev.credentialID,
-            //     type: 'public-key',
-            //     transports: dev.transports ?? ['internal', 'usb', 'ble', 'nfc'],
-            // })),
+            allowCredentials: user.devices.map(dev => ({
+                id: dev.credentialID,
+                type: 'public-key',
+                transports: ['internal', 'usb', 'ble', 'nfc'],
+            })),
             userVerification: 'required',
             rpID,
         };
@@ -256,64 +257,66 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
 exports.verifyWebAuthnAuthentication = async (context, data) => {
     //context.log('connectUser', context, data)
-    return {}
 
-    // try {
-    //     context.log('db:', inMemoryUserDeviceDB);
-    //     context.log('data:', data);
-    //     const body = data;
 
-    //     const user = inMemoryUserDeviceDB[loggedInUserId];
+    try {
+        context.log('db:', inMemoryUserDeviceDB);
+        context.log('data:', data);
+        context.log('context', context)
+        const body = data;
 
-    //     const expectedChallenge = user.currentChallenge;
+        const user = inMemoryUserDeviceDB[loggedInUserId];
 
-    //     let dbAuthenticator;
-    //     const bodyCredIDBuffer = base64url.toBuffer(body.rawId);
-    //     // "Query the DB" here for an authenticator matching `credentialID`
-    //     for (const dev of user.devices) {
-    //         if (dev.credentialID.equals(bodyCredIDBuffer)) {
-    //             dbAuthenticator = dev;
-    //             break;
-    //         }
-    //     }
+        const expectedChallenge = user.currentChallenge;
 
-    //     if (!dbAuthenticator) {
-    //         throw new Error(`could not find authenticator matching ${body.id}`);
-    //     }
-    //     const expectedOrigin = `http://localhost:${3000}`;
+        let dbAuthenticator;
+        const bodyCredIDBuffer = base64url.toBuffer(body.rawId);
+        // "Query the DB" here for an authenticator matching `credentialID`
+        for (const dev of user.devices) {
+            if (dev.credentialID.equals(bodyCredIDBuffer)) {
+                dbAuthenticator = dev;
+                break;
+            }
+        }
 
-    //     let verification;
-    //     try {
-    //         const opts = {
-    //             credential: body,
-    //             expectedChallenge: `${expectedChallenge}`,
-    //             expectedOrigin,
-    //             expectedRPID: rpID,
-    //             authenticator: dbAuthenticator,
-    //             requireUserVerification: true,
-    //         };
-    //         verification = SimpleWebAuthnServer.verifyAuthenticationResponse(opts);
-    //     } catch (error) {
-    //         context.log('Error', error)
-    //         throw new Error(error)
-    //     }
+        if (!dbAuthenticator) {
+            throw new Error(`could not find authenticator matching ${body.id}`);
+        }
+        //const expectedOrigin = `http://localhost:${3000}`;
 
-    //     const { verified, authenticationInfo } = verification;
+        context.log('url:', [context.req.headers.origin.slice(0, -1), context.req.headers.referer.slice(0, -1)])
+        let verification;
+        try {
+            const opts = {
+                credential: body,
+                expectedChallenge: `${expectedChallenge}`,
+                expectedOrigin: [context.req.headers.origin.slice(0, -1), context.req.headers.referer.slice(0, -1)],
+                expectedRPID: rpID,
+                authenticator: dbAuthenticator,
+                requireUserVerification: true,
+            };
+            verification = SimpleWebAuthnServer.verifyAuthenticationResponse(opts);
+        } catch (error) {
+            context.log('Error', error)
+            throw new Error(error)
+        }
 
-    //     if (verified) {
-    //         // Update the authenticator's counter in the DB to the newest count in the authentication
-    //         dbAuthenticator.counter = authenticationInfo.newCounter;
-    //     }
+        const { verified, authenticationInfo } = verification;
 
-    //     context.log('db:', inMemoryUserDeviceDB);
-    //     return { verified };
+        if (verified) {
+            // Update the authenticator's counter in the DB to the newest count in the authentication
+            dbAuthenticator.counter = authenticationInfo.newCounter;
+        }
 
-    // } catch (err) {
-    //     if (err.message.includes(emulatorErrorText)) {
-    //         throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-    //     }
-    //     throw new Error(authenticateError)
-    // }
+        context.log('db:', inMemoryUserDeviceDB);
+        return { verified };
+
+    } catch (err) {
+        if (err.message.includes(emulatorErrorText)) {
+            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+        }
+        throw new Error(authenticateError)
+    }
 }
 
 exports.login = async (context, data) => {
