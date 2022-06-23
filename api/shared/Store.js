@@ -232,7 +232,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
                 }
             }),
             userVerification: 'required',
-            rpID,
+            // rpID,
         };
 
         const options = SimpleWebAuthnServer.generateAuthenticationOptions(opts);
