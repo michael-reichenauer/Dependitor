@@ -13,9 +13,9 @@ export interface IAuthenticate {
   login(user: User): Promise<Result<void>>;
   resetLogin(): void;
 
-  getWebAuthnRegistrationOptions(): Promise<Result<any>>;
+  getWebAuthnRegistrationOptions(data: any): Promise<Result<any>>;
   verifyWebAuthnRegistration(data: any): Promise<Result<any>>;
-  getWebAuthnAuthenticationOptions(): Promise<Result<any>>;
+  getWebAuthnAuthenticationOptions(data: any): Promise<Result<any>>;
   verifyWebAuthnAuthentication(data: any): Promise<Result<any>>;
 }
 
@@ -30,14 +30,16 @@ export class Authenticate implements IAuthenticate {
     private dataCrypt: IDataCrypt = di(IDataCryptKey)
   ) {}
 
-  public async getWebAuthnRegistrationOptions(): Promise<Result<any>> {
-    return await this.api.getWebAuthnRegistrationOptions();
+  public async getWebAuthnRegistrationOptions(data: any): Promise<Result<any>> {
+    return await this.api.getWebAuthnRegistrationOptions(data);
   }
   public async verifyWebAuthnRegistration(data: any): Promise<Result<any>> {
     return await this.api.verifyWebAuthnRegistration(data);
   }
-  public async getWebAuthnAuthenticationOptions(): Promise<Result<any>> {
-    return await this.api.getWebAuthnAuthenticationOptions();
+  public async getWebAuthnAuthenticationOptions(
+    data: any
+  ): Promise<Result<any>> {
+    return await this.api.getWebAuthnAuthenticationOptions(data);
   }
   public async verifyWebAuthnAuthentication(data: any): Promise<Result<any>> {
     return await this.api.verifyWebAuthnAuthentication(data);

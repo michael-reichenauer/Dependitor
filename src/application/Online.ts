@@ -176,23 +176,31 @@ export class Online implements IOnline, ILoginProvider {
   private async useWebAuthn(): Promise<void> {
     const isAvailable = await platformAuthenticatorIsAvailable();
     console.log("platformAuthenticatorIsAvailable", isAvailable);
-    const optionsx = await this.authenticate.getWebAuthnRegistrationOptions();
-    if (isError(optionsx)) {
-      console.error("error", optionsx);
-      alert("Error: Failed to get registration options from server" + optionsx);
+    const username = "michael";
+
+    const registrationOptions =
+      await this.authenticate.getWebAuthnRegistrationOptions({
+        username: username,
+      });
+    if (isError(registrationOptions)) {
+      console.error("error", registrationOptions);
+      alert(
+        "Error: Failed to get registration options from server" +
+          registrationOptions
+      );
       return;
     }
     alert("Got verification options from server: OK");
 
-    const options: any = optionsx;
+    const options: any = registrationOptions;
     console.log("options1:", options);
     options.user.id = "12345" + options.user.id;
     console.log("options2:", options);
 
-    let attResp;
+    let registrationResponse;
     try {
       // Pass the options to the authenticator and wait for a response
-      attResp = await startRegistration(options);
+      registrationResponse = await startRegistration(options);
     } catch (error) {
       // Some basic error handling
       const e = error as Error;
@@ -207,68 +215,93 @@ export class Online implements IOnline, ILoginProvider {
 
       return;
     }
-    console.log("attResp", attResp);
-    alert("Registered on device: OK " + attResp.id);
+    console.log("registrationResponse", registrationResponse);
+    alert("Registered on device: OK " + registrationResponse.id);
 
-    const rsp = await this.authenticate.verifyWebAuthnRegistration(attResp);
-    if (isError(rsp)) {
-      console.error("error", optionsx);
-      alert("Error: Failed to verify registration on server" + rsp);
+    const registrationVerificationResponse =
+      await this.authenticate.verifyWebAuthnRegistration({
+        username: username,
+        registrationResponse: registrationResponse,
+      });
+    if (isError(registrationVerificationResponse)) {
+      console.error("error", registrationVerificationResponse);
+      alert(
+        "Error: Failed to verify registration on server" +
+          registrationVerificationResponse
+      );
       return;
     }
 
-    if (!(rsp as any).verified) {
-      console.error("error", optionsx);
-      alert("Error: Failed to verify registration on server: " + rsp);
+    if (!(registrationVerificationResponse as any).verified) {
+      console.error(
+        "Failed to verify registration on server",
+        registrationVerificationResponse
+      );
+      alert(
+        "Error: Failed to verify registration on server: " +
+          registrationVerificationResponse
+      );
       return;
     }
 
-    console.log("verified registration", rsp);
-    alert("Registration verified by server: " + (rsp as any).verified);
+    console.log("verified registration", registrationVerificationResponse);
+    alert(
+      "Registration verified by server: " +
+        (registrationVerificationResponse as any).verified
+    );
 
     // GET authentication options from the endpoint that calls
-    // @simplewebauthn/server -> generateAuthenticationOptions()
-    const authOptions =
-      await this.authenticate.getWebAuthnAuthenticationOptions();
-    if (isError(authOptions)) {
-      console.error("error", authOptions);
+    const authenticationOptions =
+      await this.authenticate.getWebAuthnAuthenticationOptions({
+        username: username,
+      });
+    if (isError(authenticationOptions)) {
+      console.error("error", authenticationOptions);
       alert("Error: failed to get authentication options from server");
       return;
     }
-    console.log("authOptions", authOptions);
+    console.log("authOptions", authenticationOptions);
     alert("Got authentication options from server OK ");
 
-    let asseResp;
+    let authenticationResponse;
     try {
       // Pass the options to the authenticator and wait for a response
-      asseResp = await startAuthentication(authOptions);
+      authenticationResponse = await startAuthentication(authenticationOptions);
     } catch (error) {
       console.error("Error", error);
       alert("Error: Failed to authenticate on device" + error);
       return;
     }
 
-    console.log("asseResp1", asseResp);
-    alert("Authenticated on device ok: " + asseResp.response.userHandle);
-    asseResp.response.userHandle = asseResp.response.userHandle.substring(5);
-    console.log("asseResp2", asseResp);
+    console.log("asseResp1", authenticationResponse);
+    alert(
+      "Authenticated on device ok: " +
+        authenticationResponse.response.userHandle
+    );
+    authenticationResponse.response.userHandle =
+      authenticationResponse.response.userHandle.substring(5);
+    console.log("asseResp2", authenticationResponse);
 
     // POST the response to the endpoint that calls
-    // @simplewebauthn/server -> verifyAuthenticationResponse()
-    const verificationResp =
-      await this.authenticate.verifyWebAuthnAuthentication(asseResp);
-    console.log("rsp", verificationResp);
+    const authenticationVerificationResponse =
+      await this.authenticate.verifyWebAuthnAuthentication({
+        username: username,
+        authenticationResponse: authenticationResponse,
+      });
+    console.log("rsp", authenticationVerificationResponse);
 
-    if (isError(verificationResp)) {
-      console.error("error", verificationResp);
+    if (isError(authenticationVerificationResponse)) {
+      console.error("error", authenticationVerificationResponse);
       alert(
-        "Error: Failed to verify authentication on server: " + verificationResp
+        "Error: Failed to verify authentication on server: " +
+          authenticationVerificationResponse
       );
       return;
     }
 
     alert(
-      "Authenticated verified by server" + (verificationResp as any).verified
+      "Authenticated verified by server" +
+        (authenticationVerificationResponse as any).verified
     );
 
     //showLoginDlg(this);

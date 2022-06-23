@@ -6,9 +6,9 @@ const SimpleWebAuthnServer = require('@simplewebauthn/server');
 var table = require('../shared/table.js');
 
 
-
-
 const entGen = azure.TableUtilities.entityGenerator;
+
+const ServiceName = 'Dependitor';
 
 const dataBaseTableName = 'data'
 const usersTableName = 'users'
@@ -63,53 +63,46 @@ exports.createUser = async (context, data) => {
     }
 }
 
-const loggedInUserId = 'user1'
-// Human-readable title for your website
-// Human-readable title for your website
-const rpName = 'Dependitor';
-// A unique identifier for your website
-//const rpID = 'localhost';
-// The URL at which registrations and authentications should occur
-// const origin = `https://${rpID}`;
-
-//const expectedOrigin = `http://localhost:${3000}`;
 
 const inMemoryUserDeviceDB = {
-    user1: {
-        id: loggedInUserId,
-        username: `user@dependitor.com`,
-        devices: [],
-        /**
-         * A simple way of storing a user's current challenge being signed by registration or authentication.
-         * It should be expired after `timeout` milliseconds (optional argument for `generate` methods,
-         * defaults to 60000ms)
-         */
-        currentChallenge: undefined,
 
-    }
 };
 
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     context.log('connectUser', context, data)
     try {
         context.log('db:', inMemoryUserDeviceDB);
+        const username = data.username
+        const userId = toUserId(username)
+
         // (Pseudocode) Retrieve the user from the database after they've logged in
-        const user = inMemoryUserDeviceDB[loggedInUserId];
-        const {
-            username,
-            devices,
-        } = user;
+        let user = inMemoryUserDeviceDB[userId];
+        if (!user) {
+            // No user with that name registered
+            user = {
+                id: userId,
+                username: username,
+                devices: [],
+                currentChallenge: undefined,
+
+            }
+            inMemoryUserDeviceDB[userId] = user
+        }
 
         context.log('User:', user);
-        const opts = {
-            rpName: rpName,
-            //rpID: rpID,
-            userID: loggedInUserId,
-            userName: username,
-            timeout: 60000,
-            attestationType: 'none',
 
-            //  Passing in a user's list of already-registered authenticator IDs here prevents users from
+        const baseOptions = {
+            rpName: ServiceName,
+            userID: userId,
+            userName: username,
+            attestationType: 'none', // None to avoid privacy concent issues
+            authenticatorSelection: {
+                userVerification: 'preferred', // ("discouraged", "preferred", "required")
+            },
+            supportedAlgorithmIDs: [-7, -257],
+
+            // Currently not used:
+            // Passing in a user's list of already-registered authenticator IDs here prevents users from
             //  registering the same device multiple times. The authenticator will simply throw an error in
             //  the browser if it's asked to perform registration when one of these ID's already resides
             //  on it.     
@@ -118,22 +111,15 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
             //     type: 'public-key',
             //     transports: dev.transports,
             // })),
-
-            //  The optional authenticatorSelection property allows for specifying more constraints 
-            //  userVerification:     "discouraged", "preferred",  "required"
-            authenticatorSelection: {
-                userVerification: 'preferred',
-            },
-            supportedAlgorithmIDs: [-7, -257],
         };
 
-        const options = SimpleWebAuthnServer.generateRegistrationOptions(opts);
-        inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
+        const options = SimpleWebAuthnServer.generateRegistrationOptions(baseOptions);
 
-        // (Pseudocode) Remember the challenge for this user
+        // Store the current challenge for this user
+        inMemoryUserDeviceDB[userId].currentChallenge = options.challenge;
+
         context.log('options:', options);
         context.log('db:', inMemoryUserDeviceDB);
-        //setUserCurrentChallenge(user, options.challenge);
 
         return options;
     } catch (err) {
@@ -149,28 +135,24 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
     try {
         context.log('db:', inMemoryUserDeviceDB);
         context.log('data:', data);
-        const body = data;
+        const username = data.username
+        const userId = toUserId(username)
+        const registrationResponse = data.registrationResponse;
 
-        const user = inMemoryUserDeviceDB[loggedInUserId];
-
+        const user = inMemoryUserDeviceDB[userId];
         const expectedChallenge = user.currentChallenge;
 
-
-        const clientDataJSON = base64url.decode(body.response.clientDataJSON);
-        const clientData = JSON.parse(clientDataJSON);
-        const expectedOrigin = clientData.origin
-        context.log('client data origin', clientData.origin)
+        const expectedOrigin = getExpectedOrigin(registrationResponse.response.clientDataJSON)
 
         let verification;
         try {
-            const opts = {
-                credential: body,
+            const verifyOptions = {
+                credential: registrationResponse,
                 expectedChallenge: `${expectedChallenge}`,
                 expectedOrigin,
-                // expectedRPID: rpID,
                 requireUserVerification: true,
             };
-            verification = await SimpleWebAuthnServer.verifyRegistrationResponse(opts);
+            verification = await SimpleWebAuthnServer.verifyRegistrationResponse(verifyOptions);
         } catch (error) {
             context.log('Error', error)
             throw new Error(error)
@@ -184,14 +166,12 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
             const existingDevice = user.devices.find(device => device.credentialID === credentialID);
 
             if (!existingDevice) {
-                /**
-                 * Add the returned device to the user's list of devices
-                 */
+                // Add the returned device to the user's list of devices
                 const newDevice = {
                     credentialPublicKey,
                     credentialID,
                     counter,
-                    transports: body.transports,
+                    transports: registrationResponse.transports,
                 };
                 user.devices.push(newDevice);
             }
@@ -214,14 +194,14 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
     //context.log('connectUser', context, data)
     try {
         context.log('db:', inMemoryUserDeviceDB);
-        // (Pseudocode) Retrieve the user from the database after they've logged in
-        // You need to know the user by this point
-        const user = inMemoryUserDeviceDB[loggedInUserId];
+        const username = data.username
+        const userId = toUserId(username)
 
-        const url = new URL(context.req.headers.origin);
-        const rpID = url.hostname; // => 'example.com'
+        const user = inMemoryUserDeviceDB[userId];
 
-        const opts = {
+        const expectedRPID = getRPId(context)
+
+        const baseOptions = {
             timeout: 60000,
             allowCredentials: user.devices.map(dev => {
                 let transports = dev.transports
@@ -235,18 +215,16 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
                 }
             }),
             userVerification: 'required',
-            rpID: rpID
-            // rpID,
+            rpID: expectedRPID
         };
 
-        const options = SimpleWebAuthnServer.generateAuthenticationOptions(opts);
+        const options = SimpleWebAuthnServer.generateAuthenticationOptions(baseOptions);
 
         context.log('options', options)
-        /**
-         * The server needs to temporarily remember this value for verification, so don't lose it until
-         * after you verify an authenticator response.
-         */
-        inMemoryUserDeviceDB[loggedInUserId].currentChallenge = options.challenge;
+
+        // Store the challenge to be verified in the next getWebAuthnAuthenticationOptions() call
+        inMemoryUserDeviceDB[userId].currentChallenge = options.challenge;
+
         context.log('db:', inMemoryUserDeviceDB);
         return options;
     } catch (err) {
@@ -262,60 +240,46 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
     try {
         context.log('db:', inMemoryUserDeviceDB);
         context.log('data:', data);
-        const body = data;
+        const username = data.username
+        const userId = toUserId(username)
 
-        const user = inMemoryUserDeviceDB[loggedInUserId];
+        const user = inMemoryUserDeviceDB[userId];
+        console.log('user', user)
 
-        const expectedChallenge = user.currentChallenge;
+        const authenticationResponse = data.authenticationResponse;
+        const credentialId = base64url.toBuffer(authenticationResponse.rawId);
 
-        let dbAuthenticator;
-        const bodyCredIDBuffer = base64url.toBuffer(body.rawId);
         // "Query the DB" here for an authenticator matching `credentialID`
-        for (const dev of user.devices) {
-            if (dev.credentialID.equals(bodyCredIDBuffer)) {
-                dbAuthenticator = dev;
+        let deviceAuthenticator;
+        for (const device of user.devices) {
+            if (device.credentialID.equals(credentialId)) {
+                deviceAuthenticator = device;
                 break;
             }
         }
 
-        if (!dbAuthenticator) {
-            throw new Error(`could not find authenticator matching ${body.id}`);
+        if (!deviceAuthenticator) {
+            throw new Error(`could not find authenticator matching ${authenticationResponse.id}`);
         }
 
-        const clientDataJSON = base64url.decode(body.response.clientDataJSON);
-        const clientData = JSON.parse(clientDataJSON);
-        const expectedOrigin = clientData.origin
-        context.log('client data origin', clientData.origin)
+        // Get the current challenge stored in the previous getWebAuthnAuthenticationOptions() call
+        const expectedChallenge = user.currentChallenge;
 
-        const authDataBuffer = base64url.toBuffer(body.response.authenticatorData);
-        if (authDataBuffer.byteLength < 37) {
-            throw new Error(
-                `Authenticator data was ${authDataBuffer.byteLength} bytes, expected at least 37 bytes`,
-            );
-        }
-
-        let pointer = 0;
-
-        const url = new URL(context.req.headers.origin);
-        const rpID = url.hostname; // => 'example.com'
-
-        const rpIdHash = authDataBuffer.slice(pointer, (pointer += 32));
-        context.log('rpIdHash', rpIdHash)
-        const idhash = crypto.createHash('SHA256').update(Buffer.from(rpID, 'ascii')).digest();
-        context.log('idhash', idhash)
-        //const expectedRPID = ['localhost']
+        const expectedOrigin = getExpectedOrigin(authenticationResponse.response.clientDataJSON)
+        const expectedRPID = getRPId(context)
 
         let verification;
         try {
-            const opts = {
-                credential: body,
+            const verificationOptions = {
+                credential: authenticationResponse,
                 expectedChallenge: `${expectedChallenge}`,
                 expectedOrigin,
-                expectedRPID: rpID,
-                authenticator: dbAuthenticator,
+                expectedRPID: expectedRPID,
+                authenticator: deviceAuthenticator,
                 requireUserVerification: true,
             };
-            verification = SimpleWebAuthnServer.verifyAuthenticationResponse(opts);
+            context.log('options', verificationOptions)
+            verification = SimpleWebAuthnServer.verifyAuthenticationResponse(verificationOptions);
         } catch (error) {
             context.log('Error', error)
             throw new Error(error)
@@ -325,7 +289,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
         if (verified) {
             // Update the authenticator's counter in the DB to the newest count in the authentication
-            dbAuthenticator.counter = authenticationInfo.newCounter;
+            deviceAuthenticator.counter = authenticationInfo.newCounter;
         }
 
         context.log('db:', inMemoryUserDeviceDB);
@@ -726,4 +690,17 @@ function sha256(message) {
 
 function toUserId(name) {
     return sha256(name.toLowerCase()).substr(0, 32)
+}
+
+function getRPId(context) {
+    const url = new URL(context.req.headers.origin);
+    const rpID = url.hostname;
+    return rpID
+}
+
+function getExpectedOrigin(clientDataJSONField) {
+    const clientDataJSON = base64url.decode(clientDataJSONField);
+    const clientData = JSON.parse(clientDataJSON);
+    const expectedOrigin = clientData.origin
+    return expectedOrigin
 }

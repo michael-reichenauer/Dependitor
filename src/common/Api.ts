@@ -61,9 +61,9 @@ export interface IApi {
   writeBatch(entities: ApiEntity[]): Promise<Result<ApiEntityRsp[]>>;
   removeBatch(keys: string[]): Promise<Result<void>>;
 
-  getWebAuthnRegistrationOptions(): Promise<Result<any>>;
+  getWebAuthnRegistrationOptions(data: any): Promise<Result<any>>;
   verifyWebAuthnRegistration(data: any): Promise<Result<any>>;
-  getWebAuthnAuthenticationOptions(): Promise<Result<any>>;
+  getWebAuthnAuthenticationOptions(data: any): Promise<Result<any>>;
   verifyWebAuthnAuthentication(data: any): Promise<Result<any>>;
 }
 
@@ -80,8 +80,8 @@ export class Api implements IApi {
     this.onError = onError;
   }
 
-  public async getWebAuthnRegistrationOptions(): Promise<Result<any>> {
-    const rsp = await this.post("/api/GetWebAuthnRegistrationOptions", {});
+  public async getWebAuthnRegistrationOptions(data: any): Promise<Result<any>> {
+    const rsp = await this.post("/api/GetWebAuthnRegistrationOptions", data);
     if (isError(rsp)) {
       return rsp;
     }
@@ -96,8 +96,10 @@ export class Api implements IApi {
     return rsp as any;
   }
 
-  public async getWebAuthnAuthenticationOptions(): Promise<Result<any>> {
-    const rsp = await this.post("/api/GetWebAuthnAuthenticationOptions", {});
+  public async getWebAuthnAuthenticationOptions(
+    data: any
+  ): Promise<Result<any>> {
+    const rsp = await this.post("/api/GetWebAuthnAuthenticationOptions", data);
     if (isError(rsp)) {
       return rsp;
     }
