@@ -68,7 +68,7 @@ const loggedInUserId = 'user1'
 // Human-readable title for your website
 const rpName = 'Dependitor';
 // A unique identifier for your website
-const rpID = 'localhost';
+//const rpID = 'localhost';
 // The URL at which registrations and authentications should occur
 // const origin = `https://${rpID}`;
 
@@ -77,7 +77,7 @@ const rpID = 'localhost';
 const inMemoryUserDeviceDB = {
     user1: {
         id: loggedInUserId,
-        username: `user@${rpID}`,
+        username: `user@dependitor.com`,
         devices: [],
         /**
          * A simple way of storing a user's current challenge being signed by registration or authentication.
@@ -90,7 +90,7 @@ const inMemoryUserDeviceDB = {
 };
 
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
-    //context.log('connectUser', context, data)
+    context.log('connectUser', context, data)
     try {
         context.log('db:', inMemoryUserDeviceDB);
         // (Pseudocode) Retrieve the user from the database after they've logged in
@@ -218,6 +218,9 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
         // You need to know the user by this point
         const user = inMemoryUserDeviceDB[loggedInUserId];
 
+        const url = new URL(context.req.headers.origin);
+        const rpID = url.hostname; // => 'example.com'
+
         const opts = {
             timeout: 60000,
             allowCredentials: user.devices.map(dev => {
@@ -232,7 +235,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
                 }
             }),
             userVerification: 'required',
-            rpID: 'azurestaticapps.net'
+            rpID: rpID
             // rpID,
         };
 
@@ -292,6 +295,9 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
         }
 
         let pointer = 0;
+
+        const url = new URL(context.req.headers.origin);
+        const rpID = url.hostname; // => 'example.com'
 
         const rpIdHash = authDataBuffer.slice(pointer, (pointer += 32));
         context.log('rpIdHash', rpIdHash)
