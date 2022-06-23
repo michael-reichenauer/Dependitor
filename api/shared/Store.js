@@ -96,9 +96,6 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         // (Pseudocode) Retrieve the user from the database after they've logged in
         const user = inMemoryUserDeviceDB[loggedInUserId];
         const {
-            /**
-             * The username can be a human-readable name, email, etc... as it is intended only for display.
-             */
             username,
             devices,
         } = user;
@@ -216,11 +213,17 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         const opts = {
             timeout: 60000,
-            allowCredentials: user.devices.map(dev => ({
-                id: dev.credentialID,
-                type: 'public-key',
-                transports: dev.transports ?? ['usb', 'ble', 'nfc', 'internal'],
-            })),
+            allowCredentials: user.devices.map(dev => {
+                let transports = dev.transports
+                if (!transports) {
+                    transports = ['internal', 'usb', 'ble', 'nfc']
+                }
+                return {
+                    id: dev.credentialID,
+                    type: 'public-key',
+                    transports: transports,
+                }
+            }),
             userVerification: 'required',
             rpID,
         };
