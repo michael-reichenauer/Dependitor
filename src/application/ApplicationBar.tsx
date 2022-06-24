@@ -33,6 +33,7 @@ import {
   startRegistration,
 } from "@simplewebauthn/browser";
 import { isError } from "../common/Result";
+import { sha256Hash } from "../common/utils";
 
 type ApplicationBarProps = {
   height: number;
@@ -43,7 +44,7 @@ type ApplicationBarProps = {
 // const username = "user_1";=
 // const userDisplayName = "user 1";
 
-const username = "michael";
+const usernameOrg = "michael";
 
 const register = async () => {
   console.log("register");
@@ -56,9 +57,11 @@ const register = async () => {
     return;
   }
 
+  const usernameSha = await sha256Hash(usernameOrg);
+
   const registrationOptions = await authenticate.getWebAuthnRegistrationOptions(
     {
-      username: username,
+      username: usernameSha,
     }
   );
   if (isError(registrationOptions)) {
@@ -70,9 +73,10 @@ const register = async () => {
     return;
   }
 
-  console.log("got registrations options");
+  console.log("options", registrationOptions);
   const options: any = registrationOptions;
   options.user.id = "12345" + options.user.id;
+  options.user.name = usernameOrg;
 
   let registrationResponse;
   try {
@@ -96,7 +100,7 @@ const register = async () => {
 
   const registrationVerificationResponse =
     await authenticate.verifyWebAuthnRegistration({
-      username: username,
+      username: usernameSha,
       registrationResponse: registrationResponse,
     });
   if (isError(registrationVerificationResponse)) {
@@ -130,10 +134,11 @@ const register = async () => {
 const verify = async () => {
   console.log("verify");
   const authenticate: IAuthenticate = di(IAuthenticateKey);
+  const usernameSha = await sha256Hash(usernameOrg);
 
   // GET authentication options from the endpoint that calls
   const options = await authenticate.getWebAuthnAuthenticationOptions({
-    username: username,
+    username: usernameSha,
   });
   if (isError(options)) {
     console.error("error", options);
@@ -154,13 +159,15 @@ const verify = async () => {
 
   console.log("authentication", authentication);
 
-  authentication.response.userHandle =
-    authentication.response.userHandle.substring(5);
-  console.log("asseResp2", authentication);
+  console.log(
+    "useridprefix",
+    authentication.response.userHandle.substring(0, 5)
+  );
+  authentication.response.userHandle = null;
 
   // POST the response to the endpoint that calls
   const verification = await authenticate.verifyWebAuthnAuthentication({
-    username: username,
+    username: usernameSha,
     authenticationResponse: authentication,
   });
   console.log("rsp", verification);

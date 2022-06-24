@@ -268,8 +268,6 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
         // "Query the DB" here for an authenticator matching `credentialID`
         let deviceAuthenticator;
         for (const device of user.devices) {
-            context.log('device.credentialID', Buffer.from(device.credentialID.data))
-            context.log('credentialId', credentialId)
             if (Buffer.from(device.credentialID.data).equals(credentialId)) {
                 // When device was serialized using json, buffers need to be recreated
                 deviceAuthenticator = {
@@ -302,10 +300,10 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
                 authenticator: deviceAuthenticator,
                 requireUserVerification: true,
             };
-            context.log('options', verificationOptions)
+            // context.log('options', verificationOptions)
             verification = SimpleWebAuthnServer.verifyAuthenticationResponse(verificationOptions);
         } catch (error) {
-            context.log('Error', error)
+            // context.log('Error', error)
             throw new Error(error)
         }
 
@@ -322,7 +320,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
         return { verified };
 
     } catch (err) {
-        context.log('Error', err)
+        // context.log('Error', err)
         if (err.message.includes(emulatorErrorText)) {
             throw new Error(invalidRequestError + ': ' + emulatorErrorText)
         }
