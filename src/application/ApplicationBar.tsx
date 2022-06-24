@@ -46,9 +46,9 @@ type ApplicationBarProps = {
 const username = "michael";
 
 const register = async () => {
+  console.log("register");
   const authenticate: IAuthenticate = di(IAuthenticateKey);
 
-  console.log("register");
   const isAvailable = await platformAuthenticatorIsAvailable();
   console.log("platformAuthenticatorIsAvailable", isAvailable);
   if (!isAvailable) {
@@ -69,12 +69,10 @@ const register = async () => {
     );
     return;
   }
-  alert("Got verification options from server: OK");
 
+  console.log("got registrations options");
   const options: any = registrationOptions;
-  console.log("options1:", options);
   options.user.id = "12345" + options.user.id;
-  console.log("options2:", options);
 
   let registrationResponse;
   try {
@@ -95,7 +93,6 @@ const register = async () => {
     return;
   }
   console.log("registrationResponse", registrationResponse);
-  alert("Registered on device: OK " + registrationResponse.id);
 
   const registrationVerificationResponse =
     await authenticate.verifyWebAuthnRegistration({
@@ -135,57 +132,46 @@ const verify = async () => {
   const authenticate: IAuthenticate = di(IAuthenticateKey);
 
   // GET authentication options from the endpoint that calls
-  const authenticationOptions =
-    await authenticate.getWebAuthnAuthenticationOptions({
-      username: username,
-    });
-  if (isError(authenticationOptions)) {
-    console.error("error", authenticationOptions);
+  const options = await authenticate.getWebAuthnAuthenticationOptions({
+    username: username,
+  });
+  if (isError(options)) {
+    console.error("error", options);
     alert("Error: failed to get authentication options from server");
     return;
   }
-  console.log("authOptions", authenticationOptions);
-  alert("Got authentication options from server OK ");
+  console.log("got authentication", options);
 
-  let authenticationResponse;
+  let authentication;
   try {
     // Pass the options to the authenticator and wait for a response
-    authenticationResponse = await startAuthentication(authenticationOptions);
+    authentication = await startAuthentication(options);
   } catch (error) {
     console.error("Error", error);
     alert("Error: Failed to authenticate on device" + error);
     return;
   }
 
-  console.log("asseResp1", authenticationResponse);
-  alert(
-    "Authenticated on device ok: " + authenticationResponse.response.userHandle
-  );
-  authenticationResponse.response.userHandle =
-    authenticationResponse.response.userHandle.substring(5);
-  console.log("asseResp2", authenticationResponse);
+  console.log("authentication", authentication);
+
+  authentication.response.userHandle =
+    authentication.response.userHandle.substring(5);
+  console.log("asseResp2", authentication);
 
   // POST the response to the endpoint that calls
-  const authenticationVerificationResponse =
-    await authenticate.verifyWebAuthnAuthentication({
-      username: username,
-      authenticationResponse: authenticationResponse,
-    });
-  console.log("rsp", authenticationVerificationResponse);
+  const verification = await authenticate.verifyWebAuthnAuthentication({
+    username: username,
+    authenticationResponse: authentication,
+  });
+  console.log("rsp", verification);
 
-  if (isError(authenticationVerificationResponse)) {
-    console.error("error", authenticationVerificationResponse);
-    alert(
-      "Error: Failed to verify authentication on server: " +
-        authenticationVerificationResponse
-    );
+  if (isError(verification)) {
+    console.error("error", verification);
+    alert("Error: Failed to verify authentication on server: " + verification);
     return;
   }
 
-  alert(
-    "Authenticated verified by server" +
-      (authenticationVerificationResponse as any).verified
-  );
+  alert("Authenticated verified by server" + (verification as any).verified);
 };
 
 // const register = async () => {
