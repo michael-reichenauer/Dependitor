@@ -73,18 +73,42 @@ function getUser(id) {
     if (!userJson) {
         return null
     }
-    return JSON.parse(userJson)
+    const user = JSON.parse(userJson)
+
+    // Since user.devices contain binary buffers, they need to be decoded manually
+    user.devices = user.devices.map(device => decodeDevice(device))
+    return user
 }
 
-function setUser(id, user) {
+function updateUser(id, user) {
+    // Since user.devices contain binary buffers, they need to be encoded manually
+    user.devices = user.devices.map(device => encodeDevice(device))
     inMemoryUserDeviceDBX[id] = JSON.stringify(user)
 }
 
+function encodeDevice(device) {
+    return {
+        credentialID: device.credentialID.toString('base64'),
+        credentialPublicKey: device.credentialPublicKey.toString('base64'),
+        counter: device.counter,
+        transports: device.transports
+    }
+}
+
+function decodeDevice(device) {
+    return {
+        credentialID: Buffer.from(device.credentialID, 'base64'),
+        credentialPublicKey: Buffer.from(device.credentialPublicKey, 'base64'),
+        counter: device.counter,
+        transports: device.transports
+    }
+
+}
 
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     //context.log('connectUser', context, data)
     try {
-        context.log('db:', inMemoryUserDeviceDBX);
+        //context.log('db:', inMemoryUserDeviceDBX);
         const username = data.username
         const userId = toUserId(username)
 
@@ -97,11 +121,8 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
                 username: username,
                 devices: [],
                 currentChallenge: undefined,
-
             }
         }
-
-        //context.log('User:', user);
 
         const baseOptions = {
             rpName: ServiceName,
@@ -113,15 +134,14 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
             },
             supportedAlgorithmIDs: [-7, -257],
 
-            // Currently not used:
             // Passing in a user's list of already-registered authenticator IDs here prevents users from
             //  registering the same device multiple times. The authenticator will simply throw an error in
             //  the browser if it's asked to perform registration when one of these ID's already resides
             //  on it.     
-            // excludeCredentials: devices.map(dev => ({
-            //     id: dev.credentialID,
+            // excludeCredentials: user.devices.map(device => ({
+            //     id: device.credentialID,
             //     type: 'public-key',
-            //     transports: dev.transports,
+            //     transports: device.transports,
             // })),
         };
 
@@ -129,10 +149,10 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 
         // Store the current challenge for this user for next verifyWebAuthnRegistration() call
         user.currentChallenge = options.challenge
-        setUser(userId, user)
+        updateUser(userId, user)
 
         // context.log('options:', options);
-        context.log('db:', inMemoryUserDeviceDBX);
+        // context.log('db:', inMemoryUserDeviceDBX);
 
         return options;
     } catch (err) {
@@ -143,58 +163,55 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
     }
 }
 
+
 exports.verifyWebAuthnRegistration = async (context, data) => {
     //context.log('connectUser', context, data)
     try {
-        context.log('db:', inMemoryUserDeviceDBX);
-        context.log('data:', data);
+        // context.log('db:', inMemoryUserDeviceDBX);
+        // context.log('data:', data);
         const username = data.username
         const userId = toUserId(username)
-        const registrationResponse = data.registrationResponse;
+        const registration = data.registration;
 
         const user = getUser(userId);
         const expectedChallenge = user.currentChallenge;
+        user.currentChallenge = null
 
-        const expectedOrigin = getExpectedOrigin(registrationResponse.response.clientDataJSON)
+        // Currently using registration origin, but can be narrowed to some wellknown origins
+        const expectedOrigin = getExpectedOrigin(registration.response.clientDataJSON)
 
-        let verification;
-        try {
-            const verifyOptions = {
-                credential: registrationResponse,
-                expectedChallenge: `${expectedChallenge}`,
-                expectedOrigin,
-                requireUserVerification: true,
-            };
-            verification = await SimpleWebAuthnServer.verifyRegistrationResponse(verifyOptions);
-        } catch (error) {
-            context.log('Error', error)
-            throw new Error(error)
-        }
-
+        const verifyOptions = {
+            credential: registration,
+            expectedChallenge: `${expectedChallenge}`,
+            expectedOrigin,
+            requireUserVerification: true,
+        };
+        const verification = await SimpleWebAuthnServer.verifyRegistrationResponse(verifyOptions);
         const { verified, registrationInfo } = verification;
-
-        if (verified && registrationInfo) {
-            const { credentialPublicKey, credentialID, counter } = registrationInfo;
-
-            const existingDevice = user.devices.find(device => device.credentialID === credentialID);
-
-            if (!existingDevice) {
-                // Add the returned device to the user's list of devices
-                const newDevice = {
-                    credentialPublicKey,
-                    credentialID,
-                    counter,
-                    transports: registrationResponse.transports,
-                };
-                user.devices.push(newDevice);
-            }
+        if (!verified || !registrationInfo) {
+            throw new Error('Failed to verify registration')
         }
 
-        setUser(userId, user)
 
-        context.log('db:', inMemoryUserDeviceDBX);
+        const { credentialPublicKey, credentialID, counter } = registrationInfo;
+        const existingDevice = user.devices.find(device => device.credentialID.equals(credentialID));
+
+        if (!existingDevice) {
+            // Add the returned device to the user's list of devices
+            const newDevice = {
+                credentialPublicKey,
+                credentialID,
+                counter,
+                transports: registration.transports,
+            };
+            user.devices.push(newDevice);
+        }
+        user.devices = user.devices.slice(-10)
+
+        updateUser(userId, user)
+
+        //context.log('db:', inMemoryUserDeviceDBX);
         return { verified };
-
     } catch (err) {
         context.log('Error:', err)
         if (err.message.includes(emulatorErrorText)) {
@@ -208,7 +225,7 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
 exports.getWebAuthnAuthenticationOptions = async (context, data) => {
     //context.log('connectUser', context, data)
     try {
-        context.log('db:', inMemoryUserDeviceDBX);
+        // context.log('db:', inMemoryUserDeviceDBX);
         const username = data.username
         const userId = toUserId(username)
 
@@ -218,13 +235,13 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         const baseOptions = {
             timeout: 60000,
-            allowCredentials: user.devices.map(dev => {
-                let transports = dev.transports
+            allowCredentials: user.devices.map(device => {
+                let transports = device.transports
                 if (!transports) {
                     transports = ['internal', 'usb', 'ble', 'nfc']
                 }
                 return {
-                    id: dev.credentialID,
+                    id: device.credentialID,
                     type: 'public-key',
                     transports: transports,
                 }
@@ -239,9 +256,9 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         // Store the challenge to be verified in the next getWebAuthnAuthenticationOptions() call
         user.currentChallenge = options.challenge
-        setUser(userId, user)
+        updateUser(userId, user)
 
-        context.log('db:', inMemoryUserDeviceDBX);
+        //context.log('db:', inMemoryUserDeviceDBX);
         return options;
     } catch (err) {
         if (err.message.includes(emulatorErrorText)) {
@@ -254,58 +271,40 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 exports.verifyWebAuthnAuthentication = async (context, data) => {
     //context.log('connectUser', context, data)
     try {
-        context.log('db:', inMemoryUserDeviceDBX);
-        context.log('data:', data);
+        // context.log('db:', inMemoryUserDeviceDBX);
+        // context.log('data:', data);
         const username = data.username
         const userId = toUserId(username)
 
         const user = getUser(userId);
         //console.log('user', user)
 
-        const authenticationResponse = data.authenticationResponse;
-        const credentialId = base64url.toBuffer(authenticationResponse.rawId);
+        const authentication = data.authentication;
+        const credentialID = base64url.toBuffer(authentication.rawId);
 
         // "Query the DB" here for an authenticator matching `credentialID`
-        let deviceAuthenticator;
-        for (const device of user.devices) {
-            if (Buffer.from(device.credentialID.data).equals(credentialId)) {
-                // When device was serialized using json, buffers need to be recreated
-                deviceAuthenticator = {
-                    credentialID: Buffer.from(device.credentialID.data),
-                    credentialPublicKey: Buffer.from(device.credentialPublicKey.data),
-                    counter: device.counter,
-                    transports: device.transports
-                };
-                break;
-            }
-        }
-
+        let deviceAuthenticator = user.devices.find(device => device.credentialID.equals(credentialID));
         if (!deviceAuthenticator) {
-            throw new Error(`could not find authenticator matching ${authenticationResponse.id}`);
+            throw new Error(`could not find device authenticator matching ${authentication.id}`);
         }
 
         // Get the current challenge stored in the previous getWebAuthnAuthenticationOptions() call
         const expectedChallenge = user.currentChallenge;
+        user.currentChallenge = null
 
-        const expectedOrigin = getExpectedOrigin(authenticationResponse.response.clientDataJSON)
+        const expectedOrigin = getExpectedOrigin(authentication.response.clientDataJSON)
         const expectedRPID = getRPId(context)
 
-        let verification;
-        try {
-            const verificationOptions = {
-                credential: authenticationResponse,
-                expectedChallenge: `${expectedChallenge}`,
-                expectedOrigin,
-                expectedRPID: expectedRPID,
-                authenticator: deviceAuthenticator,
-                requireUserVerification: true,
-            };
-            // context.log('options', verificationOptions)
-            verification = SimpleWebAuthnServer.verifyAuthenticationResponse(verificationOptions);
-        } catch (error) {
-            // context.log('Error', error)
-            throw new Error(error)
-        }
+        const verificationOptions = {
+            credential: authentication,
+            expectedChallenge: `${expectedChallenge}`,
+            expectedOrigin,
+            expectedRPID: expectedRPID,
+            authenticator: deviceAuthenticator,
+            requireUserVerification: true,
+        };
+        // context.log('options', verificationOptions)
+        const verification = SimpleWebAuthnServer.verifyAuthenticationResponse(verificationOptions);
 
         const { verified, authenticationInfo } = verification;
 
@@ -314,13 +313,13 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
             deviceAuthenticator.counter = authenticationInfo.newCounter;
         }
 
-        setUser(userId, user)
+        updateUser(userId, user)
 
-        context.log('db:', inMemoryUserDeviceDBX);
+        // context.log('db:', inMemoryUserDeviceDBX);
         return { verified };
 
     } catch (err) {
-        // context.log('Error', err)
+        context.log('Error', err)
         if (err.message.includes(emulatorErrorText)) {
             throw new Error(invalidRequestError + ': ' + emulatorErrorText)
         }

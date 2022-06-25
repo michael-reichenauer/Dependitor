@@ -78,10 +78,10 @@ const register = async () => {
   options.user.id = "12345" + options.user.id;
   options.user.name = usernameOrg;
 
-  let registrationResponse;
+  let registration;
   try {
     // Pass the options to the authenticator and wait for a response
-    registrationResponse = await startRegistration(options);
+    registration = await startRegistration(options);
   } catch (error) {
     // Some basic error handling
     const e = error as Error;
@@ -96,39 +96,26 @@ const register = async () => {
 
     return;
   }
-  console.log("registrationResponse", registrationResponse);
+  console.log("registrationResponse", registration);
 
-  const registrationVerificationResponse =
-    await authenticate.verifyWebAuthnRegistration({
-      username: usernameSha,
-      registrationResponse: registrationResponse,
-    });
-  if (isError(registrationVerificationResponse)) {
-    console.error("error", registrationVerificationResponse);
-    alert(
-      "Error: Failed to verify registration on server" +
-        registrationVerificationResponse
-    );
+  const verification = await authenticate.verifyWebAuthnRegistration({
+    username: usernameSha,
+    registration: registration,
+  });
+  if (isError(verification)) {
+    console.error("error", verification);
+    alert("Error: Failed to verify registration on server" + verification);
     return;
   }
 
-  if (!(registrationVerificationResponse as any).verified) {
-    console.error(
-      "Failed to verify registration on server",
-      registrationVerificationResponse
-    );
-    alert(
-      "Error: Failed to verify registration on server: " +
-        registrationVerificationResponse
-    );
+  if (!(verification as any).verified) {
+    console.error("Failed to verify registration on server", verification);
+    alert("Error: Failed to verify registration on server: " + verification);
     return;
   }
 
-  console.log("verified registration", registrationVerificationResponse);
-  alert(
-    "Registration verified by server: " +
-      (registrationVerificationResponse as any).verified
-  );
+  console.log("verified registration", verification);
+  alert("Registration verified by server: " + (verification as any).verified);
 };
 
 const verify = async () => {
@@ -168,7 +155,7 @@ const verify = async () => {
   // POST the response to the endpoint that calls
   const verification = await authenticate.verifyWebAuthnAuthentication({
     username: usernameSha,
-    authenticationResponse: authentication,
+    authentication: authentication,
   });
   console.log("rsp", verification);
 
