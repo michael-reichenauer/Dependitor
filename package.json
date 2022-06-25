@@ -48,7 +48,7 @@
   },
   "scripts": {
     "swa": "npx @azure/static-web-apps-cli start",
-    "azurite": "npx azurite-table --location .azuritedb",
+    "azurite": "npx azurite --location .azuritedb",
     "api": "cd api && npx azure-functions-core-tools start && cd ..",
     "web": "react-scripts start",
     "start": "concurrently --kill-others \"npm run azurite\" \"npm run api\" \"BROWSER=none react-scripts start\"",

@@ -64,57 +64,56 @@ exports.createUser = async (context, data) => {
 }
 
 
-const inMemoryUserDeviceDBX = {
+async function getUser(userId) {
+    const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
 
-};
-
-function getUser(id) {
-    const userJson = inMemoryUserDeviceDBX[id]
-    if (!userJson) {
-        return null
-    }
-    const user = JSON.parse(userJson)
+    const user = JSON.parse(userTableEntity.user)
 
     // Since user.devices contain binary buffers, they need to be decoded manually
-    user.devices = user.devices.map(device => decodeDevice(device))
-    return user
-}
-
-function updateUser(id, user) {
-    // Since user.devices contain binary buffers, they need to be encoded manually
-    user.devices = user.devices.map(device => encodeDevice(device))
-    inMemoryUserDeviceDBX[id] = JSON.stringify(user)
-}
-
-function encodeDevice(device) {
-    return {
-        credentialID: device.credentialID.toString('base64'),
-        credentialPublicKey: device.credentialPublicKey.toString('base64'),
-        counter: device.counter,
-        transports: device.transports
-    }
-}
-
-function decodeDevice(device) {
-    return {
+    user.devices = user.devices.map(device => ({
         credentialID: Buffer.from(device.credentialID, 'base64'),
         credentialPublicKey: Buffer.from(device.credentialPublicKey, 'base64'),
         counter: device.counter,
         transports: device.transports
-    }
+    }))
 
+    return user
 }
 
+
+async function updateUser(userId, user) {
+    // Since user.devices contain binary buffers, they need to be encoded manually
+    user.devices = user.devices.map(device => ({
+        credentialID: device.credentialID.toString('base64'),
+        credentialPublicKey: device.credentialPublicKey.toString('base64'),
+        counter: device.counter,
+        transports: device.transports
+    }))
+
+    const wDek = ""
+    const userItem = toUserTableEntity2(userId, user, wDek)
+    await table.insertOrReplaceEntity(usersTableName, userItem)
+}
+
+
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
-    //context.log('connectUser', context, data)
     try {
-        //context.log('db:', inMemoryUserDeviceDBX);
-        const username = data.username
+        // Make sure the user table exists
+        await table.createTableIfNotExists(usersTableName)
+
+        const { username } = data
         const userId = toUserId(username)
 
-        // (Pseudocode) Retrieve the user from the database after they've logged in
-        let user = getUser(userId);
-        if (!user) {
+        // Try get the user, if it is the first time for this user, we create a default user
+        let user
+        try {
+            user = await getUser(userId)
+        } catch (err) {
+            if (err.message.includes(emulatorErrorText)) {
+                // Rethrow error for not started emulator
+                throw (err)
+            }
+
             // No user with that name registered, user default user
             user = {
                 id: userId,
@@ -149,13 +148,11 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 
         // Store the current challenge for this user for next verifyWebAuthnRegistration() call
         user.currentChallenge = options.challenge
-        updateUser(userId, user)
-
-        // context.log('options:', options);
-        // context.log('db:', inMemoryUserDeviceDBX);
+        await updateUser(userId, user)
 
         return options;
     } catch (err) {
+        context.log('Error:', err)
         if (err.message.includes(emulatorErrorText)) {
             throw new Error(invalidRequestError + ': ' + emulatorErrorText)
         }
@@ -165,15 +162,11 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 
 
 exports.verifyWebAuthnRegistration = async (context, data) => {
-    //context.log('connectUser', context, data)
     try {
-        // context.log('db:', inMemoryUserDeviceDBX);
-        // context.log('data:', data);
-        const username = data.username
+        const { username, registration } = data
         const userId = toUserId(username)
-        const registration = data.registration;
 
-        const user = getUser(userId);
+        const user = await getUser(userId);
         const expectedChallenge = user.currentChallenge;
         user.currentChallenge = null
 
@@ -192,7 +185,6 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
             throw new Error('Failed to verify registration')
         }
 
-
         const { credentialPublicKey, credentialID, counter } = registrationInfo;
         const existingDevice = user.devices.find(device => device.credentialID.equals(credentialID));
 
@@ -206,11 +198,11 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
             };
             user.devices.push(newDevice);
         }
+
+        // Limit number of allowed user device registrations
         user.devices = user.devices.slice(-10)
 
-        updateUser(userId, user)
-
-        //context.log('db:', inMemoryUserDeviceDBX);
+        await updateUser(userId, user)
         return { verified };
     } catch (err) {
         context.log('Error:', err)
@@ -223,18 +215,16 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
 
 
 exports.getWebAuthnAuthenticationOptions = async (context, data) => {
-    //context.log('connectUser', context, data)
     try {
-        // context.log('db:', inMemoryUserDeviceDBX);
-        const username = data.username
+        const { username } = data
         const userId = toUserId(username)
 
-        const user = getUser(userId);
+        const user = await getUser(userId);
 
+        // Currently using request origin, can be narrowed to some wellknown origins
         const expectedRPID = getRPId(context)
 
         const baseOptions = {
-            timeout: 60000,
             allowCredentials: user.devices.map(device => {
                 let transports = device.transports
                 if (!transports) {
@@ -252,13 +242,10 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         const options = SimpleWebAuthnServer.generateAuthenticationOptions(baseOptions);
 
-        //context.log('options', options)
-
-        // Store the challenge to be verified in the next getWebAuthnAuthenticationOptions() call
+        // Store the challenge to be verified in the next verifyWebAuthnAuthentication() call
         user.currentChallenge = options.challenge
-        updateUser(userId, user)
+        await updateUser(userId, user)
 
-        //context.log('db:', inMemoryUserDeviceDBX);
         return options;
     } catch (err) {
         if (err.message.includes(emulatorErrorText)) {
@@ -269,20 +256,14 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 }
 
 exports.verifyWebAuthnAuthentication = async (context, data) => {
-    //context.log('connectUser', context, data)
     try {
-        // context.log('db:', inMemoryUserDeviceDBX);
-        // context.log('data:', data);
-        const username = data.username
+        const { username, authentication } = data
         const userId = toUserId(username)
 
-        const user = getUser(userId);
-        //console.log('user', user)
+        const user = await getUser(userId);
 
-        const authentication = data.authentication;
+        // Get the specified device authenticator
         const credentialID = base64url.toBuffer(authentication.rawId);
-
-        // "Query the DB" here for an authenticator matching `credentialID`
         let deviceAuthenticator = user.devices.find(device => device.credentialID.equals(credentialID));
         if (!deviceAuthenticator) {
             throw new Error(`could not find device authenticator matching ${authentication.id}`);
@@ -303,7 +284,6 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
             authenticator: deviceAuthenticator,
             requireUserVerification: true,
         };
-        // context.log('options', verificationOptions)
         const verification = SimpleWebAuthnServer.verifyAuthenticationResponse(verificationOptions);
 
         const { verified, authenticationInfo } = verification;
@@ -313,9 +293,8 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
             deviceAuthenticator.counter = authenticationInfo.newCounter;
         }
 
-        updateUser(userId, user)
+        await updateUser(userId, user)
 
-        // context.log('db:', inMemoryUserDeviceDBX);
         return { verified };
 
     } catch (err) {
@@ -651,6 +630,26 @@ function toUserTableEntity(userId, passwordHash, wDek) {
         PartitionKey: entGen.String(userPartitionKey),
 
         passwordHash: entGen.String(passwordHash),
+        wDek: entGen.String(wDek),
+    }
+}
+
+function toUserTableEntity2(userId, user, wDek) {
+    // Since user.devices contain binary buffers, they need to be encoded manually
+    user.devices = user.devices.map(device => ({
+        credentialID: device.credentialID.toString('base64'),
+        credentialPublicKey: device.credentialPublicKey.toString('base64'),
+        counter: device.counter,
+        transports: device.transports
+    }))
+
+    const userJson = JSON.stringify(user)
+
+    return {
+        RowKey: entGen.String(userId),
+        PartitionKey: entGen.String(userPartitionKey),
+
+        user: entGen.String(userJson),
         wDek: entGen.String(wDek),
     }
 }
