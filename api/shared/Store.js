@@ -9,6 +9,8 @@ var table = require('../shared/table.js');
 const entGen = azure.TableUtilities.entityGenerator;
 
 const ServiceName = 'Dependitor';
+const defaultTransports = ['internal', 'usb', 'ble', 'nfc'] // possible: ['internal', 'usb', 'ble', 'nfc']
+const maxUserDeviceRegistrations = 20
 
 const dataBaseTableName = 'data'
 const usersTableName = 'users'
@@ -96,6 +98,7 @@ async function updateUser(userId, user) {
 }
 
 
+// getWebAuthnRegistrationOptions is called when a user wants to register a device for authentication
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     try {
         // Make sure the user table exists
@@ -109,21 +112,11 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         try {
             user = await getUser(userId)
         } catch (err) {
-            if (err.message.includes(emulatorErrorText)) {
-                // Rethrow error for not started emulator
-                throw (err)
-            }
-
             // No user with that name registered, user default user
-            user = {
-                id: userId,
-                username: username,
-                devices: [],
-                currentChallenge: undefined,
-            }
+            user = { id: userId, username: username, devices: [] }
         }
 
-        const baseOptions = {
+        const generateOptions = {
             rpName: ServiceName,
             userID: userId,
             userName: username,
@@ -144,7 +137,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
             // })),
         };
 
-        const options = SimpleWebAuthnServer.generateRegistrationOptions(baseOptions);
+        const options = SimpleWebAuthnServer.generateRegistrationOptions(generateOptions);
 
         // Store the current challenge for this user for next verifyWebAuthnRegistration() call
         user.currentChallenge = options.challenge
@@ -153,14 +146,12 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         return options;
     } catch (err) {
         context.log('Error:', err)
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
+        throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
 }
 
-
+// verifyWebAuthnRegistration is called to verify a device registration
 exports.verifyWebAuthnRegistration = async (context, data) => {
     try {
         const { username, registration } = data
@@ -185,6 +176,7 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
             throw new Error('Failed to verify registration')
         }
 
+        // Verification of registration succeeded, lets update user info 
         const { credentialPublicKey, credentialID, counter } = registrationInfo;
         const existingDevice = user.devices.find(device => device.credentialID.equals(credentialID));
 
@@ -200,15 +192,18 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
         }
 
         // Limit number of allowed user device registrations
-        user.devices = user.devices.slice(-10)
+        user.devices = user.devices.slice(-maxUserDeviceRegistrations)
 
         await updateUser(userId, user)
-        return { verified };
+
+        const clientId = getClientId(context)
+        const sessionId = await createSession(clientId, userId)
+        const cookies = createCookies(clientId, sessionId)
+
+        return { response: { verified: verified }, cookies: cookies }
     } catch (err) {
         context.log('Error:', err)
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
+        throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
 }
@@ -224,11 +219,11 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
         // Currently using request origin, can be narrowed to some wellknown origins
         const expectedRPID = getRPId(context)
 
-        const baseOptions = {
+        const generateOptions = {
             allowCredentials: user.devices.map(device => {
                 let transports = device.transports
                 if (!transports) {
-                    transports = ['internal', 'usb', 'ble', 'nfc']
+                    transports = defaultTransports
                 }
                 return {
                     id: device.credentialID,
@@ -240,7 +235,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
             rpID: expectedRPID
         };
 
-        const options = SimpleWebAuthnServer.generateAuthenticationOptions(baseOptions);
+        const options = SimpleWebAuthnServer.generateAuthenticationOptions(generateOptions);
 
         // Store the challenge to be verified in the next verifyWebAuthnAuthentication() call
         user.currentChallenge = options.challenge
@@ -248,9 +243,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         return options;
     } catch (err) {
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
+        throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
 }
@@ -262,19 +255,19 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
         const user = await getUser(userId);
 
-        // Get the specified device authenticator
-        const credentialID = base64url.toBuffer(authentication.rawId);
-        let deviceAuthenticator = user.devices.find(device => device.credentialID.equals(credentialID));
-        if (!deviceAuthenticator) {
-            throw new Error(`could not find device authenticator matching ${authentication.id}`);
-        }
-
         // Get the current challenge stored in the previous getWebAuthnAuthenticationOptions() call
         const expectedChallenge = user.currentChallenge;
         user.currentChallenge = null
 
         const expectedOrigin = getExpectedOrigin(authentication.response.clientDataJSON)
         const expectedRPID = getRPId(context)
+
+        // Get the specified device authenticator
+        const credentialID = base64url.toBuffer(authentication.rawId);
+        let deviceAuthenticator = user.devices.find(device => device.credentialID.equals(credentialID));
+        if (!deviceAuthenticator) {
+            throw new Error(`could not find device authenticator matching ${authentication.id}`);
+        }
 
         const verificationOptions = {
             credential: authentication,
@@ -288,22 +281,67 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
         const { verified, authenticationInfo } = verification;
 
-        if (verified) {
-            // Update the authenticator's counter in the DB to the newest count in the authentication
-            deviceAuthenticator.counter = authenticationInfo.newCounter;
+        if (!verified) {
+            throw new Error('Failed to verify authentication')
         }
+
+        // Update the authenticator's counter in the DB to the newest count in the authentication
+        deviceAuthenticator.counter = authenticationInfo.newCounter;
 
         await updateUser(userId, user)
 
-        return { verified };
+        const clientId = getClientId(context)
+        const sessionId = await createSession(clientId, userId)
+        const cookies = createCookies(clientId, sessionId)
 
+        return { response: { verified }, cookies: cookies };
     } catch (err) {
         context.log('Error', err)
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
+        throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
+}
+
+
+async function createSession(clientId, userId) {
+
+    // Create user data table if it does not already exist
+    const tableName = dataBaseTableName + userId
+    await table.createTableIfNotExists(tableName)
+    await table.createTableIfNotExists(sessionsTableName)
+
+    // Clear previous sessions from this client
+    await clearClientSessions(clientId)
+
+    // Create new session id and store
+    const sessionId = makeRandomId()
+    const sessionTableEntity = toSessionTableEntity(sessionId, userId, clientId)
+    await table.insertEntity(sessionsTableName, sessionTableEntity)
+
+    return sessionId
+}
+
+function createCookies(clientId, sessionId) {
+    // Set session id and client id
+    const cookies = [{
+        name: 'sessionId',
+        value: sessionId,
+        path: '/',
+        secure: true,
+        httpOnly: true,
+        sameSite: "Strict",
+    },
+    {
+        name: 'clientId',
+        value: clientId,
+        path: '/',
+        expires: clientIdExpires,  // Persistent for a long time
+        secure: true,
+        httpOnly: true,
+        sameSite: "Strict"
+    }]
+
+    return cookies
 }
 
 exports.login = async (context, data) => {
@@ -315,6 +353,7 @@ exports.login = async (context, data) => {
 
     try {
         // Verify user and password
+        const clientId = getClientId(context)
         const userId = toUserId(username)
         const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
         const isMatch = await bcryptCompare(password, userTableEntity.passwordHash)
@@ -325,15 +364,13 @@ exports.login = async (context, data) => {
         // Create user data table if it does not already exist
         const tableName = dataBaseTableName + userId
         await table.createTableIfNotExists(tableName)
-
         await table.createTableIfNotExists(sessionsTableName)
 
         // Clear previous sessions from this client
-        await clearClientSessions(context)
+        await clearClientSessions(clientId)
 
         // Create new session id and store
         const sessionId = makeRandomId()
-        const clientId = getClientId(context)
         const sessionTableEntity = toSessionTableEntity(sessionId, userId, clientId)
         await table.insertEntity(sessionsTableName, sessionTableEntity)
 
@@ -358,9 +395,7 @@ exports.login = async (context, data) => {
 
         return { data: { wDek: userTableEntity.wDek }, cookies: cookies }
     } catch (err) {
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
+        throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
 }
@@ -369,9 +404,9 @@ exports.logoff = async (context, data) => {
     await getUserId(context)
 
     try {
-        await clearClientSessions(context)
-
         const clientId = getClientId(context)
+        await clearClientSessions(clientId)
+
         const cookies = [
             {
                 name: 'sessionId',
@@ -394,6 +429,7 @@ exports.logoff = async (context, data) => {
 
         return { cookies: cookies }
     } catch (err) {
+        throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
 }
@@ -435,6 +471,7 @@ exports.tryReadBatch = async (context, body) => {
 
         return responses
     } catch (err) {
+        throwIfEmulatorError(err)
         throw new Error(invalidRequestError)
     }
 }
@@ -471,6 +508,7 @@ exports.writeBatch = async (context, body) => {
 
         return responses
     } catch (err) {
+        throwIfEmulatorError(err)
         throw new Error(invalidRequestError)
     }
 }
@@ -491,6 +529,7 @@ exports.removeBatch = async (context, body) => {
 
         return ''
     } catch (err) {
+        throwIfEmulatorError(err)
         throw new Error(invalidRequestError)
     }
 }
@@ -507,9 +546,7 @@ function getClientId(context) {
     return clientId
 }
 
-async function clearClientSessions(context) {
-    const clientId = getClientId(context)
-
+async function clearClientSessions(clientId) {
     // Get all existing sessions for the client
     let tableQuery = new azure.TableQuery()
         .where('PartitionKey == ?string? && clientId == ?string?',
@@ -616,6 +653,13 @@ function makeRandomId() {
     }
     return ID;
 }
+
+function throwIfEmulatorError(error) {
+    if (error.message.includes(emulatorErrorText)) {
+        throw new Error(invalidRequestError + ': ' + emulatorErrorText)
+    }
+}
+
 
 // async function delay(time) {
 //     return new Promise(res => {

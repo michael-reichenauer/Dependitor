@@ -165,6 +165,12 @@ const verify = async () => {
     return;
   }
 
+  if (!(verification as any).verified) {
+    console.error("Failed to verify authentication on server", verification);
+    alert("Error: Failed to verify authentication on server: " + verification);
+    return;
+  }
+
   alert("Authenticated verified by server" + (verification as any).verified);
 };
 
