@@ -1,4 +1,4 @@
-import { AuthenticateError, IApi, IApiKey } from "./Api";
+import { AuthenticateError, IApi, IApiKey, VerifyRsp } from "./Api";
 import { User } from "./Api";
 import { di, diKey, singleton } from "./di";
 import { IKeyVaultConfigure, IKeyVaultConfigureKey } from "./keyVault";
@@ -14,9 +14,9 @@ export interface IAuthenticate {
   resetLogin(): void;
 
   getWebAuthnRegistrationOptions(data: any): Promise<Result<any>>;
-  verifyWebAuthnRegistration(data: any): Promise<Result<any>>;
+  verifyWebAuthnRegistration(data: any): Promise<Result<VerifyRsp>>;
   getWebAuthnAuthenticationOptions(data: any): Promise<Result<any>>;
-  verifyWebAuthnAuthentication(data: any): Promise<Result<any>>;
+  verifyWebAuthnAuthentication(data: any): Promise<Result<VerifyRsp>>;
 }
 
 const minUserName = 2;

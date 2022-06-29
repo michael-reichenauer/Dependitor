@@ -20,6 +20,10 @@ export interface LoginRsp {
   wDek: string;
 }
 
+export interface VerifyRsp {
+  verified: boolean;
+}
+
 export type ApiEntityStatus = "value" | "noValue" | "notModified" | "error";
 
 export interface ApiEntity {
@@ -62,9 +66,9 @@ export interface IApi {
   removeBatch(keys: string[]): Promise<Result<void>>;
 
   getWebAuthnRegistrationOptions(data: any): Promise<Result<any>>;
-  verifyWebAuthnRegistration(data: any): Promise<Result<any>>;
+  verifyWebAuthnRegistration(data: any): Promise<Result<VerifyRsp>>;
   getWebAuthnAuthenticationOptions(data: any): Promise<Result<any>>;
-  verifyWebAuthnAuthentication(data: any): Promise<Result<any>>;
+  verifyWebAuthnAuthentication(data: any): Promise<Result<VerifyRsp>>;
 }
 
 @singleton(IApiKey)
@@ -88,7 +92,9 @@ export class Api implements IApi {
     return rsp as any;
   }
 
-  public async verifyWebAuthnRegistration(data: any): Promise<Result<any>> {
+  public async verifyWebAuthnRegistration(
+    data: any
+  ): Promise<Result<VerifyRsp>> {
     const rsp = await this.post("/api/VerifyWebAuthnRegistration", data);
     if (isError(rsp)) {
       return rsp;
@@ -106,7 +112,9 @@ export class Api implements IApi {
     return rsp as any;
   }
 
-  public async verifyWebAuthnAuthentication(data: any): Promise<Result<any>> {
+  public async verifyWebAuthnAuthentication(
+    data: any
+  ): Promise<Result<VerifyRsp>> {
     const rsp = await this.post("/api/VerifyWebAuthnAuthentication", data);
     if (isError(rsp)) {
       return rsp;

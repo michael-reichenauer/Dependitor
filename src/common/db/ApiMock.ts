@@ -6,6 +6,7 @@ import {
   ApiEntityRsp,
   LoginRsp,
   CreateUserReq,
+  VerifyRsp,
 } from "../Api";
 import { di } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
@@ -18,13 +19,13 @@ export class ApiMock implements IApi {
   getWebAuthnRegistrationOptions(data: any): Promise<any> {
     throw new Error("Method not implemented.");
   }
-  verifyWebAuthnRegistration(data: any): Promise<any> {
+  verifyWebAuthnRegistration(data: any): Promise<VerifyRsp> {
     throw new Error("Method not implemented.");
   }
   getWebAuthnAuthenticationOptions(data: any): Promise<any> {
     throw new Error("Method not implemented.");
   }
-  verifyWebAuthnAuthentication(data: any): Promise<any> {
+  verifyWebAuthnAuthentication(data: any): Promise<VerifyRsp> {
     throw new Error("Method not implemented.");
   }
 

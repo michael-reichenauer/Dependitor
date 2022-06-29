@@ -165,13 +165,13 @@ const verify = async () => {
     return;
   }
 
-  if (!(verification as any).verified) {
+  if (!verification.verified) {
     console.error("Failed to verify authentication on server", verification);
     alert("Error: Failed to verify authentication on server: " + verification);
     return;
   }
 
-  alert("Authenticated verified by server" + (verification as any).verified);
+  alert("Authenticated verified by server: " + verification.verified);
 };
 
 // const register = async () => {
