@@ -3,9 +3,9 @@ var store = require('../shared/Store.js');
 module.exports = async function (context, req) {
     try {
         store.verifyApiKey(context)
-        const options = await store.getWebAuthnAuthenticationOptions(context, req.body)
+        const response = await store.getWebAuthnAuthenticationOptions(context, req.body)
 
-        context.res = { status: 200, body: options };
+        context.res = { status: 200, body: response };
     } catch (err) {
         context.log.error('error:', err);
         context.res = { status: 400, body: `error: '${err.message}'` };

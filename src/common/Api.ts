@@ -4,6 +4,12 @@ import timing from "./timing";
 import Result, { isError } from "./Result";
 import { diKey, singleton } from "./di";
 import { CustomError } from "./CustomError";
+import {
+  AuthenticationCredentialJSON,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationCredentialJSON,
+} from "@simplewebauthn/typescript-types";
 
 export interface User {
   username: string;
@@ -20,8 +26,30 @@ export interface LoginRsp {
   wDek: string;
 }
 
+export interface OptionsReq {
+  username: string;
+}
+
+export interface VerifyRegistrationReq {
+  username: string;
+  registration: RegistrationCredentialJSON;
+}
+
+export interface VerifyAuthenticationReq {
+  username: string;
+  authentication: AuthenticationCredentialJSON;
+}
+
 export interface VerifyRsp {
   verified: boolean;
+}
+
+export interface RegistrationOptionsRsp {
+  options: PublicKeyCredentialCreationOptionsJSON;
+}
+
+export interface AuthenticationOptionsRsp {
+  options: PublicKeyCredentialRequestOptionsJSON;
 }
 
 export type ApiEntityStatus = "value" | "noValue" | "notModified" | "error";
@@ -65,10 +93,18 @@ export interface IApi {
   writeBatch(entities: ApiEntity[]): Promise<Result<ApiEntityRsp[]>>;
   removeBatch(keys: string[]): Promise<Result<void>>;
 
-  getWebAuthnRegistrationOptions(data: any): Promise<Result<any>>;
-  verifyWebAuthnRegistration(data: any): Promise<Result<VerifyRsp>>;
-  getWebAuthnAuthenticationOptions(data: any): Promise<Result<any>>;
-  verifyWebAuthnAuthentication(data: any): Promise<Result<VerifyRsp>>;
+  getWebAuthnRegistrationOptions(
+    optionsReq: OptionsReq
+  ): Promise<Result<RegistrationOptionsRsp>>;
+  verifyWebAuthnRegistration(
+    verifyRegistrationReq: VerifyRegistrationReq
+  ): Promise<Result<VerifyRsp>>;
+  getWebAuthnAuthenticationOptions(
+    optionsReq: OptionsReq
+  ): Promise<Result<AuthenticationOptionsRsp>>;
+  verifyWebAuthnAuthentication(
+    verifyAuthenticationReq: VerifyAuthenticationReq
+  ): Promise<Result<VerifyRsp>>;
 }
 
 @singleton(IApiKey)
@@ -84,8 +120,13 @@ export class Api implements IApi {
     this.onError = onError;
   }
 
-  public async getWebAuthnRegistrationOptions(data: any): Promise<Result<any>> {
-    const rsp = await this.post("/api/GetWebAuthnRegistrationOptions", data);
+  public async getWebAuthnRegistrationOptions(
+    optionsReq: OptionsReq
+  ): Promise<Result<RegistrationOptionsRsp>> {
+    const rsp = await this.post(
+      "/api/GetWebAuthnRegistrationOptions",
+      optionsReq
+    );
     if (isError(rsp)) {
       return rsp;
     }
@@ -93,9 +134,12 @@ export class Api implements IApi {
   }
 
   public async verifyWebAuthnRegistration(
-    data: any
+    verifyRegistrationReq: VerifyRegistrationReq
   ): Promise<Result<VerifyRsp>> {
-    const rsp = await this.post("/api/VerifyWebAuthnRegistration", data);
+    const rsp = await this.post(
+      "/api/VerifyWebAuthnRegistration",
+      verifyRegistrationReq
+    );
     if (isError(rsp)) {
       return rsp;
     }
@@ -103,9 +147,12 @@ export class Api implements IApi {
   }
 
   public async getWebAuthnAuthenticationOptions(
-    data: any
-  ): Promise<Result<any>> {
-    const rsp = await this.post("/api/GetWebAuthnAuthenticationOptions", data);
+    optionsReq: OptionsReq
+  ): Promise<Result<AuthenticationOptionsRsp>> {
+    const rsp = await this.post(
+      "/api/GetWebAuthnAuthenticationOptions",
+      optionsReq
+    );
     if (isError(rsp)) {
       return rsp;
     }
@@ -113,9 +160,12 @@ export class Api implements IApi {
   }
 
   public async verifyWebAuthnAuthentication(
-    data: any
+    verifyAuthenticationReq: VerifyAuthenticationReq
   ): Promise<Result<VerifyRsp>> {
-    const rsp = await this.post("/api/VerifyWebAuthnAuthentication", data);
+    const rsp = await this.post(
+      "/api/VerifyWebAuthnAuthentication",
+      verifyAuthenticationReq
+    );
     if (isError(rsp)) {
       return rsp;
     }

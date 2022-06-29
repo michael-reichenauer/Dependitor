@@ -221,7 +221,7 @@ export class Online implements IOnline, ILoginProvider {
     const registrationVerificationResponse =
       await this.authenticate.verifyWebAuthnRegistration({
         username: username,
-        registrationResponse: registrationResponse,
+        registration: registrationResponse,
       });
     if (isError(registrationVerificationResponse)) {
       console.error("error", registrationVerificationResponse);
@@ -266,7 +266,9 @@ export class Online implements IOnline, ILoginProvider {
     let authenticationResponse;
     try {
       // Pass the options to the authenticator and wait for a response
-      authenticationResponse = await startAuthentication(authenticationOptions);
+      authenticationResponse = await startAuthentication(
+        authenticationOptions.options
+      );
     } catch (error) {
       console.error("Error", error);
       alert("Error: Failed to authenticate on device" + error);
@@ -278,15 +280,14 @@ export class Online implements IOnline, ILoginProvider {
       "Authenticated on device ok: " +
         authenticationResponse.response.userHandle
     );
-    authenticationResponse.response.userHandle =
-      authenticationResponse.response.userHandle.substring(5);
+    authenticationResponse.response.userHandle = undefined;
     console.log("asseResp2", authenticationResponse);
 
     // POST the response to the endpoint that calls
     const authenticationVerificationResponse =
       await this.authenticate.verifyWebAuthnAuthentication({
         username: username,
-        authenticationResponse: authenticationResponse,
+        authentication: authenticationResponse,
       });
     console.log("rsp", authenticationVerificationResponse);
 

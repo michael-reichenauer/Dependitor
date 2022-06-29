@@ -59,29 +59,23 @@ const register = async () => {
 
   const usernameSha = await sha256Hash(usernameOrg);
 
-  const registrationOptions = await authenticate.getWebAuthnRegistrationOptions(
-    {
-      username: usernameSha,
-    }
-  );
-  if (isError(registrationOptions)) {
-    console.error("error", registrationOptions);
-    alert(
-      "Error: Failed to get registration options from server" +
-        registrationOptions
-    );
+  const options = await authenticate.getWebAuthnRegistrationOptions({
+    username: usernameSha,
+  });
+  if (isError(options)) {
+    console.error("error", options);
+    alert("Error: Failed to get registration options from server" + options);
     return;
   }
 
-  console.log("options", registrationOptions);
-  const options: any = registrationOptions;
-  options.user.id = "12345" + options.user.id;
-  options.user.name = usernameOrg;
+  console.log("options", options);
+  options.options.user.id = "12345" + options.options.user.id;
+  options.options.user.name = usernameOrg;
 
   let registration;
   try {
     // Pass the options to the authenticator and wait for a response
-    registration = await startRegistration(options);
+    registration = await startRegistration(options.options);
   } catch (error) {
     // Some basic error handling
     const e = error as Error;
@@ -137,7 +131,7 @@ const verify = async () => {
   let authentication;
   try {
     // Pass the options to the authenticator and wait for a response
-    authentication = await startAuthentication(options);
+    authentication = await startAuthentication(options.options);
   } catch (error) {
     console.error("Error", error);
     alert("Error: Failed to authenticate on device" + error);
@@ -147,10 +141,10 @@ const verify = async () => {
   console.log("authentication", authentication);
 
   console.log(
-    "useridprefix",
-    authentication.response.userHandle.substring(0, 5)
+    "useridprefix: ",
+    authentication.response.userHandle?.substring(0, 5)
   );
-  authentication.response.userHandle = null;
+  authentication.response.userHandle = undefined;
 
   // POST the response to the endpoint that calls
   const verification = await authenticate.verifyWebAuthnAuthentication({

@@ -143,7 +143,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         user.currentChallenge = options.challenge
         await updateUser(userId, user)
 
-        return options;
+        return { options: options };
     } catch (err) {
         context.log('Error:', err)
         throwIfEmulatorError(err)
@@ -241,7 +241,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
         user.currentChallenge = options.challenge
         await updateUser(userId, user)
 
-        return options;
+        return { options: options };
     } catch (err) {
         throwIfEmulatorError(err)
         throw new Error(authenticateError)

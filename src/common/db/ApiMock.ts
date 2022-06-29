@@ -7,6 +7,11 @@ import {
   LoginRsp,
   CreateUserReq,
   VerifyRsp,
+  AuthenticationOptionsRsp,
+  OptionsReq,
+  RegistrationOptionsRsp,
+  VerifyAuthenticationReq,
+  VerifyRegistrationReq,
 } from "../Api";
 import { di } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
@@ -16,16 +21,24 @@ const prefix = "ApiMock-";
 
 export class ApiMock implements IApi {
   constructor(private local: ILocalStore = di(ILocalStoreKey)) {}
-  getWebAuthnRegistrationOptions(data: any): Promise<any> {
+  getWebAuthnRegistrationOptions(
+    optionsReq: OptionsReq
+  ): Promise<Result<RegistrationOptionsRsp, Error>> {
     throw new Error("Method not implemented.");
   }
-  verifyWebAuthnRegistration(data: any): Promise<VerifyRsp> {
+  verifyWebAuthnRegistration(
+    verifyRegistrationReq: VerifyRegistrationReq
+  ): Promise<Result<VerifyRsp, Error>> {
     throw new Error("Method not implemented.");
   }
-  getWebAuthnAuthenticationOptions(data: any): Promise<any> {
+  getWebAuthnAuthenticationOptions(
+    optionsReq: OptionsReq
+  ): Promise<Result<AuthenticationOptionsRsp, Error>> {
     throw new Error("Method not implemented.");
   }
-  verifyWebAuthnAuthentication(data: any): Promise<VerifyRsp> {
+  verifyWebAuthnAuthentication(
+    verifyAuthenticationReq: VerifyAuthenticationReq
+  ): Promise<Result<VerifyRsp, Error>> {
     throw new Error("Method not implemented.");
   }
 

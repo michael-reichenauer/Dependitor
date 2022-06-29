@@ -1,4 +1,14 @@
-import { AuthenticateError, IApi, IApiKey, VerifyRsp } from "./Api";
+import {
+  AuthenticateError,
+  AuthenticationOptionsRsp,
+  IApi,
+  IApiKey,
+  OptionsReq,
+  RegistrationOptionsRsp,
+  VerifyAuthenticationReq,
+  VerifyRegistrationReq,
+  VerifyRsp,
+} from "./Api";
 import { User } from "./Api";
 import { di, diKey, singleton } from "./di";
 import { IKeyVaultConfigure, IKeyVaultConfigureKey } from "./keyVault";
@@ -13,10 +23,18 @@ export interface IAuthenticate {
   login(user: User): Promise<Result<void>>;
   resetLogin(): void;
 
-  getWebAuthnRegistrationOptions(data: any): Promise<Result<any>>;
-  verifyWebAuthnRegistration(data: any): Promise<Result<VerifyRsp>>;
-  getWebAuthnAuthenticationOptions(data: any): Promise<Result<any>>;
-  verifyWebAuthnAuthentication(data: any): Promise<Result<VerifyRsp>>;
+  getWebAuthnRegistrationOptions(
+    optionsReq: OptionsReq
+  ): Promise<Result<RegistrationOptionsRsp>>;
+  verifyWebAuthnRegistration(
+    verifyRegistrationReq: VerifyRegistrationReq
+  ): Promise<Result<VerifyRsp>>;
+  getWebAuthnAuthenticationOptions(
+    optionsReq: OptionsReq
+  ): Promise<Result<AuthenticationOptionsRsp>>;
+  verifyWebAuthnAuthentication(
+    verifyAuthenticationReq: VerifyAuthenticationReq
+  ): Promise<Result<VerifyRsp>>;
 }
 
 const minUserName = 2;
@@ -30,19 +48,25 @@ export class Authenticate implements IAuthenticate {
     private dataCrypt: IDataCrypt = di(IDataCryptKey)
   ) {}
 
-  public async getWebAuthnRegistrationOptions(data: any): Promise<Result<any>> {
-    return await this.api.getWebAuthnRegistrationOptions(data);
+  public async getWebAuthnRegistrationOptions(
+    optionsReq: OptionsReq
+  ): Promise<Result<RegistrationOptionsRsp>> {
+    return await this.api.getWebAuthnRegistrationOptions(optionsReq);
   }
-  public async verifyWebAuthnRegistration(data: any): Promise<Result<any>> {
-    return await this.api.verifyWebAuthnRegistration(data);
+  public async verifyWebAuthnRegistration(
+    verifyRegistrationReq: VerifyRegistrationReq
+  ): Promise<Result<VerifyRsp>> {
+    return await this.api.verifyWebAuthnRegistration(verifyRegistrationReq);
   }
   public async getWebAuthnAuthenticationOptions(
-    data: any
-  ): Promise<Result<any>> {
-    return await this.api.getWebAuthnAuthenticationOptions(data);
+    optionsReq: OptionsReq
+  ): Promise<Result<AuthenticationOptionsRsp>> {
+    return await this.api.getWebAuthnAuthenticationOptions(optionsReq);
   }
-  public async verifyWebAuthnAuthentication(data: any): Promise<Result<any>> {
-    return await this.api.verifyWebAuthnAuthentication(data);
+  public async verifyWebAuthnAuthentication(
+    verifyAuthenticationReq: VerifyAuthenticationReq
+  ): Promise<Result<VerifyRsp>> {
+    return await this.api.verifyWebAuthnAuthentication(verifyAuthenticationReq);
   }
 
   public async check(): Promise<Result<void>> {
