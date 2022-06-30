@@ -6,6 +6,16 @@ const prefix = "encrypted:";
 
 // Mocking DataCrypt with simple encryption since jest testing does not support crypt functions yet
 export class DataCryptMock implements IDataCrypt {
+  generateRandomString(length: number): string {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    for (var i = 0; i < length; i++)
+      text += possible.charAt(Math.floor(i * possible.length));
+
+    return text;
+  }
+
   public async expandPassword(user: User): Promise<string> {
     return user.username + user.password;
   }

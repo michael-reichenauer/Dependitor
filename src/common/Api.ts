@@ -26,24 +26,6 @@ export interface LoginRsp {
   wDek: string;
 }
 
-export interface OptionsReq {
-  username: string;
-}
-
-export interface VerifyRegistrationReq {
-  username: string;
-  registration: RegistrationCredentialJSON;
-}
-
-export interface VerifyAuthenticationReq {
-  username: string;
-  authentication: AuthenticationCredentialJSON;
-}
-
-export interface VerifyRsp {
-  verified: boolean;
-}
-
 export interface RegistrationOptionsRsp {
   options: PublicKeyCredentialCreationOptionsJSON;
 }
@@ -94,17 +76,19 @@ export interface IApi {
   removeBatch(keys: string[]): Promise<Result<void>>;
 
   getWebAuthnRegistrationOptions(
-    optionsReq: OptionsReq
-  ): Promise<Result<RegistrationOptionsRsp>>;
+    username: string
+  ): Promise<Result<PublicKeyCredentialCreationOptionsJSON>>;
   verifyWebAuthnRegistration(
-    verifyRegistrationReq: VerifyRegistrationReq
-  ): Promise<Result<VerifyRsp>>;
+    username: string,
+    registration: RegistrationCredentialJSON
+  ): Promise<Result<boolean>>;
   getWebAuthnAuthenticationOptions(
-    optionsReq: OptionsReq
-  ): Promise<Result<AuthenticationOptionsRsp>>;
+    username: string
+  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON>>;
   verifyWebAuthnAuthentication(
-    verifyAuthenticationReq: VerifyAuthenticationReq
-  ): Promise<Result<VerifyRsp>>;
+    username: string,
+    authentication: AuthenticationCredentialJSON
+  ): Promise<Result<boolean>>;
 }
 
 @singleton(IApiKey)
@@ -121,55 +105,55 @@ export class Api implements IApi {
   }
 
   public async getWebAuthnRegistrationOptions(
-    optionsReq: OptionsReq
-  ): Promise<Result<RegistrationOptionsRsp>> {
-    const rsp = await this.post(
-      "/api/GetWebAuthnRegistrationOptions",
-      optionsReq
-    );
+    username: string
+  ): Promise<Result<PublicKeyCredentialCreationOptionsJSON>> {
+    const rsp = await this.post("/api/GetWebAuthnRegistrationOptions", {
+      username: username,
+    });
     if (isError(rsp)) {
       return rsp;
     }
-    return rsp as any;
+    return (rsp as any).options;
   }
 
   public async verifyWebAuthnRegistration(
-    verifyRegistrationReq: VerifyRegistrationReq
-  ): Promise<Result<VerifyRsp>> {
-    const rsp = await this.post(
-      "/api/VerifyWebAuthnRegistration",
-      verifyRegistrationReq
-    );
+    username: string,
+    registration: RegistrationCredentialJSON
+  ): Promise<Result<boolean>> {
+    const rsp = await this.post("/api/VerifyWebAuthnRegistration", {
+      username: username,
+      registration: registration,
+    });
     if (isError(rsp)) {
       return rsp;
     }
-    return rsp as any;
+    return (rsp as any).verified;
   }
 
   public async getWebAuthnAuthenticationOptions(
-    optionsReq: OptionsReq
-  ): Promise<Result<AuthenticationOptionsRsp>> {
-    const rsp = await this.post(
-      "/api/GetWebAuthnAuthenticationOptions",
-      optionsReq
-    );
+    username: string
+  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON>> {
+    const rsp = await this.post("/api/GetWebAuthnAuthenticationOptions", {
+      username: username,
+    });
     if (isError(rsp)) {
       return rsp;
     }
-    return rsp as any;
+    return (rsp as any).options;
   }
 
   public async verifyWebAuthnAuthentication(
-    verifyAuthenticationReq: VerifyAuthenticationReq
-  ): Promise<Result<VerifyRsp>> {
-    const rsp = await this.post(
-      "/api/VerifyWebAuthnAuthentication",
-      verifyAuthenticationReq
-    );
+    username: string,
+    authentication: AuthenticationCredentialJSON
+  ): Promise<Result<boolean>> {
+    const rsp = await this.post("/api/VerifyWebAuthnAuthentication", {
+      username: username,
+      authentication: authentication,
+    });
     if (isError(rsp)) {
       return rsp;
     }
-    return rsp as any;
+    return (rsp as any).verified;
   }
 
   public async login(user: User): Promise<Result<LoginRsp>> {

@@ -96,11 +96,13 @@ export class Online implements IOnline, ILoginProvider {
 
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
   public async login(user: User): Promise<Result<void>> {
+    console.log("login");
     try {
       this.showProgress();
 
       const loginRsp = await this.authenticate.login(user);
       if (isError(loginRsp)) {
+        console.error("Failed to login:", loginRsp);
         setErrorMessage(this.toErrorMessage(loginRsp));
         return loginRsp;
       }
@@ -173,140 +175,140 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
-  private async useWebAuthn(): Promise<void> {
-    const isAvailable = await platformAuthenticatorIsAvailable();
-    console.log("platformAuthenticatorIsAvailable", isAvailable);
-    const username = "michael";
+  // private async useWebAuthn(): Promise<void> {
+  //   const isAvailable = await platformAuthenticatorIsAvailable();
+  //   console.log("platformAuthenticatorIsAvailable", isAvailable);
+  //   const username = "michael";
 
-    const registrationOptions =
-      await this.authenticate.getWebAuthnRegistrationOptions({
-        username: username,
-      });
-    if (isError(registrationOptions)) {
-      console.error("error", registrationOptions);
-      alert(
-        "Error: Failed to get registration options from server" +
-          registrationOptions
-      );
-      return;
-    }
-    alert("Got verification options from server: OK");
+  //   const registrationOptions =
+  //     await this.authenticate.getWebAuthnRegistrationOptions({
+  //       username: username,
+  //     });
+  //   if (isError(registrationOptions)) {
+  //     console.error("error", registrationOptions);
+  //     alert(
+  //       "Error: Failed to get registration options from server" +
+  //         registrationOptions
+  //     );
+  //     return;
+  //   }
+  //   alert("Got verification options from server: OK");
 
-    const options: any = registrationOptions;
-    console.log("options1:", options);
-    options.user.id = "12345" + options.user.id;
-    console.log("options2:", options);
+  //   const options: any = registrationOptions;
+  //   console.log("options1:", options);
+  //   options.user.id = "12345" + options.user.id;
+  //   console.log("options2:", options);
 
-    let registrationResponse;
-    try {
-      // Pass the options to the authenticator and wait for a response
-      registrationResponse = await startRegistration(options);
-    } catch (error) {
-      // Some basic error handling
-      const e = error as Error;
-      console.error("Error", error);
-      console.error("name", e.name);
-      alert("Error: Failed to register on device" + error);
-      // if (error.name === 'InvalidStateError') {
-      //   elemError.innerText = 'Error: Authenticator was probably already registered by user';
-      // } else {
-      //   elemError.innerText = error;
-      // }
+  //   let registrationResponse;
+  //   try {
+  //     // Pass the options to the authenticator and wait for a response
+  //     registrationResponse = await startRegistration(options);
+  //   } catch (error) {
+  //     // Some basic error handling
+  //     const e = error as Error;
+  //     console.error("Error", error);
+  //     console.error("name", e.name);
+  //     alert("Error: Failed to register on device" + error);
+  //     // if (error.name === 'InvalidStateError') {
+  //     //   elemError.innerText = 'Error: Authenticator was probably already registered by user';
+  //     // } else {
+  //     //   elemError.innerText = error;
+  //     // }
 
-      return;
-    }
-    console.log("registrationResponse", registrationResponse);
-    alert("Registered on device: OK " + registrationResponse.id);
+  //     return;
+  //   }
+  //   console.log("registrationResponse", registrationResponse);
+  //   alert("Registered on device: OK " + registrationResponse.id);
 
-    const registrationVerificationResponse =
-      await this.authenticate.verifyWebAuthnRegistration({
-        username: username,
-        registration: registrationResponse,
-      });
-    if (isError(registrationVerificationResponse)) {
-      console.error("error", registrationVerificationResponse);
-      alert(
-        "Error: Failed to verify registration on server" +
-          registrationVerificationResponse
-      );
-      return;
-    }
+  //   const registrationVerificationResponse =
+  //     await this.authenticate.verifyWebAuthnRegistration({
+  //       username: username,
+  //       registration: registrationResponse,
+  //     });
+  //   if (isError(registrationVerificationResponse)) {
+  //     console.error("error", registrationVerificationResponse);
+  //     alert(
+  //       "Error: Failed to verify registration on server" +
+  //         registrationVerificationResponse
+  //     );
+  //     return;
+  //   }
 
-    if (!(registrationVerificationResponse as any).verified) {
-      console.error(
-        "Failed to verify registration on server",
-        registrationVerificationResponse
-      );
-      alert(
-        "Error: Failed to verify registration on server: " +
-          registrationVerificationResponse
-      );
-      return;
-    }
+  //   if (!(registrationVerificationResponse as any).verified) {
+  //     console.error(
+  //       "Failed to verify registration on server",
+  //       registrationVerificationResponse
+  //     );
+  //     alert(
+  //       "Error: Failed to verify registration on server: " +
+  //         registrationVerificationResponse
+  //     );
+  //     return;
+  //   }
 
-    console.log("verified registration", registrationVerificationResponse);
-    alert(
-      "Registration verified by server: " +
-        (registrationVerificationResponse as any).verified
-    );
+  //   console.log("verified registration", registrationVerificationResponse);
+  //   alert(
+  //     "Registration verified by server: " +
+  //       (registrationVerificationResponse as any).verified
+  //   );
 
-    // GET authentication options from the endpoint that calls
-    const authenticationOptions =
-      await this.authenticate.getWebAuthnAuthenticationOptions({
-        username: username,
-      });
-    if (isError(authenticationOptions)) {
-      console.error("error", authenticationOptions);
-      alert("Error: failed to get authentication options from server");
-      return;
-    }
-    console.log("authOptions", authenticationOptions);
-    alert("Got authentication options from server OK ");
+  //   // GET authentication options from the endpoint that calls
+  //   const authenticationOptions =
+  //     await this.authenticate.getWebAuthnAuthenticationOptions({
+  //       username: username,
+  //     });
+  //   if (isError(authenticationOptions)) {
+  //     console.error("error", authenticationOptions);
+  //     alert("Error: failed to get authentication options from server");
+  //     return;
+  //   }
+  //   console.log("authOptions", authenticationOptions);
+  //   alert("Got authentication options from server OK ");
 
-    let authenticationResponse;
-    try {
-      // Pass the options to the authenticator and wait for a response
-      authenticationResponse = await startAuthentication(
-        authenticationOptions.options
-      );
-    } catch (error) {
-      console.error("Error", error);
-      alert("Error: Failed to authenticate on device" + error);
-      return;
-    }
+  //   let authenticationResponse;
+  //   try {
+  //     // Pass the options to the authenticator and wait for a response
+  //     authenticationResponse = await startAuthentication(
+  //       authenticationOptions.options
+  //     );
+  //   } catch (error) {
+  //     console.error("Error", error);
+  //     alert("Error: Failed to authenticate on device" + error);
+  //     return;
+  //   }
 
-    console.log("asseResp1", authenticationResponse);
-    alert(
-      "Authenticated on device ok: " +
-        authenticationResponse.response.userHandle
-    );
-    authenticationResponse.response.userHandle = undefined;
-    console.log("asseResp2", authenticationResponse);
+  //   console.log("asseResp1", authenticationResponse);
+  //   alert(
+  //     "Authenticated on device ok: " +
+  //       authenticationResponse.response.userHandle
+  //   );
+  //   authenticationResponse.response.userHandle = undefined;
+  //   console.log("asseResp2", authenticationResponse);
 
-    // POST the response to the endpoint that calls
-    const authenticationVerificationResponse =
-      await this.authenticate.verifyWebAuthnAuthentication({
-        username: username,
-        authentication: authenticationResponse,
-      });
-    console.log("rsp", authenticationVerificationResponse);
+  //   // POST the response to the endpoint that calls
+  //   const authenticationVerificationResponse =
+  //     await this.authenticate.verifyWebAuthnAuthentication({
+  //       username: username,
+  //       authentication: authenticationResponse,
+  //     });
+  //   console.log("rsp", authenticationVerificationResponse);
 
-    if (isError(authenticationVerificationResponse)) {
-      console.error("error", authenticationVerificationResponse);
-      alert(
-        "Error: Failed to verify authentication on server: " +
-          authenticationVerificationResponse
-      );
-      return;
-    }
+  //   if (isError(authenticationVerificationResponse)) {
+  //     console.error("error", authenticationVerificationResponse);
+  //     alert(
+  //       "Error: Failed to verify authentication on server: " +
+  //         authenticationVerificationResponse
+  //     );
+  //     return;
+  //   }
 
-    alert(
-      "Authenticated verified by server" +
-        (authenticationVerificationResponse as any).verified
-    );
+  //   alert(
+  //     "Authenticated verified by server" +
+  //       (authenticationVerificationResponse as any).verified
+  //   );
 
-    //showLoginDlg(this);
-  }
+  //   //showLoginDlg(this);
+  // }
 
   // disableSync called when disabling device sync
   public disableSync(): void {

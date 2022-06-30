@@ -28,6 +28,8 @@ export interface IDataCrypt {
 
   // Decrypts a text block using the data encryption key (DEK)
   decryptText(encryptedText: string, dek: CryptoKey): Promise<string>;
+
+  generateRandomString(length: number): string;
 }
 
 type WrappedDek = { key: any; iv: any };
@@ -36,6 +38,12 @@ type EncryptedPacket = { data: string; iv: string };
 @singleton(IDataCryptKey)
 export class DataCrypt {
   constructor(private crypt: ICrypt = di(ICryptKey)) {}
+
+  public generateRandomString(length: number) {
+    return Buffer.from(this.crypt.randomBytes(length))
+      .toString("hex")
+      .slice(0, length);
+  }
 
   public async expandPassword(user: User): Promise<string> {
     const salt = await this.crypt.sha256(user.username);

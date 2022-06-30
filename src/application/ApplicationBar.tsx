@@ -25,147 +25,58 @@ import { useCanRedo, useCanUndo, useTitle } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { showPrompt } from "./../common/PromptDialog";
 import { di } from "../common/di";
-import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
 //import { bufferToBase64, sha256Hash } from "../common/utils";
-import {
-  platformAuthenticatorIsAvailable,
-  startAuthentication,
-  startRegistration,
-} from "@simplewebauthn/browser";
-import { isError } from "../common/Result";
-import { sha256Hash } from "../common/utils";
 
 type ApplicationBarProps = {
   height: number;
 };
 
-// const randomStringFromServer = "1234512345";
-// const userId = "user1";
-// const username = "user_1";=
-// const userDisplayName = "user 1";
-
-const usernameOrg = "michael";
-
-const register = async () => {
-  console.log("register");
-  const authenticate: IAuthenticate = di(IAuthenticateKey);
-
-  const isAvailable = await platformAuthenticatorIsAvailable();
-  console.log("platformAuthenticatorIsAvailable", isAvailable);
-  if (!isAvailable) {
-    alert("Error: Biometrics not available");
-    return;
-  }
-
-  const usernameSha = await sha256Hash(usernameOrg);
-
-  const options = await authenticate.getWebAuthnRegistrationOptions({
-    username: usernameSha,
-  });
-  if (isError(options)) {
-    console.error("error", options);
-    alert("Error: Failed to get registration options from server" + options);
-    return;
-  }
-
-  console.log("options", options);
-  options.options.user.id = "12345" + options.options.user.id;
-  options.options.user.name = usernameOrg;
-
-  let registration;
-  try {
-    // Pass the options to the authenticator and wait for a response
-    registration = await startRegistration(options.options);
-  } catch (error) {
-    // Some basic error handling
-    const e = error as Error;
-    console.error("Error", error);
-    console.error("name", e.name);
-    alert("Error: Failed to register on device" + error);
-    // if (error.name === 'InvalidStateError') {
-    //   elemError.innerText = 'Error: Authenticator was probably already registered by user';
-    // } else {
-    //   elemError.innerText = error;
-    // }
-
-    return;
-  }
-  console.log("registrationResponse", registration);
-
-  const verification = await authenticate.verifyWebAuthnRegistration({
-    username: usernameSha,
-    registration: registration,
-  });
-  if (isError(verification)) {
-    console.error("error", verification);
-    alert("Error: Failed to verify registration on server" + verification);
-    return;
-  }
-
-  if (!(verification as any).verified) {
-    console.error("Failed to verify registration on server", verification);
-    alert("Error: Failed to verify registration on server: " + verification);
-    return;
-  }
-
-  console.log("verified registration", verification);
-  alert("Registration verified by server: " + (verification as any).verified);
-};
-
 const verify = async () => {
-  console.log("verify");
-  const authenticate: IAuthenticate = di(IAuthenticateKey);
-  const usernameSha = await sha256Hash(usernameOrg);
-
-  // GET authentication options from the endpoint that calls
-  const options = await authenticate.getWebAuthnAuthenticationOptions({
-    username: usernameSha,
-  });
-  if (isError(options)) {
-    console.error("error", options);
-    alert("Error: failed to get authentication options from server");
-    return;
-  }
-  console.log("got authentication", options);
-
-  let authentication;
-  try {
-    // Pass the options to the authenticator and wait for a response
-    authentication = await startAuthentication(options.options);
-  } catch (error) {
-    console.error("Error", error);
-    alert("Error: Failed to authenticate on device" + error);
-    return;
-  }
-
-  console.log("authentication", authentication);
-
-  console.log(
-    "useridprefix: ",
-    authentication.response.userHandle?.substring(0, 5)
-  );
-  authentication.response.userHandle = undefined;
-
-  // POST the response to the endpoint that calls
-  const verification = await authenticate.verifyWebAuthnAuthentication({
-    username: usernameSha,
-    authentication: authentication,
-  });
-  console.log("rsp", verification);
-
-  if (isError(verification)) {
-    console.error("error", verification);
-    alert("Error: Failed to verify authentication on server: " + verification);
-    return;
-  }
-
-  if (!verification.verified) {
-    console.error("Failed to verify authentication on server", verification);
-    alert("Error: Failed to verify authentication on server: " + verification);
-    return;
-  }
-
-  alert("Authenticated verified by server: " + verification.verified);
+  // console.log("verify");
+  // const authenticate: IAuthenticate = di(IAuthenticateKey);
+  // const usernameSha = await sha256Hash(usernameOrg);
+  // // GET authentication options from the endpoint that calls
+  // const options = await authenticate.getWebAuthnAuthenticationOptions({
+  //   username: usernameSha,
+  // });
+  // if (isError(options)) {
+  //   console.error("error", options);
+  //   alert("Error: failed to get authentication options from server");
+  //   return;
+  // }
+  // console.log("got authentication", options);
+  // let authentication;
+  // try {
+  //   // Pass the options to the authenticator and wait for a response
+  //   authentication = await startAuthentication(options.options);
+  // } catch (error) {
+  //   console.error("Error", error);
+  //   alert("Error: Failed to authenticate on device" + error);
+  //   return;
+  // }
+  // console.log("authentication", authentication);
+  // console.log(
+  //   "useridprefix: ",
+  //   authentication.response.userHandle?.substring(0, 5)
+  // );
+  // authentication.response.userHandle = undefined;
+  // // POST the response to the endpoint that calls
+  // const verification = await authenticate.verifyWebAuthnAuthentication({
+  //   username: usernameSha,
+  //   authentication: authentication,
+  // });
+  // console.log("rsp", verification);
+  // if (isError(verification)) {
+  //   console.error("error", verification);
+  //   alert("Error: Failed to verify authentication on server: " + verification);
+  //   return;
+  // }
+  // if (!verification.verified) {
+  //   console.error("Failed to verify authentication on server", verification);
+  //   alert("Error: Failed to verify authentication on server: " + verification);
+  //   return;
+  // }
+  // alert("Authenticated verified by server: " + verification.verified);
 };
 
 // const register = async () => {
@@ -314,13 +225,6 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
             onClick={() => onlineRef.current.enableSync()}
           />
         )}
-
-        <Button
-          tooltip="Register"
-          icon={<UndoIcon />}
-          onClick={() => register()}
-        />
-        <Button tooltip="Verify" icon={<UndoIcon />} onClick={() => verify()} />
 
         <Button
           tooltip="Undo"

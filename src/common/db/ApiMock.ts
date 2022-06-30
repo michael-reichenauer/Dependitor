@@ -1,4 +1,10 @@
 import {
+  PublicKeyCredentialCreationOptionsJSON,
+  RegistrationCredentialJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  AuthenticationCredentialJSON,
+} from "@simplewebauthn/typescript-types";
+import {
   ApiEntity,
   IApi,
   User,
@@ -6,12 +12,6 @@ import {
   ApiEntityRsp,
   LoginRsp,
   CreateUserReq,
-  VerifyRsp,
-  AuthenticationOptionsRsp,
-  OptionsReq,
-  RegistrationOptionsRsp,
-  VerifyAuthenticationReq,
-  VerifyRegistrationReq,
 } from "../Api";
 import { di } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
@@ -22,23 +22,25 @@ const prefix = "ApiMock-";
 export class ApiMock implements IApi {
   constructor(private local: ILocalStore = di(ILocalStoreKey)) {}
   getWebAuthnRegistrationOptions(
-    optionsReq: OptionsReq
-  ): Promise<Result<RegistrationOptionsRsp, Error>> {
+    username: string
+  ): Promise<Result<PublicKeyCredentialCreationOptionsJSON, Error>> {
     throw new Error("Method not implemented.");
   }
   verifyWebAuthnRegistration(
-    verifyRegistrationReq: VerifyRegistrationReq
-  ): Promise<Result<VerifyRsp, Error>> {
+    username: string,
+    registration: RegistrationCredentialJSON
+  ): Promise<Result<boolean, Error>> {
     throw new Error("Method not implemented.");
   }
   getWebAuthnAuthenticationOptions(
-    optionsReq: OptionsReq
-  ): Promise<Result<AuthenticationOptionsRsp, Error>> {
+    username: string
+  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON, Error>> {
     throw new Error("Method not implemented.");
   }
   verifyWebAuthnAuthentication(
-    verifyAuthenticationReq: VerifyAuthenticationReq
-  ): Promise<Result<VerifyRsp, Error>> {
+    username: string,
+    authentication: AuthenticationCredentialJSON
+  ): Promise<Result<boolean, Error>> {
     throw new Error("Method not implemented.");
   }
 

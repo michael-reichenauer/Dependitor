@@ -22,7 +22,7 @@ const usernameKey = "credential.userName";
 export interface ILoginProvider {
   createAccount(user: User): Promise<Result<void>>;
   login(user: User): Promise<Result<void>>;
-  cancelLogin():void
+  cancelLogin(): void;
 }
 
 export let showLoginDlg: SetAtom<ILoginProvider> = () => {};
@@ -50,7 +50,7 @@ export const LoginDlg: FC = () => {
     <Dialog
       open={login !== null}
       onClose={() => {
-        login?.cancelLogin()
+        login?.cancelLogin();
         setLogin(null);
       }}
     >
@@ -68,66 +68,56 @@ export const LoginDlg: FC = () => {
 
         <Formik
           initialValues={{
-            username: getDefaultUserName(),
-            password: "",
-            confirm: "",
             create: false,
           }}
           validate={async (values) => {
             const errors: any = {};
-            if (!values.username) {
-              errors.username = "Required";
-            }
-            if (!values.password) {
-              errors.password = "Required";
-            }
-            if (createAccount && values.password !== values.confirm) {
-              errors.confirm = "Does not match password";
-            }
+            // if (!values.username) {
+            //   errors.username = "Required";
+            // }
             return errors;
           }}
           onSubmit={async (values, { setErrors, setFieldValue }) => {
-            if (createAccount) {
-              const createResult = await login?.createAccount({
-                username: values.username,
-                password: values.password,
-              });
+            // if (createAccount) {
+            //   const createResult = await login?.createAccount({
+            //     username: "",
+            //     password: "",
+            //   });
 
-              if (isError(createResult)) {
-                setFieldValue("password", "", false);
-                setFieldValue("confirm", "", false);
-                setErrors({ username: "User already exist" });
-                return;
-              }
+            //   if (isError(createResult)) {
+            //     // setFieldValue("password", "", false);
+            //     // setErrors({ username: "User already exist" });
+            //     return;
+            //   }
 
-              setDefaultUserName(values.username);
-              setCreateAccount(false);
-              setFieldValue("confirm", "", false);
-            }
+            //   // setDefaultUserName(values.username);
+            //   // setCreateAccount(false);
+            //   // setFieldValue("confirm", "", false);
+            // }
 
             const loginResult = await login?.login({
-              username: values.username,
-              password: values.password,
+              username: "",
+              password: "",
             });
             if (isError(loginResult)) {
-              setFieldValue("password", "", false);
-              if (isError(loginResult, AuthenticateError)) {
-                setErrors({ username: "Invalid username or password" });
-              } else {
-                setErrors({ username: "Failed to enable device sync" });
-              }
+              // setFieldValue("password", "", false);
+              // if (isError(loginResult, AuthenticateError)) {
+              //   setErrors({ username: "Invalid username or password" });
+              // } else {
+              //   setErrors({ username: "Failed to enable device sync" });
+              // }
 
               return;
             }
 
-            setDefaultUserName(values.username);
+            //setDefaultUserName(values.username);
             setLogin(null);
           }}
         >
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
               {isSubmitting && <LinearProgress style={{ marginBottom: 10 }} />}
-              <Field
+              {/* <Field
                 label="Username"
                 component={TextField}
                 name="username"
@@ -151,7 +141,7 @@ export const LoginDlg: FC = () => {
                   name="confirm"
                   fullWidth={true}
                 />
-              )}
+              )} */}
 
               <br />
               <FormControlLabel
@@ -185,7 +175,7 @@ export const LoginDlg: FC = () => {
                   color="primary"
                   disabled={isSubmitting}
                   onClick={() => {
-                    login?.cancelLogin()
+                    login?.cancelLogin();
                     setLogin(null);
                   }}
                   style={{ margin: 5, width: 85 }}

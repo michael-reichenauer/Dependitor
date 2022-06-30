@@ -13,6 +13,7 @@ const deriveBitsIterations = 1000000;
 export const ICryptKey = diKey<ICrypt>();
 export interface ICrypt {
   generateSalt(): Uint8Array;
+  randomBytes(count: number): Uint8Array;
   sha256(text: string): Promise<ArrayBuffer>;
   deriveKey(
     password: string,
@@ -43,6 +44,10 @@ export interface ICrypt {
 export class Crypt {
   public generateSalt(): Uint8Array {
     return crypto.getRandomValues(new Uint8Array(saltLength));
+  }
+
+  public randomBytes(count: number): Uint8Array {
+    return crypto.getRandomValues(new Uint8Array(count));
   }
 
   async sha256(text: string): Promise<ArrayBuffer> {
