@@ -12,7 +12,6 @@ import {
 } from "@material-ui/core";
 import { Formik, Form, Field } from "formik";
 //import { TextField } from "formik-material-ui";
-import { User } from "../common/Api";
 import Result, { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 //import { AuthenticateError } from "../common/Api";
@@ -20,8 +19,8 @@ import { SetAtom } from "jotai/core/types";
 // const usernameKey = "credential.userName";
 
 export interface ILoginProvider {
-  createAccount(user: User): Promise<Result<void>>;
-  login(user: User): Promise<Result<void>>;
+  // createAccount(user: User): Promise<Result<void>>;
+  login(): Promise<Result<void>>;
   cancelLogin(): void;
 }
 
@@ -95,10 +94,7 @@ export const LoginDlg: FC = () => {
             //   // setFieldValue("confirm", "", false);
             // }
 
-            const loginResult = await login?.login({
-              username: "",
-              password: "",
-            });
+            const loginResult = await login?.login();
             if (isError(loginResult)) {
               // setFieldValue("password", "", false);
               // if (isError(loginResult, AuthenticateError)) {

@@ -5,7 +5,6 @@ import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
 import { ILoginProvider, showLoginDlg } from "./LoginDlg";
 import {
   IApi,
-  User,
   IApiKey,
   NoContactError,
   LocalApiServerError,
@@ -74,28 +73,28 @@ export class Online implements IOnline, ILoginProvider {
     });
   }
 
-  // createAccount called by LoginDlg when user wants to create an new user account
-  public async createAccount(user: User): Promise<Result<void>> {
-    try {
-      this.showProgress();
-      const createRsp = await this.authenticate.createUser(user);
-      if (isError(createRsp)) {
-        setErrorMessage("Failed to create account");
-        return createRsp;
-      }
-      clearErrorMessages();
-    } finally {
-      this.hideProgress();
-    }
-  }
+  // // createAccount called by LoginDlg when user wants to create an new user account
+  // public async createAccount(user: User): Promise<Result<void>> {
+  //   try {
+  //     this.showProgress();
+  //     const createRsp = await this.authenticate.createUser(user);
+  //     if (isError(createRsp)) {
+  //       setErrorMessage("Failed to create account");
+  //       return createRsp;
+  //     }
+  //     clearErrorMessages();
+  //   } finally {
+  //     this.hideProgress();
+  //   }
+  // }
 
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
-  public async login(user: User): Promise<Result<void>> {
+  public async login(): Promise<Result<void>> {
     console.log("login");
     try {
       this.showProgress();
 
-      const loginRsp = await this.authenticate.login(user);
+      const loginRsp = await this.authenticate.login();
       if (isError(loginRsp)) {
         console.error("Failed to login:", loginRsp);
         setErrorMessage(this.toErrorMessage(loginRsp));
@@ -132,8 +131,6 @@ export class Online implements IOnline, ILoginProvider {
 
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
-        //await this.showLoginDialog();
-        //await this.useWebAuthn();
         showLoginDlg(this);
         return checkRsp;
       }
