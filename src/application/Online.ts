@@ -23,11 +23,6 @@ import { IStore, IStoreKey } from "./diagram/Store";
 import { activityEventName } from "../common/activity";
 import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
 import { orDefault } from "./../common/Result";
-import {
-  platformAuthenticatorIsAvailable,
-  startAuthentication,
-  startRegistration,
-} from "@simplewebauthn/browser";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();

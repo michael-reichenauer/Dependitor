@@ -31,53 +31,53 @@ type ApplicationBarProps = {
   height: number;
 };
 
-const verify = async () => {
-  // console.log("verify");
-  // const authenticate: IAuthenticate = di(IAuthenticateKey);
-  // const usernameSha = await sha256Hash(usernameOrg);
-  // // GET authentication options from the endpoint that calls
-  // const options = await authenticate.getWebAuthnAuthenticationOptions({
-  //   username: usernameSha,
-  // });
-  // if (isError(options)) {
-  //   console.error("error", options);
-  //   alert("Error: failed to get authentication options from server");
-  //   return;
-  // }
-  // console.log("got authentication", options);
-  // let authentication;
-  // try {
-  //   // Pass the options to the authenticator and wait for a response
-  //   authentication = await startAuthentication(options.options);
-  // } catch (error) {
-  //   console.error("Error", error);
-  //   alert("Error: Failed to authenticate on device" + error);
-  //   return;
-  // }
-  // console.log("authentication", authentication);
-  // console.log(
-  //   "useridprefix: ",
-  //   authentication.response.userHandle?.substring(0, 5)
-  // );
-  // authentication.response.userHandle = undefined;
-  // // POST the response to the endpoint that calls
-  // const verification = await authenticate.verifyWebAuthnAuthentication({
-  //   username: usernameSha,
-  //   authentication: authentication,
-  // });
-  // console.log("rsp", verification);
-  // if (isError(verification)) {
-  //   console.error("error", verification);
-  //   alert("Error: Failed to verify authentication on server: " + verification);
-  //   return;
-  // }
-  // if (!verification.verified) {
-  //   console.error("Failed to verify authentication on server", verification);
-  //   alert("Error: Failed to verify authentication on server: " + verification);
-  //   return;
-  // }
-  // alert("Authenticated verified by server: " + verification.verified);
-};
+// const verify = async () => {
+//   // console.log("verify");
+//   // const authenticate: IAuthenticate = di(IAuthenticateKey);
+//   // const usernameSha = await sha256Hash(usernameOrg);
+//   // // GET authentication options from the endpoint that calls
+//   // const options = await authenticate.getWebAuthnAuthenticationOptions({
+//   //   username: usernameSha,
+//   // });
+//   // if (isError(options)) {
+//   //   console.error("error", options);
+//   //   alert("Error: failed to get authentication options from server");
+//   //   return;
+//   // }
+//   // console.log("got authentication", options);
+//   // let authentication;
+//   // try {
+//   //   // Pass the options to the authenticator and wait for a response
+//   //   authentication = await startAuthentication(options.options);
+//   // } catch (error) {
+//   //   console.error("Error", error);
+//   //   alert("Error: Failed to authenticate on device" + error);
+//   //   return;
+//   // }
+//   // console.log("authentication", authentication);
+//   // console.log(
+//   //   "useridprefix: ",
+//   //   authentication.response.userHandle?.substring(0, 5)
+//   // );
+//   // authentication.response.userHandle = undefined;
+//   // // POST the response to the endpoint that calls
+//   // const verification = await authenticate.verifyWebAuthnAuthentication({
+//   //   username: usernameSha,
+//   //   authentication: authentication,
+//   // });
+//   // console.log("rsp", verification);
+//   // if (isError(verification)) {
+//   //   console.error("error", verification);
+//   //   alert("Error: Failed to verify authentication on server: " + verification);
+//   //   return;
+//   // }
+//   // if (!verification.verified) {
+//   //   console.error("Failed to verify authentication on server", verification);
+//   //   alert("Error: Failed to verify authentication on server: " + verification);
+//   //   return;
+//   // }
+//   // alert("Authenticated verified by server: " + verification.verified);
+// };
 
 // const register = async () => {
 //   console.log("register");

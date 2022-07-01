@@ -11,13 +11,13 @@ import {
   Typography,
 } from "@material-ui/core";
 import { Formik, Form, Field } from "formik";
-import { TextField } from "formik-material-ui";
+//import { TextField } from "formik-material-ui";
 import { User } from "../common/Api";
 import Result, { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
-import { AuthenticateError } from "../common/Api";
+//import { AuthenticateError } from "../common/Api";
 
-const usernameKey = "credential.userName";
+// const usernameKey = "credential.userName";
 
 export interface ILoginProvider {
   createAccount(user: User): Promise<Result<void>>;
@@ -191,7 +191,7 @@ export const LoginDlg: FC = () => {
   );
 };
 
-const getDefaultUserName = () => localStorage.getItem(usernameKey) ?? "";
+// const getDefaultUserName = () => localStorage.getItem(usernameKey) ?? "";
 
-const setDefaultUserName = (name: string) =>
-  localStorage.setItem(usernameKey, name);
+// const setDefaultUserName = (name: string) =>
+//   localStorage.setItem(usernameKey, name);
