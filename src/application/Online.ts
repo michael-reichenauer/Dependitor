@@ -98,6 +98,7 @@ export class Online implements IOnline, ILoginProvider {
       const loginRsp = await this.authenticate.login();
       if (loginRsp instanceof WebAuthnCanceledError) {
         setInfoMessage("Authentication canceled");
+        this.cancelLogin();
         return;
       }
       if (isError(loginRsp)) {
