@@ -1,6 +1,7 @@
 import { User } from "./Api";
 import { IDataCrypt } from "./DataCrypt";
 import assert from "assert";
+import Result from "./Result";
 
 const prefix = "encrypted:";
 
@@ -27,7 +28,7 @@ export class DataCryptMock implements IDataCrypt {
   public async unwrapDataEncryptionKey(
     wrappedDek: string,
     user: User
-  ): Promise<CryptoKey> {
+  ): Promise<Result<CryptoKey>> {
     assert(
       wrappedDek.length > 0 &&
         wrappedDek === prefix + user.username + user.password

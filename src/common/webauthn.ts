@@ -9,8 +9,12 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationCredentialJSON,
 } from "@simplewebauthn/typescript-types";
+import { CustomError } from "./CustomError";
 import { diKey, singleton } from "./di";
 import Result from "./Result";
+
+export class WebAuthnError extends CustomError {}
+export class WebAuthnCanceledError extends CustomError {}
 
 export const IWebAuthnKey = diKey<IWebAuthn>();
 export interface IWebAuthn {
@@ -35,7 +39,12 @@ export class WebAuthn implements IWebAuthn {
     try {
       // Pass the options to the browsers built-in WebAuthn api
       return await startRegistration(options);
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
+      console.error("Error", error);
+      if (error.name === "NotAllowedError") {
+        return new WebAuthnCanceledError(error);
+      }
       // if (error.name === 'InvalidStateError') {
       //   'Error: Authenticator was probably already registered by user';
       // }
@@ -49,7 +58,12 @@ export class WebAuthn implements IWebAuthn {
     try {
       // Pass the options to the authenticator and wait for a response
       return await startAuthentication(options);
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
+      console.error("Error", error);
+      if (error.name === "NotAllowedError") {
+        return new WebAuthnCanceledError(error);
+      }
       return error as Error;
     }
   }

@@ -2,6 +2,7 @@ import { ICrypt, ICryptKey } from "./crypt";
 import { di, diKey, singleton } from "./di";
 import { User } from "./Api";
 import { Buffer } from "buffer";
+import Result from "./Result";
 
 // @ts-ignore
 window.Buffer = Buffer;
@@ -21,7 +22,10 @@ export interface IDataCrypt {
   // Unwraps/decrypts the wrapped data encryption key (DEK) using the
   // key encryption key (KEK), which was derived from the username and password
   // The returned DEK key is a secret that should be handled with great care and not stored.
-  unwrapDataEncryptionKey(wrappedDek: string, user: User): Promise<CryptoKey>;
+  unwrapDataEncryptionKey(
+    wrappedDek: string,
+    user: User
+  ): Promise<Result<CryptoKey>>;
 
   // Encrypt a text block using the data encryption key DEK
   encryptText(text: string, dek: CryptoKey): Promise<string>;
@@ -69,17 +73,21 @@ export class DataCrypt {
   public async unwrapDataEncryptionKey(
     wrappedDek: string,
     user: User
-  ): Promise<CryptoKey> {
-    // Derive a key encryption key (KEK) to unwrap/decrypt the DEK key
-    const kek = await this.deriveKeyEncryptionKey(user);
+  ): Promise<Result<CryptoKey>> {
+    try {
+      // Derive a key encryption key (KEK) to unwrap/decrypt the DEK key
+      const kek = await this.deriveKeyEncryptionKey(user);
 
-    // Extract the encrypted text and encrypted DEK key
-    const wrappedDekJson = b64_to_utf8(wrappedDek);
-    const wDek = JSON.parse(wrappedDekJson);
+      // Extract the encrypted text and encrypted DEK key
+      const wrappedDekJson = b64_to_utf8(wrappedDek);
+      const wDek = JSON.parse(wrappedDekJson);
 
-    // Decrypt/unwrap the DEK key using the KEK key
-    const dek = await this.unWrapDataEncryptionKey(wDek, kek);
-    return dek;
+      // Decrypt/unwrap the DEK key using the KEK key
+      const dek = await this.unWrapDataEncryptionKey(wDek, kek);
+      return dek;
+    } catch (error) {
+      return error as Error;
+    }
   }
 
   public async encryptText(text: string, dek: CryptoKey): Promise<string> {

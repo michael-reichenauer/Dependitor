@@ -22,6 +22,7 @@ import { IStore, IStoreKey } from "./diagram/Store";
 import { activityEventName } from "../common/activity";
 import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
 import { orDefault } from "./../common/Result";
+import { WebAuthnCanceledError } from "../common/webauthn";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
@@ -95,6 +96,10 @@ export class Online implements IOnline, ILoginProvider {
       this.showProgress();
 
       const loginRsp = await this.authenticate.login();
+      if (loginRsp instanceof WebAuthnCanceledError) {
+        setInfoMessage("Authentication canceled");
+        return;
+      }
       if (isError(loginRsp)) {
         console.error("Failed to login:", loginRsp);
         setErrorMessage(this.toErrorMessage(loginRsp));
@@ -131,6 +136,10 @@ export class Online implements IOnline, ILoginProvider {
 
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
+
+        if (this.getPersistentIsEnabled()) {
+          return await this.login();
+        }
         showLoginDlg(this);
         return checkRsp;
       }
