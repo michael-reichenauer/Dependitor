@@ -32,7 +32,7 @@ export interface IWebAuthn {
 // reloaded before WebAuthn call. But the error returned is same as if the user canceled manually.
 // A workaround is to measure the time and if it is to fast for a human to cancel, then
 // it is assumed that a reload was needed.
-const needReloadErrorTimeout = 300; // ms
+const needReloadErrorTimeout = 5000; // ms
 
 @singleton(IWebAuthnKey)
 export class WebAuthn implements IWebAuthn {

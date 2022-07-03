@@ -55,6 +55,9 @@ export const useSyncMode = (): SyncState => {
 const persistentSyncKeyName = "syncState";
 const loginAfterReloadKeyName = "loginAfterReload";
 const deviseSyncOKMessage = "Device sync is OK";
+const deviceSyncDisabledMsg = "Device sync is disabled";
+const deviceSyncCanceledMsg = "Authentication canceled";
+const deviceSyncNeedReloadMsg = "Reloading page before authentication ...";
 
 @singleton(IOnlineKey)
 export class Online implements IOnline, ILoginProvider {
@@ -101,12 +104,14 @@ export class Online implements IOnline, ILoginProvider {
 
       const loginRsp = await this.authenticate.login();
       if (loginRsp instanceof WebAuthnNeedReloadError) {
+        setInfoMessage(deviceSyncNeedReloadMsg);
         this.setLoginAfterReloadEnabled(true);
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 500);
         return;
       }
       if (loginRsp instanceof WebAuthnCanceledError) {
-        setInfoMessage("Authentication canceled");
+        setInfoMessage(deviceSyncCanceledMsg);
+        setInfoMessage(deviceSyncDisabledMsg);
         this.cancelLogin();
         return;
       }
@@ -330,7 +335,7 @@ export class Online implements IOnline, ILoginProvider {
     clearErrorMessages();
     if (wasEnabled) {
       this.authenticate.resetLogin();
-      setInfoMessage("Device sync is disabled");
+      setInfoMessage(deviceSyncDisabledMsg);
     }
 
     showSyncState(SyncState.Disabled);
