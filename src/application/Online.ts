@@ -22,7 +22,10 @@ import { IStore, IStoreKey } from "./diagram/Store";
 import { activityEventName } from "../common/activity";
 import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
 import { orDefault } from "./../common/Result";
-import { WebAuthnCanceledError } from "../common/webauthn";
+import {
+  WebAuthnCanceledError,
+  WebAuthnNeedReloadError,
+} from "../common/webauthn";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
@@ -50,6 +53,7 @@ export const useSyncMode = (): SyncState => {
 };
 
 const persistentSyncKeyName = "syncState";
+const loginAfterReloadKeyName = "loginAfterReload";
 const deviseSyncOKMessage = "Device sync is OK";
 
 @singleton(IOnlineKey)
@@ -96,6 +100,11 @@ export class Online implements IOnline, ILoginProvider {
       this.showProgress();
 
       const loginRsp = await this.authenticate.login();
+      if (loginRsp instanceof WebAuthnNeedReloadError) {
+        this.setLoginAfterReloadEnabled(true);
+        window.location.reload();
+        return;
+      }
       if (loginRsp instanceof WebAuthnCanceledError) {
         setInfoMessage("Authentication canceled");
         this.cancelLogin();
@@ -137,7 +146,6 @@ export class Online implements IOnline, ILoginProvider {
 
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
-
         if (this.getPersistentIsEnabled()) {
           return await this.login();
         }
@@ -372,6 +380,12 @@ export class Online implements IOnline, ILoginProvider {
     if (this.firstActivate) {
       // First activity signal, checking if sync should be enabled automatically
       this.firstActivate = false;
+      if (this.getLoginAfterReloadEnabled()) {
+        this.setLoginAfterReloadEnabled(false);
+        setTimeout(() => this.login(), 0);
+        return;
+      }
+
       if (this.getPersistentIsEnabled()) {
         setTimeout(() => this.enableSync(), 0);
         return;
@@ -397,6 +411,16 @@ export class Online implements IOnline, ILoginProvider {
   // setPersistentIsEnabled stores if  sync should be automatically enabled after browser start
   private setPersistentIsEnabled(state: boolean) {
     this.localStore.write(persistentSyncKeyName, state);
+  }
+
+  // getLoginAfterReloadEnabled returns true if a login should be done once after a reload
+  private getLoginAfterReloadEnabled() {
+    return orDefault(this.localStore.tryRead(loginAfterReloadKeyName), false);
+  }
+
+  // setLoginAfterReloadEnabled stores if  login should be done once after a reload
+  private setLoginAfterReloadEnabled(state: boolean) {
+    this.localStore.write(loginAfterReloadKeyName, state);
   }
 
   // showProgress notifies ui to show progress icon while trying to enable sync ot not active

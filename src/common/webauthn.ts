@@ -14,7 +14,8 @@ import { diKey, singleton } from "./di";
 import Result from "./Result";
 
 export class WebAuthnError extends CustomError {}
-export class WebAuthnCanceledError extends CustomError {}
+export class WebAuthnCanceledError extends WebAuthnError {}
+export class WebAuthnNeedReloadError extends WebAuthnError {}
 
 export const IWebAuthnKey = diKey<IWebAuthn>();
 export interface IWebAuthn {
@@ -26,6 +27,12 @@ export interface IWebAuthn {
     options: PublicKeyCredentialRequestOptionsJSON
   ): Promise<Result<AuthenticationCredentialJSON>>;
 }
+
+// On IOS, WebAuthn calls are only allowed on a 'fresh' web site. So a page might need to be
+// reloaded before WebAuthn call. But the error returned is same as if the user canceled manually.
+// A workaround is to measure the time and if it is to fast for a human to cancel, then
+// it is assumed that a reload was needed.
+const needReloadErrorTimeout = 300; // ms
 
 @singleton(IWebAuthnKey)
 export class WebAuthn implements IWebAuthn {
@@ -45,7 +52,10 @@ export class WebAuthn implements IWebAuthn {
       const error = err as Error;
       const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
       console.warn(msg);
-      alert(msg);
+      // alert(msg);
+      if (this.isReloadError(error, duration)) {
+        return new WebAuthnNeedReloadError(error);
+      }
       if (error.name === "NotAllowedError") {
         return new WebAuthnCanceledError(error);
       }
@@ -68,11 +78,20 @@ export class WebAuthn implements IWebAuthn {
       const error = err as Error;
       const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
       console.warn(msg);
-      alert(msg);
+      // alert(msg);
+      if (this.isReloadError(error, duration)) {
+        return new WebAuthnNeedReloadError(error);
+      }
       if (error.name === "NotAllowedError") {
         return new WebAuthnCanceledError(error);
       }
       return error as Error;
     }
+  }
+
+  private isReloadError(error: Error, duration: number): boolean {
+    return (
+      error.name === "NotAllowedError" && duration < needReloadErrorTimeout
+    );
   }
 }
