@@ -2,7 +2,7 @@ import draw2d from "draw2d";
 import PubSub from "pubsub-js";
 import cuid from "cuid";
 import { menuItem } from "../../common/Menus";
-import timestamp from "../../common/timing";
+import timing from "../../common/timing";
 import Colors from "./Colors";
 import CommandChangeIcon from "./CommandChangeIcon";
 import NodeIcons from "./NodeIcons";
@@ -284,7 +284,7 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   hideInnerDiagram(): void {
-    const t = timestamp();
+    const t = timing();
     if (this.innerDiagram == null) {
       return;
     }
