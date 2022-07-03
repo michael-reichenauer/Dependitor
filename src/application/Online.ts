@@ -26,6 +26,7 @@ import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
+import { showOKAlert } from "../common/AlertDialog";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
@@ -57,7 +58,6 @@ const loginAfterReloadKeyName = "loginAfterReload";
 const deviseSyncOKMessage = "Device sync is OK";
 const deviceSyncDisabledMsg = "Device sync is disabled";
 const deviceSyncCanceledMsg = "Authentication canceled";
-const deviceSyncNeedReloadMsg = "Reloading page before authentication ...";
 
 @singleton(IOnlineKey)
 export class Online implements IOnline, ILoginProvider {
@@ -104,9 +104,12 @@ export class Online implements IOnline, ILoginProvider {
 
       const loginRsp = await this.authenticate.login();
       if (loginRsp instanceof WebAuthnNeedReloadError) {
-        setInfoMessage(deviceSyncNeedReloadMsg);
         this.setLoginAfterReloadEnabled(true);
-        setTimeout(() => window.location.reload(), 1500);
+        showOKAlert(
+          "Reload Page",
+          "Please manually reload the page to get to the authentication dialog.\n" +
+            "Some browsers need a 'fresh' page before allowing access to authentication."
+        );
         return;
       }
       if (loginRsp instanceof WebAuthnCanceledError) {
@@ -201,7 +204,6 @@ export class Online implements IOnline, ILoginProvider {
     if (wasEnabled) {
       this.authenticate.resetLogin();
       setInfoMessage(deviceSyncDisabledMsg);
-      setTimeout(() => window.location.reload(), 2000);
     }
 
     showSyncState(SyncState.Disabled);
