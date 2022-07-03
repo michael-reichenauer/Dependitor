@@ -108,10 +108,7 @@ export class Online implements IOnline, ILoginProvider {
         showOKAlert(
           "Reload Page",
           "Please manually reload the page to get to the authentication dialog.\n" +
-            "Some browsers need a 'fresh' page before allowing access to authentication.",
-          () =>
-            // eslint-disable-next-line
-            (window.location.href = window.location.href)
+            "Some browsers need a 'fresh' page before allowing access to authentication."
         );
         return;
       }
