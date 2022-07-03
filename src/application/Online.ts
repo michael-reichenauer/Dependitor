@@ -109,7 +109,9 @@ export class Online implements IOnline, ILoginProvider {
           "Reload Page",
           "Please manually reload the page to get to the authentication dialog.\n" +
             "Some browsers need a 'fresh' page before allowing access to authentication.",
-          () => window.location.reload()
+          () =>
+            // eslint-disable-next-line
+            (window.location.href = window.location.href)
         );
         return;
       }
