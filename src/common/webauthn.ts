@@ -36,12 +36,14 @@ export class WebAuthn implements IWebAuthn {
   public async startRegistration(
     options: PublicKeyCredentialCreationOptionsJSON
   ): Promise<Result<RegistrationCredentialJSON>> {
+    const startTime = performance.now();
     try {
       // Pass the options to the browsers built-in WebAuthn api
       return await startRegistration(options);
     } catch (err) {
+      const duration = performance.now() - startTime;
       const error = err as Error;
-      const msg = `WebAuthn Error: ${error.name}: ${error.message}`;
+      const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
       console.warn(msg);
       alert(msg);
       if (error.name === "NotAllowedError") {
@@ -57,12 +59,14 @@ export class WebAuthn implements IWebAuthn {
   public async startAuthentication(
     options: PublicKeyCredentialRequestOptionsJSON
   ): Promise<Result<AuthenticationCredentialJSON>> {
+    const startTime = performance.now();
     try {
       // Pass the options to the authenticator and wait for a response
       return await startAuthentication(options);
     } catch (err) {
+      const duration = performance.now() - startTime;
       const error = err as Error;
-      const msg = `WebAuthn Error: ${error.name}: ${error.message}`;
+      const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
       console.warn(msg);
       alert(msg);
       if (error.name === "NotAllowedError") {
