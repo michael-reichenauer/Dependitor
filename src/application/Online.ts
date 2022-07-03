@@ -106,7 +106,7 @@ export class Online implements IOnline, ILoginProvider {
       if (loginRsp instanceof WebAuthnNeedReloadError) {
         setInfoMessage(deviceSyncNeedReloadMsg);
         this.setLoginAfterReloadEnabled(true);
-        setTimeout(() => window.location.reload(), 500);
+        setTimeout(() => window.location.reload(), 1500);
         return;
       }
       if (loginRsp instanceof WebAuthnCanceledError) {
