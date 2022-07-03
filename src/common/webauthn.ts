@@ -41,7 +41,9 @@ export class WebAuthn implements IWebAuthn {
       return await startRegistration(options);
     } catch (err) {
       const error = err as Error;
-      // console.error("Error", error);
+      const msg = `WebAuthn Error: ${error.name}: ${error.message}`;
+      console.warn(msg);
+      alert(msg);
       if (error.name === "NotAllowedError") {
         return new WebAuthnCanceledError(error);
       }
@@ -60,7 +62,9 @@ export class WebAuthn implements IWebAuthn {
       return await startAuthentication(options);
     } catch (err) {
       const error = err as Error;
-      //console.error("Error", error);
+      const msg = `WebAuthn Error: ${error.name}: ${error.message}`;
+      console.warn(msg);
+      alert(msg);
       if (error.name === "NotAllowedError") {
         return new WebAuthnCanceledError(error);
       }
