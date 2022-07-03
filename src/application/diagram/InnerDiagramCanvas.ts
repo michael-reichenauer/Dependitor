@@ -1,5 +1,5 @@
 import draw2d from "draw2d";
-import timing from "../../common/timing";
+import timestamp from "../../common/timing";
 import { addDefaultInnerDiagram } from "./addDefault";
 import Connection from "./Connection";
 import Group from "./Group";
@@ -21,7 +21,7 @@ export default class InnerDiagramCanvas {
   }
 
   editInnerDiagram = (node: Node): void => {
-    const t = timing();
+    const t = timestamp();
     const innerDiagram = node.innerDiagram;
     if (innerDiagram == null) {
       // Figure has no inner diagram, thus nothing to edit
@@ -77,7 +77,7 @@ export default class InnerDiagramCanvas {
   };
 
   popFromInnerDiagram = (): void => {
-    const t = timing();
+    const t = timestamp();
     const groupNode = this.canvas.getFigure(this.canvas.mainNodeId);
 
     // Get the inner diagram zoom to use when zooming outer diagram

@@ -1,4 +1,4 @@
-export default function timing() {
+export default function timestamp() {
   const t = new Timing();
   return () => t.toString();
 }

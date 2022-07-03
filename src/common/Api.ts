@@ -1,5 +1,5 @@
 import axios from "axios";
-import timing from "./timing";
+import timestamp from "./timing";
 
 import Result, { isError } from "./Result";
 import { diKey, singleton } from "./di";
@@ -201,7 +201,7 @@ export class Api implements IApi {
   private async get(uri: string): Promise<Result<any>> {
     this.requestCount++;
     // console.log(`Request #${this.requestCount}: GET ${uri} ...`);
-    const t = timing();
+    const t = timestamp();
     try {
       const rsp = await axios.get(uri, {
         headers: { "x-api-key": this.apiKey },
@@ -235,7 +235,7 @@ export class Api implements IApi {
   async post(uri: string, requestData: any): Promise<Result<any>> {
     this.requestCount++;
     // console.log(`Request #${this.requestCount}: POST ${uri} ...`);
-    const t = timing();
+    const t = timestamp();
     try {
       const rsp = await axios.post(uri, requestData, {
         headers: { "x-api-key": this.apiKey },
