@@ -82,13 +82,13 @@ export function ApplicationMenu() {
     ]),
     menuItem("Delete", deleteDiagram),
     menuItem(
-      "Enable device sync",
+      "Login and enable device sync",
       () => onlineRef.current.enableSync(),
       syncMode !== SyncState.Progress,
       syncMode === SyncState.Disabled
     ),
     menuItem(
-      "Disable device sync",
+      "Logoff and disable device sync",
       () => onlineRef.current.disableSync(),
       syncMode !== SyncState.Progress,
       syncMode !== SyncState.Disabled

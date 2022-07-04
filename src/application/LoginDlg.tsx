@@ -1,19 +1,18 @@
 import React, { FC } from "react";
-import { useState } from "react";
 import { atom, useAtom } from "jotai";
 import {
   Box,
   Button,
   Dialog,
-  FormControlLabel,
   LinearProgress,
-  Switch,
+  TextField,
   Typography,
 } from "@material-ui/core";
 import { Formik, Form, Field } from "formik";
 //import { TextField } from "formik-material-ui";
 import Result, { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
+import { QRCode } from "react-qrcode-logo";
 //import { AuthenticateError } from "../common/Api";
 
 // const usernameKey = "credential.userName";
@@ -36,7 +35,6 @@ export const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
 
 export const LoginDlg: FC = () => {
   const [login, setLogin] = useLogin();
-  const [createAccount, setCreateAccount] = useState(false);
 
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
@@ -53,22 +51,13 @@ export const LoginDlg: FC = () => {
         setLogin(null);
       }}
     >
-      <Box style={{ width: 320, height: 330, padding: 20 }}>
-        {!createAccount && (
-          <Typography variant="h5" style={{ paddingBottom: 10 }}>
-            Login
-          </Typography>
-        )}
-        {createAccount && (
-          <Typography variant="h5" style={{ paddingBottom: 10 }}>
-            Create a new Account
-          </Typography>
-        )}
+      <Box style={{ width: 270, height: 350, padding: 20 }}>
+        <Typography variant="h5" style={{ paddingBottom: 10 }}>
+          Login
+        </Typography>
 
         <Formik
-          initialValues={{
-            create: false,
-          }}
+          initialValues={{ deviceName: "" }}
           validate={async (values) => {
             const errors: any = {};
             // if (!values.username) {
@@ -112,73 +101,53 @@ export const LoginDlg: FC = () => {
         >
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
-              {isSubmitting && <LinearProgress style={{ marginBottom: 10 }} />}
-              {/* <Field
-                label="Username"
-                component={TextField}
-                name="username"
-                type="text"
-                fullWidth={true}
-              />
-              <br />
+              {isSubmitting && <LinearProgress style={{ marginBottom: 5 }} />}
               <Field
-                label="Password"
+                label="Device Name"
                 component={TextField}
-                type="password"
-                name="password"
+                type="text"
+                name="deviceName"
                 fullWidth={true}
-              />
-              <br />
-              {createAccount && (
-                <Field
-                  label="Confirm"
-                  component={TextField}
-                  type="password"
-                  name="confirm"
-                  fullWidth={true}
-                />
-              )} */}
-
-              <br />
-              <FormControlLabel
-                style={{ position: "absolute", top: 260 }}
-                label="Create a new account"
-                control={
-                  <Field
-                    component={Switch}
-                    type="checkbox"
-                    name="create"
-                    color="primary"
-                    onChange={(e: any) => setCreateAccount(e.target.checked)}
-                  />
-                }
+                defaultValue="Hello World"
               />
 
-              <Box style={{ position: "absolute", top: 300, left: 80 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
                 <Button
-                  id="OKButton"
+                  id="LoginButton"
                   variant="contained"
                   color="primary"
                   disabled={isSubmitting}
                   onClick={submitForm}
-                  style={{ margin: 5, width: 80 }}
-                >
-                  OK
-                </Button>
-
-                <Button
-                  variant="contained"
-                  color="primary"
-                  disabled={isSubmitting}
-                  onClick={() => {
-                    login?.cancelLogin();
-                    setLogin(null);
+                  style={{
+                    marginTop: 15,
+                    marginBottom: 30,
                   }}
-                  style={{ margin: 5, width: 85 }}
                 >
-                  Cancel
+                  Login
                 </Button>
-              </Box>
+              </div>
+
+              <Typography
+                style={{ fontSize: "12px", paddingTop: 40, lineHeight: 1 }}
+              >
+                Or scan QR code with your mobile to login and sync with other
+                devices.
+              </Typography>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <QRCode value="https://dependitor.com" size={100} />
+              </div>
             </Form>
           )}
         </Formik>
