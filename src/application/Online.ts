@@ -96,6 +96,15 @@ export class Online implements IOnline, ILoginProvider {
   //   }
   // }
 
+  reload() {
+    const url = window.location.origin;
+    const pathname = window.location.pathname;
+    const newUrl = url + pathname + "?refresh=" + Math.random() * 100000;
+    console.log("url", newUrl);
+    window.location.href = newUrl;
+    //window.location = url + pathname + '?application_refresh=' + (Math.random() * 100000);
+  }
+
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
   public async login(): Promise<Result<void>> {
     console.log("login");
@@ -108,7 +117,8 @@ export class Online implements IOnline, ILoginProvider {
         showOKAlert(
           "Reload Page",
           "Please manually reload the page to get to the authentication dialog.\n" +
-            "Some browsers need a 'fresh' page before allowing access to authentication."
+            "Some browsers need a 'fresh' page before allowing access to authentication.",
+          () => this.reload()
         );
         return;
       }
