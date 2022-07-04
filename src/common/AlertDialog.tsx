@@ -26,6 +26,15 @@ export const showConfirmAlert = (
   });
 
 // Shows a OK alert
+export const showNoOKAlert = (title: string, message: string) =>
+  setAlertFunc?.({
+    title: title,
+    message: message,
+    onOk: null,
+    confirm: false,
+  });
+
+// Shows a OK alert
 export const showOKAlert = (
   title: string,
   message: string,
@@ -70,15 +79,17 @@ export default function AlertDialog() {
         <DialogContentText>{alert?.message}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button
-          onClick={handleOK}
-          color="primary"
-          autoFocus
-          variant="contained"
-          style={{ margin: 5, width: 85 }}
-        >
-          OK
-        </Button>
+        {alert?.onOk && (
+          <Button
+            onClick={handleOK}
+            color="primary"
+            autoFocus
+            variant="contained"
+            style={{ margin: 5, width: 85 }}
+          >
+            OK
+          </Button>
+        )}
         {alert?.confirm && (
           <Button
             onClick={handleCancel}

@@ -4,8 +4,6 @@ import { SetAtom } from "jotai/core/types";
 import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
 import { ILoginProvider, showLoginDlg } from "./LoginDlg";
 import {
-  IApi,
-  IApiKey,
   NoContactError,
   LocalApiServerError,
   LocalEmulatorError,
@@ -67,7 +65,6 @@ export class Online implements IOnline, ILoginProvider {
 
   constructor(
     private authenticate: IAuthenticate = di(IAuthenticateKey),
-    private api: IApi = di(IApiKey),
     private store: IStore = di(IStoreKey),
     private localStore: ILocalStore = di(ILocalStoreKey)
   ) {
@@ -81,30 +78,6 @@ export class Online implements IOnline, ILoginProvider {
     });
   }
 
-  // // createAccount called by LoginDlg when user wants to create an new user account
-  // public async createAccount(user: User): Promise<Result<void>> {
-  //   try {
-  //     this.showProgress();
-  //     const createRsp = await this.authenticate.createUser(user);
-  //     if (isError(createRsp)) {
-  //       setErrorMessage("Failed to create account");
-  //       return createRsp;
-  //     }
-  //     clearErrorMessages();
-  //   } finally {
-  //     this.hideProgress();
-  //   }
-  // }
-
-  reload() {
-    const url = window.location.origin;
-    const pathname = window.location.pathname;
-    const newUrl = url + pathname + "?refresh=" + Math.random() * 100000;
-    console.log("url", newUrl);
-    window.location.href = newUrl;
-    //window.location = url + pathname + '?application_refresh=' + (Math.random() * 100000);
-  }
-
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
   public async login(): Promise<Result<void>> {
     console.log("login");
@@ -116,9 +89,8 @@ export class Online implements IOnline, ILoginProvider {
         this.setLoginAfterReloadEnabled(true);
         showOKAlert(
           "Reload Page",
-          "Please manually reload the page to get to the authentication dialog.\n" +
-            "Some browsers need a 'fresh' page before allowing access to authentication.",
-          () => this.reload()
+          "Please manually reload this page to show the authentication dialog.\n" +
+            "Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication."
         );
         return;
       }
