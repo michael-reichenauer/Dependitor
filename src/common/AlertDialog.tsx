@@ -38,7 +38,7 @@ export const showNoOKAlert = (title: string, message: string) =>
 export const showOKAlert = (
   title: string,
   message: string,
-  onOk?: () => void
+  onOk: () => void = () => {}
 ) =>
   setAlertFunc?.({
     title: title,

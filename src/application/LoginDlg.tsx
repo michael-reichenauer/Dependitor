@@ -41,10 +41,11 @@ export const LoginDlg: FC = () => {
       okButton?.click();
     }
   };
-  let host = window.location.host;
+
+  const host = window.location.host;
   // host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
   const baseUrl = `${window.location.protocol}//${host}`;
-  const url = `${baseUrl}/?lg=/${randomId}`;
+  const url = `${baseUrl}/?lg=${randomId}`;
   const dialogWidth = 290;
   const dialogHeight = 360;
 
