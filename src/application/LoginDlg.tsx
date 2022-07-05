@@ -5,20 +5,18 @@ import {
   Button,
   Dialog,
   LinearProgress,
-  TextField,
+  Link,
+  Tooltip,
   Typography,
 } from "@material-ui/core";
-import { Formik, Form, Field } from "formik";
-//import { TextField } from "formik-material-ui";
+import { Formik, Form } from "formik";
+
 import Result, { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
-//import { AuthenticateError } from "../common/Api";
-
-// const usernameKey = "credential.userName";
+import { randomString } from "../common/utils";
 
 export interface ILoginProvider {
-  // createAccount(user: User): Promise<Result<void>>;
   login(): Promise<Result<void>>;
   cancelLogin(): void;
 }
@@ -36,12 +34,16 @@ export const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
 export const LoginDlg: FC = () => {
   const [login, setLogin] = useLogin();
 
+  const randomId = randomString(15);
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
       const okButton = document.getElementById("OKButton");
       okButton?.click();
     }
   };
+  const url = `${window.location.href}login/${randomId}`;
+  const dialogWidth = 290;
+  const dialogHeight = 340;
 
   return (
     <Dialog
@@ -51,7 +53,7 @@ export const LoginDlg: FC = () => {
         setLogin(null);
       }}
     >
-      <Box style={{ width: 270, height: 350, padding: 20 }}>
+      <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
         <Typography variant="h5" style={{ paddingBottom: 10 }}>
           Login
         </Typography>
@@ -102,16 +104,7 @@ export const LoginDlg: FC = () => {
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
               {isSubmitting && <LinearProgress style={{ marginBottom: 5 }} />}
-              <Field
-                label="Device Name"
-                component={TextField}
-                type="text"
-                name="deviceName"
-                fullWidth={true}
-                defaultValue="Hello World"
-              />
-
-              <div
+              {/* <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
@@ -131,22 +124,69 @@ export const LoginDlg: FC = () => {
                 >
                   Login
                 </Button>
-              </div>
+              </div> */}
 
               <Typography
-                style={{ fontSize: "12px", paddingTop: 40, lineHeight: 1 }}
+                style={{
+                  fontSize: "14px",
+                  paddingTop: 15,
+                  paddingBottom: 20,
+                  lineHeight: 1,
+                }}
               >
-                Or scan QR code with your mobile to login and sync with other
-                devices.
+                Scan QR code, or click link, on your mobile to login and enable
+                sync with all your devices.
               </Typography>
+
               <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
-                  alignItems: "center",
                 }}
               >
-                <QRCode value="https://dependitor.com" size={100} />
+                <Tooltip title={url}>
+                  <Link href={url} target="_blank">
+                    <QRCode value={url} size={130} />
+                  </Link>
+                </Tooltip>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Tooltip title={url}>
+                  <Typography style={{ fontSize: "12px", paddingTop: 0 }}>
+                    <Link href={url} target="_blank">
+                      {url}
+                    </Link>
+                  </Typography>
+                </Tooltip>
+              </div>
+
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 15,
+                  width: dialogWidth,
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Button
+                  variant="contained"
+                  color="primary"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setLogin(null);
+                    login?.cancelLogin();
+                  }}
+                  style={{ width: 85 }}
+                >
+                  Cancel
+                </Button>
               </div>
             </Form>
           )}

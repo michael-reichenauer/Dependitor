@@ -15,6 +15,17 @@ export const random = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min) + min);
 };
 
+export const randomString = (count: number): string => {
+  let randomText = "";
+  const randomBytes = crypto.getRandomValues(new Uint8Array(count));
+  let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  for (var i = 0; i < count; i++) {
+    randomText += characters.charAt(randomBytes[i] % characters.length);
+  }
+  return randomText;
+};
+
 // Returns the distance between 2 points
 export const distance = (
   x1: number,
