@@ -34,16 +34,19 @@ export const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
 export const LoginDlg: FC = () => {
   const [login, setLogin] = useLogin();
 
-  const randomId = randomString(15);
+  const randomId = randomString(12);
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
       const okButton = document.getElementById("OKButton");
       okButton?.click();
     }
   };
-  const url = `${window.location.href}login/${randomId}`;
+  let host = window.location.host;
+  host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
+  const baseUrl = `${window.location.protocol}//${host}`;
+  const url = `${baseUrl}/lg/${randomId}`;
   const dialogWidth = 290;
-  const dialogHeight = 340;
+  const dialogHeight = 360;
 
   return (
     <Dialog
@@ -146,7 +149,7 @@ export const LoginDlg: FC = () => {
               >
                 <Tooltip title={url}>
                   <Link href={url} target="_blank">
-                    <QRCode value={url} size={130} />
+                    <QRCode value={url} />
                   </Link>
                 </Tooltip>
               </div>

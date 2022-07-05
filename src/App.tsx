@@ -18,6 +18,8 @@ const App: React.FC = () => {
   useActivityMonitor();
   useAppVersionMonitor();
 
+  console.log("Location", window.location);
+
   return (
     <>
       <ApplicationBar height={55} />
