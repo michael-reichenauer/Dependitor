@@ -63,20 +63,20 @@ export class Online implements IOnline, ILoginProvider {
   private isError = false;
   private firstActivate = true;
 
-  constructor(
-    private authenticate: IAuthenticate = di(IAuthenticateKey),
-    private store: IStore = di(IStoreKey),
-    private localStore: ILocalStore = di(ILocalStoreKey)
-  ) {
-    // Listen for user activate events to control if device sync should be activated or deactivated
-    document.addEventListener(activityEventName, (activity: any) =>
-      this.onActivityEvent(activity)
-    );
-    // Listen for StoreDB sync OK or error when syncing
-    this.store.configure({
-      onSyncChanged: (f: boolean, e?: Error) => this.onSyncChanged(f, e),
-    });
-  }
+    constructor( 
+      private authenticate: IAuthenticate = di(IAuthenticateKey),
+      private store: IStore = di(IStoreKey),
+      private localStore: ILocalStore = di(ILocalStoreKey)
+    ) {
+      // Listen for user activate events to control if device sync should be activated or deactivated
+      document.addEventListener(activityEventName, (activity: any) =>
+        this.onActivityEvent(activity)
+      );
+      // Listen for StoreDB sync OK or error when syncing
+      this.store.configure({
+        onSyncChanged: (f: boolean, e?: Error) => this.onSyncChanged(f, e),
+      });
+    }
 
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
   public async login(): Promise<Result<void>> {

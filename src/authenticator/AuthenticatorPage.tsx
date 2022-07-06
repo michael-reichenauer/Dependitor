@@ -1,31 +1,20 @@
-import {
-  Button,
-  LinearProgress,
-  Link,
-  Tooltip,
-  Typography,
-} from "@material-ui/core";
+import { Button, LinearProgress, Typography } from "@material-ui/core";
 import { Form, Formik } from "formik";
 import React from "react";
 import { FC } from "react";
-import { QRCode } from "react-qrcode-logo";
+import { di } from "../common/di";
+import { IAuthenticatorKey } from "./Authenticator";
 
-type SyncProps = {
-  id: string;
-};
+export const AuthenticatorPage: FC = () => {
+  const authenticator = di(IAuthenticatorKey);
+  authenticator.activate();
 
-export const Sync: FC<SyncProps> = ({ id }) => {
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
       const okButton = document.getElementById("OKButton");
       okButton?.click();
     }
   };
-
-  let host = window.location.host;
-  // host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
-  const baseUrl = `${window.location.protocol}//${host}`;
-  const url = `${baseUrl}/?lg=${id}`;
 
   return (
     <>
@@ -92,45 +81,7 @@ export const Sync: FC<SyncProps> = ({ id }) => {
                   </Button>
                 </div> */}
 
-            <Typography
-              style={{
-                fontSize: "14px",
-                padding: 10,
-                paddingBottom: 20,
-                lineHeight: 1,
-              }}
-            >
-              Scan QR code, or click link, on your mobile to login and enable
-              sync with all your devices.
-            </Typography>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Tooltip title={url}>
-                <Link href={url} target="_blank">
-                  <QRCode value={url} />
-                </Link>
-              </Tooltip>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Tooltip title={url}>
-                <Typography style={{ fontSize: "12px", paddingTop: 0 }}>
-                  <Link href={url} target="_blank">
-                    {url}
-                  </Link>
-                </Typography>
-              </Tooltip>
-            </div>
+            <Typography>Your current synced devices</Typography>
 
             <div
               style={{

@@ -1,17 +1,19 @@
-import { SyncApplicationBar } from "./application/SyncApplicationBar";
-import { ApplicationBar } from "./application/ApplicationBar";
 import React from "react";
 import useWindowSize from "./common/windowSize";
 import Activity, { useActivityMonitor } from "./common/activity";
 import { useAppVersionMonitor } from "./common/appVersion";
 import Diagram from "./application/Diagram";
+import { ApplicationBar } from "./application/ApplicationBar";
 import About from "./application/About";
 import { LoginDlg } from "./application/LoginDlg";
 import AlertDialog from "./common/AlertDialog";
 import PromptDialog from "./common/PromptDialog";
 import Nodes from "./application/Nodes";
 import NodeLabelDialog from "./application/diagram/LabelEditor";
-import { Sync } from "./application/Sync";
+import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
+import { di } from "./common/di";
+import { IAuthenticatorKey } from "./authenticator/Authenticator";
+import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 
 const App: React.FC = () => {
   const [size] = useWindowSize();
@@ -20,14 +22,12 @@ const App: React.FC = () => {
   useActivityMonitor();
   useAppVersionMonitor();
 
-  console.log("Location", window.location.search);
-  const loginId = getLoginRequest();
-
-  if (loginId) {
+  // If the authenticator app is requested, show that ui
+  if (di(IAuthenticatorKey).isAuthenticatorApp()) {
     return (
       <>
-        <SyncApplicationBar height={55} />
-        <Sync id={loginId} />
+        <AuthenticatorBar height={55} />
+        <AuthenticatorPage />
         <PromptDialog />
         <About />
         <AlertDialog />
@@ -51,10 +51,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-function getLoginRequest(): string | null {
-  if (!window.location.search.startsWith("?lg=")) {
-    return null;
-  }
-  return window.location.search.substring(4);
-}

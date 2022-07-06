@@ -17,7 +17,7 @@ import { QRCode } from "react-qrcode-logo";
 import { randomString } from "../common/utils";
 
 const dialogWidth = 290;
-const dialogHeight = 360;
+const dialogHeight = 340;
 
 export interface ILoginProvider {
   login(): Promise<Result<void>>;
@@ -53,12 +53,13 @@ export const LoginDlg: FC = () => {
   return (
     <Dialog open={login !== null} onClose={cancel}>
       <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
-        <Typography variant="h5" style={{ paddingBottom: 10 }}>
+        <Typography variant="h5" style={{ paddingBottom: 0 }}>
           Enable Sync
         </Typography>
 
         <QRCodeGuideText />
         <QRCodeElement id={id} />
+        <ClickHint />
 
         <Formik
           initialValues={{ deviceName: "" }}
@@ -157,14 +158,13 @@ export const LoginDlg: FC = () => {
 
 const QRCodeGuideText: FC = () => {
   const text =
-    " Scan QR code, or click link, on your mobile to enable sync with all your devices.";
+    "Scan QR code on your mobile to enable sync with all your devices.";
 
   return (
     <Typography
       style={{
         fontSize: "14px",
         paddingTop: 15,
-        paddingBottom: 20,
         lineHeight: 1,
       }}
     >
@@ -179,7 +179,6 @@ type QRCodeProps = {
 
 const QRCodeElement: FC<QRCodeProps> = ({ id }) => {
   const authenticateUrl = getAuthenticateUrl(id);
-  const linkUrl = getLinkUrl(id);
 
   return (
     <>
@@ -187,6 +186,7 @@ const QRCodeElement: FC<QRCodeProps> = ({ id }) => {
         style={{
           display: "flex",
           justifyContent: "center",
+          paddingTop: 20,
         }}
       >
         <Tooltip title={authenticateUrl}>
@@ -195,20 +195,22 @@ const QRCodeElement: FC<QRCodeProps> = ({ id }) => {
           </Link>
         </Tooltip>
       </div>
+    </>
+  );
+};
 
+const ClickHint: FC = () => {
+  return (
+    <>
       <div
         style={{
           display: "flex",
           justifyContent: "center",
         }}
       >
-        <Tooltip title={authenticateUrl}>
-          <Typography style={{ fontSize: "12px", paddingTop: 0 }}>
-            <Link href={authenticateUrl} target="_blank">
-              {linkUrl}
-            </Link>
-          </Typography>
-        </Tooltip>
+        <Typography style={{ fontSize: "12px" }}>
+          (Click on QR code if this is your mobile)
+        </Typography>
       </div>
     </>
   );
@@ -219,8 +221,4 @@ function getAuthenticateUrl(id: string): string {
   // host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
   const baseUrl = `${window.location.protocol}//${host}`;
   return `${baseUrl}/?lg=${id}`;
-}
-
-function getLinkUrl(id: string): string {
-  return `https://dependitor.com/?lg=${id}`;
 }
