@@ -29,10 +29,6 @@ export const Sync: FC<SyncProps> = ({ id }) => {
 
   return (
     <>
-      <Typography variant="h5" style={{ padding: 10 }}>
-        Login
-      </Typography>
-
       <Formik
         initialValues={{ deviceName: "" }}
         validate={async (values) => {

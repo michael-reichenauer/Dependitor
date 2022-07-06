@@ -16,6 +16,9 @@ import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
 import { randomString } from "../common/utils";
 
+const dialogWidth = 290;
+const dialogHeight = 360;
+
 export interface ILoginProvider {
   login(): Promise<Result<void>>;
   cancelLogin(): void;
@@ -33,8 +36,8 @@ export const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
 
 export const LoginDlg: FC = () => {
   const [login, setLogin] = useLogin();
+  const id = randomString(12);
 
-  const randomId = randomString(12);
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
       const okButton = document.getElementById("OKButton");
@@ -42,25 +45,20 @@ export const LoginDlg: FC = () => {
     }
   };
 
-  const host = window.location.host;
-  // host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
-  const baseUrl = `${window.location.protocol}//${host}`;
-  const url = `${baseUrl}/?lg=${randomId}`;
-  const dialogWidth = 290;
-  const dialogHeight = 360;
+  const cancel = (): void => {
+    login?.cancelLogin();
+    setLogin(null);
+  };
 
   return (
-    <Dialog
-      open={login !== null}
-      onClose={() => {
-        login?.cancelLogin();
-        setLogin(null);
-      }}
-    >
+    <Dialog open={login !== null} onClose={cancel}>
       <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
         <Typography variant="h5" style={{ paddingBottom: 10 }}>
-          Login
+          Enable Sync
         </Typography>
+
+        <QRCodeGuideText />
+        <QRCodeElement id={id} />
 
         <Formik
           initialValues={{ deviceName: "" }}
@@ -130,46 +128,6 @@ export const LoginDlg: FC = () => {
                 </Button>
               </div> */}
 
-              <Typography
-                style={{
-                  fontSize: "14px",
-                  paddingTop: 15,
-                  paddingBottom: 20,
-                  lineHeight: 1,
-                }}
-              >
-                Scan QR code, or click link, on your mobile to login and enable
-                sync with all your devices.
-              </Typography>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
-                <Tooltip title={url}>
-                  <Link href={url} target="_blank">
-                    <QRCode value={url} />
-                  </Link>
-                </Tooltip>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
-                <Tooltip title={url}>
-                  <Typography style={{ fontSize: "12px", paddingTop: 0 }}>
-                    <Link href={url} target="_blank">
-                      {url}
-                    </Link>
-                  </Typography>
-                </Tooltip>
-              </div>
-
               <div
                 style={{
                   position: "absolute",
@@ -183,10 +141,7 @@ export const LoginDlg: FC = () => {
                   variant="contained"
                   color="primary"
                   disabled={isSubmitting}
-                  onClick={() => {
-                    setLogin(null);
-                    login?.cancelLogin();
-                  }}
+                  onClick={cancel}
                   style={{ width: 85 }}
                 >
                   Cancel
@@ -200,7 +155,72 @@ export const LoginDlg: FC = () => {
   );
 };
 
-// const getDefaultUserName = () => localStorage.getItem(usernameKey) ?? "";
+const QRCodeGuideText: FC = () => {
+  const text =
+    " Scan QR code, or click link, on your mobile to enable sync with all your devices.";
 
-// const setDefaultUserName = (name: string) =>
-//   localStorage.setItem(usernameKey, name);
+  return (
+    <Typography
+      style={{
+        fontSize: "14px",
+        paddingTop: 15,
+        paddingBottom: 20,
+        lineHeight: 1,
+      }}
+    >
+      {text}
+    </Typography>
+  );
+};
+
+type QRCodeProps = {
+  id: string;
+};
+
+const QRCodeElement: FC<QRCodeProps> = ({ id }) => {
+  const authenticateUrl = getAuthenticateUrl(id);
+  const linkUrl = getLinkUrl(id);
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <Tooltip title={authenticateUrl}>
+          <Link href={authenticateUrl} target="_blank">
+            <QRCode value={authenticateUrl} />
+          </Link>
+        </Tooltip>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <Tooltip title={authenticateUrl}>
+          <Typography style={{ fontSize: "12px", paddingTop: 0 }}>
+            <Link href={authenticateUrl} target="_blank">
+              {linkUrl}
+            </Link>
+          </Typography>
+        </Tooltip>
+      </div>
+    </>
+  );
+};
+
+function getAuthenticateUrl(id: string): string {
+  const host = window.location.host;
+  // host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
+  const baseUrl = `${window.location.protocol}//${host}`;
+  return `${baseUrl}/?lg=${id}`;
+}
+
+function getLinkUrl(id: string): string {
+  return `https://dependitor.com/?lg=${id}`;
+}
