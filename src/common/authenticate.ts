@@ -46,20 +46,6 @@ export class Authenticate implements IAuthenticate {
     return await this.api.check();
   }
 
-  // public async createUser(enteredUser: User): Promise<Result<void>> {
-  //   const user = await this.hashAndExpandUser(enteredUser);
-  //   if (isError(user)) {
-  //     return user;
-  //   }
-
-  //   // Generate the data encryption key DEK and wrap/encrypt into a wDek
-  //   const wrappedDek = await this.dataCrypt.generateWrappedDataEncryptionKey(
-  //     user
-  //   );
-
-  //   return await this.api.createAccount({ user: user, wDek: wrappedDek });
-  // }
-
   public async login(): Promise<Result<void>> {
     if (!(await this.webAuthn.platformAuthenticatorIsAvailable())) {
       return new Error("Error: Biometrics not available");
@@ -160,7 +146,7 @@ export class Authenticate implements IAuthenticate {
     options.user.id = password + options.user.id;
 
     // Using the standard "Dependitor" user name, since the actual user name is random unique string
-    options.user.name = "Dependinator";
+    options.user.name = "Dependitor";
 
     // Register this user/device in the device authenticator. The challenge will be signed
     const registration = await this.webAuthn.startRegistration(options);
