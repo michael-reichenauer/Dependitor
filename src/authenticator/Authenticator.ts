@@ -8,12 +8,14 @@ import {
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "../common/Api";
 import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
-import { showOKAlert } from "../common/AlertDialog";
+import { showConfirmAlert, showNoOKAlert } from "../common/AlertDialog";
 import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
-import { setErrorMessage, setInfoMessage } from "../common/MessageSnackbar";
+import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
+import { IAddDeviceProvider } from "./AddDeviceDlg";
+import { ILocalStore, ILocalStoreKey } from "../common/LocalStore";
 //import { IStore, IStoreKey } from "./diagram/Store";
 
 //import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
@@ -25,21 +27,35 @@ export interface IAuthenticator {
   activate(): void;
 }
 
+export function getAuthenticateUrl(id: string): string {
+  const host = window.location.host;
+  // host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
+  const baseUrl = `${window.location.protocol}//${host}`;
+  return `${baseUrl}/${baseAuthenticatorPart}${id}`;
+}
+
+const baseAuthenticatorPart = "?a=";
+const deviceIdsKey = "authenticator.deviceIds";
+const maxDeviceIdSize = 10;
+
 @singleton(IAuthenticatorKey)
-export class Authenticator implements IAuthenticator {
+export class Authenticator implements IAuthenticator, IAddDeviceProvider {
   private activated = false;
 
-  constructor(private authenticate: IAuthenticate = di(IAuthenticateKey)) {}
+  constructor(
+    private authenticate: IAuthenticate = di(IAuthenticateKey),
+    private localStore: ILocalStore = di(ILocalStoreKey)
+  ) {}
 
-  public isAuthenticatorApp(): boolean {
-    return window.location.search.startsWith("?lg=");
+  async add(): Promise<Result<void>> {
+    console.log("add device");
+  }
+  cancelAdd(): void {
+    console.log("cancel add");
   }
 
-  getLoginRequest(): string | null {
-    if (!window.location.search.startsWith("?lg=")) {
-      return null;
-    }
-    return window.location.search.substring(4);
+  public isAuthenticatorApp(): boolean {
+    return window.location.search.startsWith(baseAuthenticatorPart);
   }
 
   public activate(): void {
@@ -53,58 +69,87 @@ export class Authenticator implements IAuthenticator {
   }
 
   private async enable(): Promise<Result<void>> {
-    console.log("login");
+    console.log("enable");
 
     const checkRsp = await this.authenticate.check();
+    if (isError(checkRsp)) {
+      if (!isError(checkRsp, AuthenticateError)) {
+        const errorMsg = this.toErrorMessage(checkRsp);
+        showNoOKAlert("Error", errorMsg);
+        return;
+      }
 
-    if (checkRsp instanceof NoContactError) {
-      // No contact with server, cannot enable sync
-      setErrorMessage(this.toErrorMessage(checkRsp));
-      return checkRsp;
+      const loginRsp = await this.authenticate.login();
+      if (isError(loginRsp)) {
+        if (isError(loginRsp, WebAuthnNeedReloadError)) {
+          showNoOKAlert(
+            "Reload Page",
+            "Please manually reload this page to show the authentication dialog.\n" +
+              "Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication."
+          );
+          return;
+        }
+
+        const errorMsg = this.toErrorMessage(loginRsp);
+        showNoOKAlert("Error", errorMsg);
+        return;
+      }
     }
 
-    if (checkRsp instanceof AuthenticateError) {
-      // Authentication is needed, showing the login dialog
-      return await this.login();
-    }
-
-    if (!(checkRsp instanceof AuthenticateError) && isError(checkRsp)) {
-      // Som other unexpected error (neither contact nor authenticate error)
-      setErrorMessage(this.toErrorMessage(checkRsp));
-      return checkRsp;
-    }
-
-    await this.login();
-
+    //await this.login();
     console.log("Logged in");
+
+    const deviceId = this.getDeviceRequestId();
+    if (!this.getDeviceRequestId()) {
+      return;
+    }
+
+    showConfirmAlert(
+      "Add Device",
+      `Do you want to add device ${deviceId}?`,
+      () => {
+        setSuccessMessage(`Added device ${deviceId}`);
+        this.clearDeviceId(deviceId);
+      },
+      () => {
+        setErrorMessage(`Denied device request ${deviceId}`);
+        this.clearDeviceId(deviceId);
+      }
+    );
   }
 
-  private async login(): Promise<Result<void>> {
-    console.log("login");
+  private getDeviceRequestId(): string {
+    if (!this.isAuthenticatorApp()) {
+      return "";
+    }
+    const id = window.location.search.substring(baseAuthenticatorPart.length);
+    if (this.isClearedId(id)) {
+      return "";
+    }
+    return id;
+  }
 
-    const loginRsp = await this.authenticate.login();
-    if (loginRsp instanceof WebAuthnNeedReloadError) {
-      showOKAlert(
-        "Reload Page",
-        "Please manually reload this page to show the authentication dialog.\n" +
-          "Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication."
-      );
+  private isClearedId(id: string): boolean {
+    const deviceIds = this.localStore.readOrDefault<Array<string>>(
+      deviceIdsKey,
+      []
+    );
+    return deviceIds.includes(id);
+  }
+
+  private clearDeviceId(id: string): void {
+    let deviceIds = this.localStore.readOrDefault<Array<string>>(
+      deviceIdsKey,
+      []
+    );
+
+    if (deviceIds.includes(id)) {
       return;
     }
-    if (loginRsp instanceof WebAuthnCanceledError) {
-      setInfoMessage("Canceled");
 
-      // this.cancelLogin();
-      return;
-    }
-    if (isError(loginRsp)) {
-      console.error("Failed to login:", loginRsp);
-      setErrorMessage(this.toErrorMessage(loginRsp));
-      return loginRsp;
-    }
-
-    //   // Login successful, enable device sync
-    //   return await this.enableSync();
+    // Prepend id and store the most resent ids
+    deviceIds.unshift(id);
+    this.localStore.write(deviceIdsKey, deviceIds.slice(0, maxDeviceIdSize));
   }
 
   // toErrorMessage translate network and sync errors to ui messages
@@ -116,10 +161,13 @@ export class Authenticator implements IAuthenticator {
       return "Local Azure storage emulator not started.";
     }
     if (isError(error, AuthenticateError)) {
-      return "Invalid credentials. Please try again with different credentials or create a new account";
+      return "Invalid credentials. Please try again with different credentials.";
     }
     if (isError(error, NoContactError)) {
       return "No network contact with server. Please retry again in a while.";
+    }
+    if (isError(error, WebAuthnCanceledError)) {
+      return "Authentication was canceled";
     }
 
     return "Internal server error";

@@ -15,28 +15,30 @@ import Result, { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
 import { randomString } from "../common/utils";
-import { getAuthenticateUrl } from "../authenticator/Authenticator";
 
 const dialogWidth = 290;
 const dialogHeight = 340;
 
-export interface ILoginProvider {
-  login(): Promise<Result<void>>;
-  cancelLogin(): void;
+export interface IAddDeviceProvider {
+  add(): Promise<Result<void>>;
+  cancelAdd(): void;
 }
 
-export let showLoginDlg: SetAtom<ILoginProvider> = () => {};
+export let showAddDeviceDlg: SetAtom<IAddDeviceProvider> = () => {};
 
-type loginProvider = ILoginProvider | null;
-const loginAtom = atom(null as loginProvider);
-export const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
-  const [login, setLogin] = useAtom(loginAtom);
-  showLoginDlg = setLogin;
-  return [login, setLogin];
+type addDeviceProvider = IAddDeviceProvider | null;
+const addDeviceAtom = atom(null as addDeviceProvider);
+export const useAddDevice = (): [
+  addDeviceProvider,
+  SetAtom<addDeviceProvider>
+] => {
+  const [addDevice, setAddDevice] = useAtom(addDeviceAtom);
+  showAddDeviceDlg = setAddDevice;
+  return [addDevice, setAddDevice];
 };
 
-export const LoginDlg: FC = () => {
-  const [login, setLogin] = useLogin();
+export const AddDeviceDlg: FC = () => {
+  const [addDevice, setAddDevice] = useAddDevice();
   const id = randomString(12);
 
   const handleEnter = (event: any): void => {
@@ -47,12 +49,12 @@ export const LoginDlg: FC = () => {
   };
 
   const cancel = (): void => {
-    login?.cancelLogin();
-    setLogin(null);
+    addDevice?.cancelAdd();
+    setAddDevice(null);
   };
 
   return (
-    <Dialog open={login !== null} onClose={cancel}>
+    <Dialog open={addDevice !== null} onClose={cancel}>
       <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
         <Typography variant="h5" style={{ paddingBottom: 0 }}>
           Enable Sync
@@ -89,7 +91,7 @@ export const LoginDlg: FC = () => {
             //   // setFieldValue("confirm", "", false);
             // }
 
-            const loginResult = await login?.login();
+            const loginResult = await addDevice?.add();
             if (isError(loginResult)) {
               // setFieldValue("password", "", false);
               // if (isError(loginResult, AuthenticateError)) {
@@ -102,7 +104,7 @@ export const LoginDlg: FC = () => {
             }
 
             //setDefaultUserName(values.username);
-            setLogin(null);
+            setAddDevice(null);
           }}
         >
           {({ submitForm, isSubmitting }) => (
@@ -216,3 +218,10 @@ const ClickHint: FC = () => {
     </>
   );
 };
+
+function getAuthenticateUrl(id: string): string {
+  const host = window.location.host;
+  // host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
+  const baseUrl = `${window.location.protocol}//${host}`;
+  return `${baseUrl}/?lg=${id}`;
+}

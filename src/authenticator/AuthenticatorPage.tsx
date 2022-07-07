@@ -1,4 +1,4 @@
-import { Button, LinearProgress, Typography } from "@material-ui/core";
+import { LinearProgress, Typography } from "@material-ui/core";
 import { Form, Formik } from "formik";
 import React from "react";
 import { FC } from "react";
@@ -81,9 +81,9 @@ export const AuthenticatorPage: FC = () => {
                   </Button>
                 </div> */}
 
-            <Typography>Your current synced devices</Typography>
+            <Typography>Your current synced devices:</Typography>
 
-            <div
+            {/* <div
               style={{
                 position: "absolute",
                 bottom: 15,
@@ -104,7 +104,7 @@ export const AuthenticatorPage: FC = () => {
               >
                 Cancel
               </Button>
-            </div>
+            </div> */}
           </Form>
         )}
       </Formik>
