@@ -16,7 +16,6 @@ import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
 import { IAddDeviceProvider } from "./AddDeviceDlg";
 import { ILocalStore, ILocalStoreKey } from "../common/LocalStore";
 import { setProgress } from "../common/Progress";
-import { delay } from "../common/utils";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IAuthenticatorKey = diKey<IAuthenticator>();
@@ -69,7 +68,6 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     setProgress(true);
 
     const checkRsp = await this.authenticate.check();
-    await delay(10000);
     if (isError(checkRsp)) {
       if (!isError(checkRsp, AuthenticateError)) {
         const errorMsg = this.toErrorMessage(checkRsp);
