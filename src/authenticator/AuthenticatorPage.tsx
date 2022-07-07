@@ -1,13 +1,17 @@
+import Progress from "../common/Progress";
 import { LinearProgress, Typography } from "@material-ui/core";
 import { Form, Formik } from "formik";
-import React from "react";
+import React, { useEffect } from "react";
 import { FC } from "react";
 import { di } from "../common/di";
 import { IAuthenticatorKey } from "./Authenticator";
 
 export const AuthenticatorPage: FC = () => {
   const authenticator = di(IAuthenticatorKey);
-  authenticator.activate();
+
+  useEffect(() => {
+    authenticator.activate();
+  });
 
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
@@ -18,6 +22,7 @@ export const AuthenticatorPage: FC = () => {
 
   return (
     <>
+      <Progress />
       <Formik
         initialValues={{ deviceName: "" }}
         validate={async (values) => {

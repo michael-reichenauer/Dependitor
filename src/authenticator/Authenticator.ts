@@ -15,6 +15,8 @@ import {
 import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
 import { IAddDeviceProvider } from "./AddDeviceDlg";
 import { ILocalStore, ILocalStoreKey } from "../common/LocalStore";
+import { setProgress } from "../common/Progress";
+import { delay } from "../common/utils";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IAuthenticatorKey = diKey<IAuthenticator>();
@@ -64,11 +66,14 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
 
   private async enable(): Promise<Result<void>> {
     console.log("enable");
+    setProgress(true);
 
     const checkRsp = await this.authenticate.check();
+    await delay(10000);
     if (isError(checkRsp)) {
       if (!isError(checkRsp, AuthenticateError)) {
         const errorMsg = this.toErrorMessage(checkRsp);
+        setProgress(false);
         showNoOKAlert("Error", errorMsg);
         return;
       }
@@ -76,6 +81,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       const loginRsp = await this.authenticate.login();
       if (isError(loginRsp)) {
         if (isError(loginRsp, WebAuthnNeedReloadError)) {
+          setProgress(false);
           showNoOKAlert(
             "Reload Page",
             "Please manually reload this page to show the authentication dialog.\n" +
@@ -85,10 +91,12 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
         }
 
         const errorMsg = this.toErrorMessage(loginRsp);
+        setProgress(false);
         showNoOKAlert("Error", errorMsg);
         return;
       }
     }
+    setProgress(false);
 
     //await this.login();
     console.log("Logged in");
