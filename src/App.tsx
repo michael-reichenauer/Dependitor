@@ -22,6 +22,8 @@ const App: React.FC = () => {
   useActivityMonitor();
   useAppVersionMonitor();
 
+  console.log("Location", window.location);
+
   // If the authenticator app is requested, show that ui
   if (di(IAuthenticatorKey).isAuthenticatorApp()) {
     return (

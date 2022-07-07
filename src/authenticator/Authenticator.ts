@@ -1,5 +1,4 @@
 import { di, diKey, singleton } from "../common/di";
-//import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
 import {
   NoContactError,
   LocalApiServerError,
@@ -16,9 +15,6 @@ import {
 import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
 import { IAddDeviceProvider } from "./AddDeviceDlg";
 import { ILocalStore, ILocalStoreKey } from "../common/LocalStore";
-//import { IStore, IStoreKey } from "./diagram/Store";
-
-//import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IAuthenticatorKey = diKey<IAuthenticator>();
@@ -28,13 +24,11 @@ export interface IAuthenticator {
 }
 
 export function getAuthenticateUrl(id: string): string {
-  const host = window.location.host;
-  // host = "gray-flower-0e8083b03-6.westeurope.1.azurestaticapps.net";
-  const baseUrl = `${window.location.protocol}//${host}`;
-  return `${baseUrl}/${baseAuthenticatorPart}${id}`;
+  const baseUrl = `${window.location.protocol}//${window.location.host}`;
+  return `${baseUrl}${baseAuthenticatorPart}${id}`;
 }
 
-const baseAuthenticatorPart = "?a=";
+const baseAuthenticatorPart = "/a/";
 const deviceIdsKey = "authenticator.deviceIds";
 const maxDeviceIdSize = 10;
 
@@ -55,7 +49,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
   }
 
   public isAuthenticatorApp(): boolean {
-    return window.location.search.startsWith(baseAuthenticatorPart);
+    return window.location.pathname.startsWith(baseAuthenticatorPart);
   }
 
   public activate(): void {
@@ -122,21 +116,16 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     if (!this.isAuthenticatorApp()) {
       return "";
     }
-    const id = window.location.search.substring(baseAuthenticatorPart.length);
+    const id = window.location.pathname.substring(baseAuthenticatorPart.length);
     if (this.isClearedId(id)) {
+      // This id has been handled and the page was just reloaded, ignore
       return "";
     }
+
     return id;
   }
 
-  private isClearedId(id: string): boolean {
-    const deviceIds = this.localStore.readOrDefault<Array<string>>(
-      deviceIdsKey,
-      []
-    );
-    return deviceIds.includes(id);
-  }
-
+  // clearDeviceId remembers handled device id, in case the page is reloaded.
   private clearDeviceId(id: string): void {
     let deviceIds = this.localStore.readOrDefault<Array<string>>(
       deviceIdsKey,
@@ -150,6 +139,15 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     // Prepend id and store the most resent ids
     deviceIds.unshift(id);
     this.localStore.write(deviceIdsKey, deviceIds.slice(0, maxDeviceIdSize));
+  }
+
+  // isClearedId returns true if this device id has been handled before
+  private isClearedId(id: string): boolean {
+    const deviceIds = this.localStore.readOrDefault<Array<string>>(
+      deviceIdsKey,
+      []
+    );
+    return deviceIds.includes(id);
   }
 
   // toErrorMessage translate network and sync errors to ui messages
