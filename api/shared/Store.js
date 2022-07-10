@@ -14,11 +14,13 @@ const maxUserDeviceRegistrations = 20
 
 const dataBaseTableName = 'data'
 const usersTableName = 'users'
+const authenticatorTableName = 'authenticator'
 const sessionsTableName = 'sessions'
 
 const userPartitionKey = 'users'
 const dataPartitionKey = 'data'
 const sessionsPartitionKey = 'sessions'
+const authenticatorPartitionKey = 'authenticator'
 
 const standardApiKey = '0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade'
 const saltRounds = 10
@@ -89,12 +91,70 @@ async function updateUser(userId, user) {
         credentialID: device.credentialID.toString('base64'),
         credentialPublicKey: device.credentialPublicKey.toString('base64'),
         counter: device.counter,
-        transports: device.transports
+        transports: device.transxports
     }))
 
     const wDek = ""
     const userItem = toUserTableEntity2(userId, user, wDek)
     await table.insertOrReplaceEntity(usersTableName, userItem)
+}
+
+exports.loginDeviceSet = async (context, body) => {
+    // Ensure user is logged in
+    await getUserId(context)
+
+    try {
+        const { channelId, username, authData } = body
+        await table.createTableIfNotExists(authenticatorTableName)
+
+        const userId = toUserId(username)
+
+        // Creating a new client id for the other device 
+        const clientId = makeRandomId()
+        const sessionId = await createSession(clientId, userId)
+
+
+        // if (!authData) {
+        //     const entity = toAuthenticatorAuthTableEntity(id, '')
+        //     await table.deleteEntity(authenticatorTableName, entity)
+        //     return
+        // }
+        const authenticatorTableEntity = toAuthenticatorAuthTableEntity(channelId, authData, clientId, sessionId)
+        await table.insertEntity(authenticatorTableName, authenticatorTableEntity)
+        return {}
+    } catch (error) {
+        context.log('Error', error)
+        throwIfEmulatorError(error)
+        throw new Error(invalidRequestError)
+    }
+}
+
+exports.loginDevice = async (context, body) => {
+    try {
+        const { channelId } = body
+        const maxWait = 20 * 1000 // seconds
+        const waitTime = 1000 // ms
+
+        for (let i = 0; i < maxWait; i += waitTime) {
+            await delay(waitTime)
+
+            try {
+                const entity = await table.retrieveEntity(authenticatorTableName, authenticatorPartitionKey, channelId)
+                if (entity.authData) {
+                    const cookies = createCookies(entity.clientId, entity.sessionId)
+                    return { response: entity.authData, cookies: cookies };
+                }
+            } catch (error) {
+                context.log('Error', error)
+                throwIfEmulatorError(error)
+            }
+        }
+        throw new Error('Failed to wait for device info')
+    } catch (error) {
+        context.log('Error', error)
+        throwIfEmulatorError(error)
+        throw new Error(authenticateError)
+    }
 }
 
 
@@ -645,6 +705,12 @@ const bcryptCompare = (password, hash) => {
 }
 
 
+function delay(time) {
+    return new Promise((res) => {
+        setTimeout(res, time);
+    });
+}
+
 function makeRandomId() {
     let ID = "";
     let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -697,6 +763,19 @@ function toUserTableEntity2(userId, user, wDek) {
         wDek: entGen.String(wDek),
     }
 }
+
+
+function toAuthenticatorAuthTableEntity(id, authData, clientId, sessionId) {
+    return {
+        RowKey: entGen.String(id),
+        PartitionKey: entGen.String(authenticatorPartitionKey),
+
+        authData: entGen.String(authData),
+        clientId: entGen.String(clientId),
+        sessionId: entGen.String(sessionId),
+    }
+}
+
 
 function toSessionTableEntity(sessionId, userId, clientId) {
     return {

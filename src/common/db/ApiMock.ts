@@ -12,6 +12,7 @@ import {
   ApiEntityRsp,
   LoginRsp,
   CreateUserReq,
+  LoginDeviceSetReq,
 } from "../Api";
 import { di } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
@@ -21,6 +22,9 @@ const prefix = "ApiMock-";
 
 export class ApiMock implements IApi {
   constructor(private local: ILocalStore = di(ILocalStoreKey)) {}
+  loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void, Error>> {
+    throw new Error("Method not implemented.");
+  }
   getWebAuthnRegistrationOptions(
     username: string
   ): Promise<Result<PublicKeyCredentialCreationOptionsJSON, Error>> {

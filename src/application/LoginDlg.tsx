@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { atom, useAtom } from "jotai";
 import {
   Box,
@@ -14,8 +14,13 @@ import { Formik, Form } from "formik";
 import Result, { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
-import { randomString } from "../common/utils";
-import { getAuthenticateUrl } from "../authenticator/Authenticator";
+import { stringToBase64 } from "../common/utils";
+import {
+  AuthenticateReq,
+  getAuthenticateUrl,
+} from "../authenticator/Authenticator";
+import { di } from "../common/di";
+import { IDataCryptKey } from "../common/DataCrypt";
 
 const dialogWidth = 290;
 const dialogHeight = 340;
@@ -36,8 +41,21 @@ export const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
 };
 
 export const LoginDlg: FC = () => {
+  const dataCrypt = di(IDataCryptKey);
   const [login, setLogin] = useLogin();
-  const id = randomString(12);
+  const [id, setId] = useState("");
+
+  if (!id) {
+    const qrDeviceInfo: AuthenticateReq = {
+      n: dataCrypt.generateRandomString(10),
+      d: "Edge IPad",
+      k: dataCrypt.generateRandomString(10),
+      c: dataCrypt.generateRandomString(10),
+    };
+    const js = JSON.stringify(qrDeviceInfo);
+    const js64 = stringToBase64(js);
+    setId(js64);
+  }
 
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
@@ -180,6 +198,7 @@ type QRCodeProps = {
 
 const QRCodeElement: FC<QRCodeProps> = ({ id }) => {
   const authenticateUrl = getAuthenticateUrl(id);
+  console.log("authurl", authenticateUrl.length);
 
   return (
     <>

@@ -10,6 +10,18 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationCredentialJSON,
 } from "@simplewebauthn/typescript-types";
+import { withProgress } from "./Progress";
+
+export interface LoginDeviceSetReq {
+  channelId: string;
+  isAccept: boolean;
+  username: string;
+  authData: string;
+}
+
+export interface LoginDeviceReq {
+  channelId: string;
+}
 
 export interface User {
   username: string;
@@ -67,6 +79,7 @@ export class LocalEmulatorError extends NoContactError {}
 export const IApiKey = diKey<IApi>();
 export interface IApi {
   config(onOK: () => void, onError: (error: Error) => void): void;
+  loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void>>;
   login(user: User): Promise<Result<LoginRsp>>;
   logoff(): Promise<Result<void>>;
   createAccount(createUser: CreateUserReq): Promise<Result<void>>;
@@ -102,6 +115,14 @@ export class Api implements IApi {
   config(onOK: () => void, onError: (error: Error) => void): void {
     this.onOK = onOK;
     this.onError = onError;
+  }
+
+  public async loginDeviceSet(req: LoginDeviceSetReq): Promise<Result<void>> {
+    return await this.post("/api/LoginDeviceSet", req);
+  }
+
+  public async loginDevice(req: LoginDeviceReq): Promise<Result<string>> {
+    return await this.post("/api/LoginDevice", req);
   }
 
   public async getWebAuthnRegistrationOptions(
@@ -203,9 +224,11 @@ export class Api implements IApi {
     // console.log(`Request #${this.requestCount}: GET ${uri} ...`);
     const t = timing();
     try {
-      const rsp = await axios.get(uri, {
-        headers: { "x-api-key": this.apiKey },
-      });
+      const rsp = await withProgress(() =>
+        axios.get(uri, {
+          headers: { "x-api-key": this.apiKey },
+        })
+      );
 
       const rspData = rsp.data;
       const rspBytes = ("" + rsp.request?.responseText).length;
@@ -237,9 +260,11 @@ export class Api implements IApi {
     // console.log(`Request #${this.requestCount}: POST ${uri} ...`);
     const t = timing();
     try {
-      const rsp = await axios.post(uri, requestData, {
-        headers: { "x-api-key": this.apiKey },
-      });
+      const rsp = await withProgress(() =>
+        axios.post(uri, requestData, {
+          headers: { "x-api-key": this.apiKey },
+        })
+      );
       const rspData = rsp.data;
       const reqBytes = ("" + rsp.config.data).length;
       const rspBytes = ("" + rsp.request?.responseText).length;

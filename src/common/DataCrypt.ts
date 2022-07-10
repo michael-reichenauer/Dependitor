@@ -9,15 +9,20 @@ window.Buffer = Buffer;
 
 export const IDataCryptKey = diKey<IDataCrypt>();
 export interface IDataCrypt {
+  // Expands a password by using a derive bits hash like e.g. PBKDF2, which makes it much harder to
+  // use brute force to hack the password. This is used first on the client side to ensure original
+  // password never leaves the client and then one more time on the server side as well.
+  expandPassword(user: User): Promise<string>;
+
   // Create a unique data encryption key (DEK), which is wrapped/encrypted by a
   // key encryption key (KEK), which was derived from the username and password
   // The returned string is safe to store, since it is encrypted by the KEK (derived by user)
   generateWrappedDataEncryptionKey(user: User): Promise<string>;
 
-  // Expands a password by using a derive bits hash like e.g. PBKDF2, which makes it much harder to
-  // use brute force to hack the password. This is used first on the client side to ensure original
-  // password never leaves the client and then one more time on the server side as well.
-  expandPassword(user: User): Promise<string>;
+  // Wraps/encrypts the data encryption key (DEK) using the
+  // key encryption key (KEK), which was derived from the username and password
+  // The returned string is safe to store, since it is encrypted by the KEK (derived by user)
+  wrapDataEncryptionKey(dek: CryptoKey, user: User): Promise<string>;
 
   // Unwraps/decrypts the wrapped data encryption key (DEK) using the
   // key encryption key (KEK), which was derived from the username and password
@@ -26,6 +31,9 @@ export interface IDataCrypt {
     wrappedDek: string,
     user: User
   ): Promise<Result<CryptoKey>>;
+
+  // Creates a data encryption key (DEK) to encrypt and decrypt encrypted text block
+  deriveDataEncryptionKey(user: User): Promise<CryptoKey>;
 
   // Encrypt a text block using the data encryption key DEK
   encryptText(text: string, dek: CryptoKey): Promise<string>;
@@ -55,6 +63,19 @@ export class DataCrypt {
     return toBase64(bits);
   }
 
+  // Creates a data encryption key (DEK) to encrypt and decrypt encrypted text block
+  public async deriveDataEncryptionKey(user: User): Promise<CryptoKey> {
+    // using hash of username as salt. Usually a salt is a random number, but in this case, it
+    // is sufficient and convenient to use the username as salt
+    const salt = await this.crypt.sha256(user.username);
+
+    // Derive KEK key to wrap/encrypt and unwrap/decrypt DEK key
+    return await this.crypt.deriveKey(user.password, salt, [
+      "encrypt",
+      "decrypt",
+    ]);
+  }
+
   public async generateWrappedDataEncryptionKey(user: User): Promise<string> {
     // Derive a key encryption key (KEK) to wrap/encrypt the DEK key
     const kek = await this.deriveKeyEncryptionKey(user);
@@ -63,7 +84,22 @@ export class DataCrypt {
     const dek = await this.crypt.generateKey(["encrypt", "decrypt"]);
 
     // encrypt/wrap the DEK using the KEK
-    const wrappedDek = await this.wrapDataEncryptionKey(dek, kek);
+    const wrappedDek = await this.wrapDek(dek, kek);
+
+    const wrappedDekJson = JSON.stringify(wrappedDek);
+
+    return utf8_to_b64(wrappedDekJson);
+  }
+
+  public async wrapDataEncryptionKey(
+    dek: CryptoKey,
+    user: User
+  ): Promise<string> {
+    // Derive a key encryption key (KEK) to wrap/encrypt the DEK key
+    const kek = await this.deriveKeyEncryptionKey(user);
+
+    // encrypt/wrap the DEK using the KEK
+    const wrappedDek = await this.wrapDek(dek, kek);
 
     const wrappedDekJson = JSON.stringify(wrappedDek);
 
@@ -83,7 +119,7 @@ export class DataCrypt {
       const wDek = JSON.parse(wrappedDekJson);
 
       // Decrypt/unwrap the DEK key using the KEK key
-      const dek = await this.unWrapDataEncryptionKey(wDek, kek);
+      const dek = await this.unwrapDek(wDek, kek);
       return dek;
     } catch (error) {
       return error as Error;
@@ -143,10 +179,7 @@ export class DataCrypt {
     ]);
   }
 
-  private async wrapDataEncryptionKey(
-    dek: CryptoKey,
-    kek: CryptoKey
-  ): Promise<WrappedDek> {
+  private async wrapDek(dek: CryptoKey, kek: CryptoKey): Promise<WrappedDek> {
     // Encrypt/wrap the DEK key using the KEK key
     const wrappedDecIv = this.crypt.generateIv();
     const wrappedDekKey = await this.crypt.wrapKey(dek, wrappedDecIv, kek);
@@ -157,7 +190,7 @@ export class DataCrypt {
     };
   }
 
-  private async unWrapDataEncryptionKey(
+  private async unwrapDek(
     wrappedDek: WrappedDek,
     kek: CryptoKey
   ): Promise<CryptoKey> {

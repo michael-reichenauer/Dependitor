@@ -138,6 +138,16 @@ export const lx = (obj: any): any => {
   return obj;
 };
 
+export function stringToBase64(text: string): string {
+  const enc = new TextEncoder();
+  return bufferToBase64(enc.encode(text));
+}
+
+export function base64ToString(text: string): string {
+  var enc = new TextDecoder("utf-8");
+  return enc.decode(base64ToBuffer(text));
+}
+
 export function bufferToBase64(buffer: ArrayBuffer): string {
   const bytes: any = new Uint8Array(buffer);
   let str = "";

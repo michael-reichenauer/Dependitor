@@ -182,7 +182,7 @@ export class Crypt {
         name: algorithm,
         length: keyLength,
       },
-      false, // unwrapped key should not be extractable
+      true, // unwrapped key should not be extractable
       ["encrypt", "decrypt"] // Key usages
     );
   }

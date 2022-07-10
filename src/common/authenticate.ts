@@ -14,15 +14,14 @@ export interface IAuthenticate {
   //createUser(user: User): Promise<Result<void>>;
   login(): Promise<Result<void>>;
   resetLogin(): void;
+  readUserInfo(): Result<UserInfo>;
 }
 
-// const minUserName = 2;
-// const minPassword = 4;
 const userInfoKey = "userInfo";
 const randomUsernameLength = 10;
 const randomKekPasswordLength = 10;
 
-interface UserInfo {
+export interface UserInfo {
   username: string;
   wDek: string;
 }
@@ -51,14 +50,14 @@ export class Authenticate implements IAuthenticate {
       return new Error("Error: Biometrics not available");
     }
 
-    const authInfo = this.localStore.tryRead<UserInfo>(userInfoKey);
-    if (isError(authInfo)) {
+    const userInfo = this.readUserInfo();
+    if (isError(userInfo)) {
       // No stored user info, i.e. first time, lets create a new device user and login
       return await this.loginNewUser();
     }
 
     // This device has a registered used, lets login that user
-    return await this.loginExistingUser(authInfo);
+    return await this.loginExistingUser(userInfo);
   }
 
   public resetLogin(): void {
@@ -66,6 +65,14 @@ export class Authenticate implements IAuthenticate {
 
     // Try to logoff from server ass well (but don't await result)
     this.api.logoff();
+  }
+
+  public readUserInfo(): Result<UserInfo> {
+    return this.localStore.tryRead<UserInfo>(userInfoKey);
+  }
+
+  private writeUserInfo(userInfo: UserInfo): void {
+    this.localStore.write(userInfoKey, userInfo);
   }
 
   // Creates a new user, which is registered in the device Authenticator and in the server
@@ -95,7 +102,7 @@ export class Authenticate implements IAuthenticate {
 
     // Store the user name and wrapped DEK for the next authentication
     const info: UserInfo = { username: user.username, wDek: wDek };
-    this.localStore.write(userInfoKey, info);
+    this.writeUserInfo(info);
   }
 
   // Authenticates the existing server in the device Authenticator
