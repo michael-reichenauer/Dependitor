@@ -150,7 +150,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
 
     const wDek = authenticateRsp.wDek;
     const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
-    this.keyVaultConfig.setDek(dek);
+    this.keyVaultConfig.setDataEncryptionKey(dek);
   }
 
   public activate(): void {
@@ -241,8 +241,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     const user: User = { username: authRequest.n, password: authRequest.k };
 
     // Get the data encryption key and wrap/encrypt it for the device user (as string)
-    const dek = this.keyVault.getDek();
-    const wDek = await this.dataCrypt.wrapDataEncryptionKey(dek, user);
+    const wDek = await this.keyVault.getWrappedDataEncryptionKey(user);
 
     // Post a response to the device with the account user name and wDek
     const isAccepted = true;

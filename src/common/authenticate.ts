@@ -37,7 +37,7 @@ export class Authenticate implements IAuthenticate {
   ) {}
 
   public async check(): Promise<Result<void>> {
-    if (!this.keyVaultConfigure.getDek()) {
+    if (!this.keyVaultConfigure.hasDataEncryptionKey()) {
       console.log("No DEK");
       return new AuthenticateError();
     }
@@ -61,7 +61,7 @@ export class Authenticate implements IAuthenticate {
   }
 
   public resetLogin(): void {
-    this.keyVaultConfigure.setDek(null);
+    this.keyVaultConfigure.setDataEncryptionKey(null);
 
     // Try to logoff from server ass well (but don't await result)
     this.api.logoff();
@@ -98,7 +98,7 @@ export class Authenticate implements IAuthenticate {
     const dek = await expectValue(
       this.dataCrypt.unwrapDataEncryptionKey(wDek, user)
     );
-    this.keyVaultConfigure.setDek(dek);
+    this.keyVaultConfigure.setDataEncryptionKey(dek);
 
     // Store the user name and wrapped DEK for the next authentication
     const info: UserInfo = { username: user.username, wDek: wDek };
@@ -125,7 +125,7 @@ export class Authenticate implements IAuthenticate {
     }
 
     // Make the DEK available to be used when encrypting/decrypting data when accessing server
-    this.keyVaultConfigure.setDek(dek);
+    this.keyVaultConfigure.setDataEncryptionKey(dek);
   }
 
   private generateNewUser(): User {

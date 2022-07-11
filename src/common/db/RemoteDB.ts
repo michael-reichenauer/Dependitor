@@ -67,9 +67,6 @@ export class RemoteDB implements IRemoteDB {
     queries: Query[],
     apiEntities: ApiEntity[]
   ): Promise<Result<RemoteEntity>[]> {
-    // Get the DEK key to decrypt each package
-    const dek = this.keyVault.getDek();
-
     return Promise.all(
       queries.map(async (query) => {
         const entity = apiEntities.find((e) => e.key === query.key);
@@ -90,7 +87,7 @@ export class RemoteDB implements IRemoteDB {
         }
 
         // Decrypt downloaded value
-        const value = await this.decryptValue(entity.value, dek);
+        const value = await this.decryptValue(entity.value);
         return {
           key: entity.key,
           etag: entity.etag ?? "",
@@ -105,14 +102,11 @@ export class RemoteDB implements IRemoteDB {
   private async toUploadingApiEntities(
     remoteEntities: RemoteEntity[]
   ): Promise<ApiEntity[]> {
-    // Get the DEK key to encrypt each package
-    const dek = this.keyVault.getDek();
-
     return Promise.all(
       remoteEntities.map(async (entity) => {
         // Encrypt value before uploading
         const value = { value: entity.value, version: entity.version };
-        const encryptedValue = await this.encryptValue(value, dek);
+        const encryptedValue = await this.encryptValue(value);
 
         return {
           key: entity.key,
@@ -123,14 +117,14 @@ export class RemoteDB implements IRemoteDB {
     );
   }
 
-  private async encryptValue(value: any, kek: any): Promise<any> {
+  private async encryptValue(value: any): Promise<any> {
     const valueText = JSON.stringify(value);
-    const encryptedValue = await this.dataCrypt.encryptText(valueText, kek);
+    const encryptedValue = await this.keyVault.encryptString(valueText);
     return encryptedValue;
   }
 
-  private async decryptValue(encryptedValue: any, kek: any): Promise<any> {
-    const valueText = await this.dataCrypt.decryptText(encryptedValue, kek);
+  private async decryptValue(encryptedValue: any): Promise<any> {
+    const valueText = await this.keyVault.decryptString(encryptedValue);
     const value = JSON.parse(valueText);
     return value;
   }

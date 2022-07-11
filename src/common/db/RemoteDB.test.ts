@@ -23,12 +23,12 @@ beforeAll(async () => {
   const dek = expectValue(
     await di(IDataCryptKey).unwrapDataEncryptionKey(wDek, user)
   );
-  di(IKeyVaultConfigureKey).setDek(dek);
+  di(IKeyVaultConfigureKey).setDataEncryptionKey(dek);
 });
 
 afterAll(() => {
   // Simulate logout and reset DEK
-  di(IKeyVaultConfigureKey).setDek(null);
+  di(IKeyVaultConfigureKey).setDataEncryptionKey(null);
 });
 
 describe("Test IRemoteData", () => {
