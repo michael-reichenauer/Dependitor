@@ -57,7 +57,7 @@ export const useSyncMode = (): SyncState => {
 
 const persistentSyncKeyName = "syncState";
 const loginAfterReloadKeyName = "loginAfterReload";
-const deviseSyncOKMessage = "Device sync is OK";
+const deviseSyncOKMessage = "Device sync is enabled and OK";
 const deviceSyncDisabledMsg = "Device sync is disabled";
 const deviceSyncCanceledMsg = "Authentication canceled";
 

@@ -15,17 +15,19 @@ import Result, { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
 
-import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
+import { setErrorMessage } from "../common/MessageSnackbar";
+import { AuthenticationNotAcceptedError } from "../authenticator/Authenticator";
 
 const dialogWidth = 290;
 const dialogHeight = 340;
-const deviseSyncOKMessage = "Device sync is enabled";
+
 // const deviceSyncCanceledMsg = "Authentication canceled";
 const deviceSyncFailedMsg = "Failed to enable device sync";
+const authenticationNotAcceptedMsg =
+  "Authentication was denied by the authenticator";
 
 export interface ILoginProvider {
   login(): Promise<Result<void>>;
-  enableSync(): Promise<Result<void>>;
   cancelLogin(): void;
   getAuthenticateUrl(): string;
   tryLoginViaAuthenticator(): Promise<Result<void>>;
@@ -55,30 +57,28 @@ export const LoginDlg: FC = () => {
   };
 
   useEffect(() => {
-    console.log("use Effect", login);
     if (login) {
-      console.log("Trying to login ########################################");
       login.tryLoginViaAuthenticator().then((rsp) => {
         setLogin(null);
-        if (isError(rsp)) {
-          console.error("Failed to get response");
-          setErrorMessage(deviceSyncFailedMsg);
+        if (isError(rsp, AuthenticationNotAcceptedError)) {
+          setErrorMessage(authenticationNotAcceptedMsg);
           return;
         }
 
-        console.log("got response");
-        setSuccessMessage(deviseSyncOKMessage);
-        login?.enableSync();
+        if (isError(rsp)) {
+          setErrorMessage(deviceSyncFailedMsg);
+          return;
+        }
       });
     }
   }, [login, setLogin]);
+
   const cancel = (): void => {
     login?.cancelLogin();
     setLogin(null);
   };
 
-  const authenticateUrl = login?.getAuthenticateUrl() ?? "";
-  console.log("authurl", authenticateUrl.length, authenticateUrl);
+  const qrCodeUrl = login?.getAuthenticateUrl() ?? "";
 
   return (
     <Dialog open={login !== null} onClose={() => {}}>
@@ -89,7 +89,7 @@ export const LoginDlg: FC = () => {
         </Typography>
 
         <QRCodeGuideText />
-        <QRCodeElement url={authenticateUrl} />
+        <QRCodeElement url={qrCodeUrl} />
         <ClickHint />
 
         <Formik

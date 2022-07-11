@@ -1,4 +1,4 @@
-import Result from "../common/Result";
+import Result, { isError } from "../common/Result";
 import { ILoginProvider } from "./LoginDlg";
 import { IOnline, IOnlineKey } from "./Online";
 import {
@@ -23,14 +23,18 @@ export class LoginProvider implements ILoginProvider {
   }
 
   public async tryLoginViaAuthenticator(): Promise<Result<void>> {
-    return await this.authenticator.tryLoginViaAuthenticator(this.operation);
+    const rsp = await this.authenticator.tryLoginViaAuthenticator(
+      this.operation
+    );
+    if (isError(rsp)) {
+      return rsp;
+    }
+
+    return this.online.enableSync();
   }
 
   public async login(): Promise<Result<void>> {
     return await this.online.login();
-  }
-  public async enableSync(): Promise<Result<void>> {
-    return await this.online.enableSync();
   }
 
   public cancelLogin(): void {

@@ -36,6 +36,9 @@ import {
   IKeyVaultKey,
 } from "../common/keyVault";
 import { IDataCrypt, IDataCryptKey } from "../common/DataCrypt";
+import { CustomError } from "../common/CustomError";
+
+export class AuthenticationNotAcceptedError extends CustomError {}
 
 // AuthenticateReq is request info that a device encodes in a QR code to the authenticator
 interface AuthenticateReq {
@@ -128,7 +131,26 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
 
     operation.isStarted = true;
 
-    return await this.retrieveAuthenticateResponse(operation);
+    const user: User = {
+      username: operation.request.n,
+      password: operation.request.k,
+    };
+
+    const authenticateRsp = await this.retrieveAuthenticateResponse(
+      operation,
+      user
+    );
+    if (isError(authenticateRsp)) {
+      return authenticateRsp;
+    }
+
+    if (!authenticateRsp.isAccepted) {
+      return new AuthenticationNotAcceptedError();
+    }
+
+    const wDek = authenticateRsp.wDek;
+    const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
+    this.keyVaultConfig.setDek(dek);
   }
 
   public activate(): void {
@@ -218,60 +240,67 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
   ): Promise<Result<void>> {
     const user: User = { username: authRequest.n, password: authRequest.k };
 
-    console.log("dek", this.keyVault.getDek());
-    const wDek = await this.dataCrypt.wrapDataEncryptionKey(
-      this.keyVault.getDek(),
-      user
-    );
+    // Get the data encryption key and wrap/encrypt it for the device user (as string)
+    const dek = this.keyVault.getDek();
+    const wDek = await this.dataCrypt.wrapDataEncryptionKey(dek, user);
 
+    // Post a response to the device with the account user name and wDek
+    const isAccepted = true;
     const rsp: AuthenticateRsp = {
       username: userInfo.username,
       wDek: wDek,
-      isAccepted: true,
+      isAccepted: isAccepted,
     };
 
     const channelId = authRequest.c;
-
-    return await this.postAuthenticateResponse(rsp, user, channelId);
+    return await this.postAuthenticateResponse(
+      rsp,
+      user,
+      channelId,
+      isAccepted
+    );
   }
 
   private async postAuthenticateFailedResponse(
     authRequest: AuthenticateReq
   ): Promise<Result<void>> {
-    const info = this.authenticate.readUserInfo();
-    if (isError(info)) {
-      return info;
-    }
+    const user: User = { username: authRequest.n, password: authRequest.k };
 
+    // Post a response to the device, where device is NOT accepted
+    const isAccepted = false;
     const rsp: AuthenticateRsp = {
       username: "",
       wDek: "",
-      isAccepted: false,
+      isAccepted: isAccepted,
     };
 
     const channelId = authRequest.c;
-    const user: User = { username: authRequest.n, password: authRequest.k };
-
-    return await this.postAuthenticateResponse(rsp, user, channelId);
+    return await this.postAuthenticateResponse(
+      rsp,
+      user,
+      channelId,
+      isAccepted
+    );
   }
 
   private async postAuthenticateResponse(
     authenticateRsp: AuthenticateRsp,
     user: User,
-    channelId: string
+    channelId: string,
+    isAccept: boolean
   ): Promise<Result<void>> {
-    const authenticateRspJson = JSON.stringify(authenticateRsp);
+    // Serialize the response
+    const rspJson = JSON.stringify(authenticateRsp);
 
+    // Encrypt the response
     const authDataDek = await this.dataCrypt.deriveDataEncryptionKey(user);
-    const authData = await this.dataCrypt.encryptText(
-      authenticateRspJson,
-      authDataDek
-    );
+    const authData = await this.dataCrypt.encryptText(rspJson, authDataDek);
 
+    // Post the response
     const loginDeviceSetReq: LoginDeviceSetReq = {
       channelId: channelId,
       username: user.username,
-      isAccept: true,
+      isAccept: isAccept,
       authData: authData,
     };
 
@@ -279,29 +308,19 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
   }
 
   private async retrieveAuthenticateResponse(
-    operation: AuthenticateOperation
-  ): Promise<Result<void>> {
+    operation: AuthenticateOperation,
+    user: User
+  ): Promise<Result<AuthenticateRsp>> {
     const req: LoginDeviceReq = { channelId: operation.request.c };
     const authData = await this.api.loginDevice(req);
     if (isError(authData)) {
       return authData;
     }
-    const user: User = {
-      username: operation.request.n,
-      password: operation.request.k,
-    };
 
     const authDataDek = await this.dataCrypt.deriveDataEncryptionKey(user);
     const rspJson = await this.dataCrypt.decryptText(authData, authDataDek);
     const authenticateRsp = JSON.parse(rspJson);
-
-    const dek = await this.dataCrypt.unwrapDataEncryptionKey(
-      authenticateRsp.wDek,
-      user
-    );
-    console.log("dek", dek);
-
-    this.keyVaultConfig.setDek(dek);
+    return authenticateRsp;
   }
 
   private getAuthenticateReq(): Result<AuthenticateReq> {

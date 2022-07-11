@@ -87,7 +87,7 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
         )}
         {syncMode === SyncState.Disabled && (
           <Button
-            tooltip="Device sync disabled, click to login and enable"
+            tooltip="Click to login and enable device sync"
             icon={<SyncDisabledIcon style={{ color: "#FFFF66" }} />}
             onClick={() => onlineRef.current.enableSync()}
           />
