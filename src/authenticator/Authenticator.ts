@@ -7,10 +7,15 @@ import {
   IApi,
   LoginDeviceSetReq,
   User,
+  LoginDeviceReq,
 } from "../common/Api";
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "../common/Api";
-import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
+import {
+  IAuthenticate,
+  IAuthenticateKey,
+  UserInfo,
+} from "../common/authenticate";
 import {
   showConfirmAlert,
   showNoOKAlert,
@@ -23,21 +28,17 @@ import {
 import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
 import { IAddDeviceProvider } from "./AddDeviceDlg";
 import { ILocalStore, ILocalStoreKey } from "../common/LocalStore";
-import { base64ToString } from "../common/utils";
-import { IKeyVault, IKeyVaultKey } from "../common/keyVault";
+import { base64ToString, stringToBase64 } from "../common/utils";
+import {
+  IKeyVault,
+  IKeyVaultConfigure,
+  IKeyVaultConfigureKey,
+  IKeyVaultKey,
+} from "../common/keyVault";
 import { IDataCrypt, IDataCryptKey } from "../common/DataCrypt";
 
-// To Authenticator:
-// * username (id)
-// * device description, e.g. 'Edge IPad'
-// * kek
-// * channel id
-
-// To Device:
-// * auth Token
-
 // AuthenticateReq is request info that a device encodes in a QR code to the authenticator
-export interface AuthenticateReq {
+interface AuthenticateReq {
   n: string; // Unique client device name for this client/browser instance
   d: string; // Client description, like .e.g Edge, IPad
   k: string; // The password key to encrypt response from authenticator to this device
@@ -45,10 +46,15 @@ export interface AuthenticateReq {
 }
 
 // AuthenticatorRsp is the response to the device for an AuthenticateReq request
-export interface AuthenticateRsp {
+interface AuthenticateRsp {
   wDek: string;
   username: string;
   isAccepted: boolean;
+}
+
+export interface AuthenticateOperation {
+  request: AuthenticateReq;
+  isStarted: boolean;
 }
 
 // Online is uses to control if device database sync should and can be enable or not
@@ -56,11 +62,11 @@ export const IAuthenticatorKey = diKey<IAuthenticator>();
 export interface IAuthenticator {
   isAuthenticatorApp(): boolean;
   activate(): void;
-}
-
-export function getAuthenticateUrl(id: string): string {
-  const baseUrl = `${window.location.protocol}//${window.location.host}`;
-  return `${baseUrl}${baseAuthenticatorPart}${id}`;
+  getAuthenticateUrl(operation: AuthenticateOperation): string;
+  getAuthenticateRequest(): AuthenticateOperation;
+  tryLoginViaAuthenticator(
+    operation: AuthenticateOperation
+  ): Promise<Result<void>>;
 }
 
 const baseAuthenticatorPart = "/a/";
@@ -76,7 +82,8 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     private api: IApi = di(IApiKey),
     private localStore: ILocalStore = di(ILocalStoreKey),
     private dataCrypt: IDataCrypt = di(IDataCryptKey),
-    private keyVault: IKeyVault = di(IKeyVaultKey)
+    private keyVault: IKeyVault = di(IKeyVaultKey),
+    private keyVaultConfig: IKeyVaultConfigure = di(IKeyVaultConfigureKey)
   ) {}
 
   async add(): Promise<Result<void>> {
@@ -88,6 +95,40 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
 
   public isAuthenticatorApp(): boolean {
     return window.location.pathname.startsWith(baseAuthenticatorPart);
+  }
+
+  public getAuthenticateRequest(): AuthenticateOperation {
+    const dataCrypt = di(IDataCryptKey);
+
+    const authenticateReq: AuthenticateReq = {
+      n: dataCrypt.generateRandomString(10),
+      d: "Edge IPad",
+      k: dataCrypt.generateRandomString(10),
+      c: dataCrypt.generateRandomString(10),
+    };
+    return { request: authenticateReq, isStarted: false };
+  }
+
+  public getAuthenticateUrl(operation: AuthenticateOperation): string {
+    const requestJson = JSON.stringify(operation.request);
+    const code = stringToBase64(requestJson);
+
+    const baseUrl = `${window.location.protocol}//${window.location.host}`;
+    return `${baseUrl}${baseAuthenticatorPart}${code}`;
+  }
+
+  public async tryLoginViaAuthenticator(
+    operation: AuthenticateOperation
+  ): Promise<Result<void>> {
+    console.log("tryLoginViaAuthenticator ", operation);
+    if (operation.isStarted) {
+      console.log("Already started");
+      return;
+    }
+
+    operation.isStarted = true;
+
+    return await this.retrieveAuthenticateResponse(operation);
   }
 
   public activate(): void {
@@ -130,12 +171,16 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
 
     //await this.login();
     console.log("Logged in");
+    const userInfo = this.authenticate.readUserInfo();
+    if (isError(userInfo)) {
+      return userInfo;
+    }
 
     const device = this.getAuthenticateReq();
     if (isError(device)) {
       return;
     }
-    //this.clearDeviceId(device.n);
+    this.clearDeviceId(device.n);
 
     const description = device.d;
 
@@ -143,7 +188,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       "Add Device",
       `Do you want to allow device '${description}' to sync with all your devices?`,
       async () => {
-        const rsp = await this.sendAuthenticateOKResponse(device);
+        const rsp = await this.postAuthenticateOKResponse(device, userInfo);
         if (isError(rsp)) {
           showOKAlert(
             "Error",
@@ -155,7 +200,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       },
       async () => {
         setErrorMessage(`Denied device '${description}' request`);
-        const rsp = await this.sendAuthenticateFailedResponse(device);
+        const rsp = await this.postAuthenticateFailedResponse(device);
         if (isError(rsp)) {
           showOKAlert(
             "Error",
@@ -167,15 +212,10 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     );
   }
 
-  private async sendAuthenticateOKResponse(
-    authRequest: AuthenticateReq
+  private async postAuthenticateOKResponse(
+    authRequest: AuthenticateReq,
+    userInfo: UserInfo
   ): Promise<Result<void>> {
-    const info = this.authenticate.readUserInfo();
-    if (isError(info)) {
-      return info;
-    }
-
-    const channelId = authRequest.c;
     const user: User = { username: authRequest.n, password: authRequest.k };
 
     console.log("dek", this.keyVault.getDek());
@@ -185,32 +225,17 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     );
 
     const rsp: AuthenticateRsp = {
-      username: info.username,
+      username: userInfo.username,
       wDek: wDek,
       isAccepted: true,
     };
 
-    const rspJson = JSON.stringify(rsp);
+    const channelId = authRequest.c;
 
-    const dek = await this.dataCrypt.deriveDataEncryptionKey(user);
-    const authData = await this.dataCrypt.encryptText(rspJson, dek);
-    console.log("rspjs", rspJson);
-
-    const dek2 = await this.dataCrypt.deriveDataEncryptionKey(user);
-    const authData2 = await this.dataCrypt.decryptText(authData, dek2);
-    console.log("rspjs2", authData2);
-
-    const loginDeviceSetReq: LoginDeviceSetReq = {
-      channelId: channelId,
-      isAccept: true,
-      username: info.username,
-      authData: authData,
-    };
-
-    return await this.api.loginDeviceSet(loginDeviceSetReq);
+    return await this.postAuthenticateResponse(rsp, user, channelId);
   }
 
-  private async sendAuthenticateFailedResponse(
+  private async postAuthenticateFailedResponse(
     authRequest: AuthenticateReq
   ): Promise<Result<void>> {
     const info = this.authenticate.readUserInfo();
@@ -218,27 +243,65 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       return info;
     }
 
-    const channelId = authRequest.c;
-    const user: User = { username: authRequest.n, password: authRequest.k };
-
     const rsp: AuthenticateRsp = {
       username: "",
       wDek: "",
       isAccepted: false,
     };
-    const rspJson = JSON.stringify(rsp);
 
-    const dek = await this.dataCrypt.deriveDataEncryptionKey(user);
-    const authData = await this.dataCrypt.encryptText(rspJson, dek);
+    const channelId = authRequest.c;
+    const user: User = { username: authRequest.n, password: authRequest.k };
+
+    return await this.postAuthenticateResponse(rsp, user, channelId);
+  }
+
+  private async postAuthenticateResponse(
+    authenticateRsp: AuthenticateRsp,
+    user: User,
+    channelId: string
+  ): Promise<Result<void>> {
+    const authenticateRspJson = JSON.stringify(authenticateRsp);
+
+    const authDataDek = await this.dataCrypt.deriveDataEncryptionKey(user);
+    const authData = await this.dataCrypt.encryptText(
+      authenticateRspJson,
+      authDataDek
+    );
 
     const loginDeviceSetReq: LoginDeviceSetReq = {
       channelId: channelId,
-      isAccept: false,
-      username: info.username,
+      username: user.username,
+      isAccept: true,
       authData: authData,
     };
 
     return await this.api.loginDeviceSet(loginDeviceSetReq);
+  }
+
+  private async retrieveAuthenticateResponse(
+    operation: AuthenticateOperation
+  ): Promise<Result<void>> {
+    const req: LoginDeviceReq = { channelId: operation.request.c };
+    const authData = await this.api.loginDevice(req);
+    if (isError(authData)) {
+      return authData;
+    }
+    const user: User = {
+      username: operation.request.n,
+      password: operation.request.k,
+    };
+
+    const authDataDek = await this.dataCrypt.deriveDataEncryptionKey(user);
+    const rspJson = await this.dataCrypt.decryptText(authData, authDataDek);
+    const authenticateRsp = JSON.parse(rspJson);
+
+    const dek = await this.dataCrypt.unwrapDataEncryptionKey(
+      authenticateRsp.wDek,
+      user
+    );
+    console.log("dek", dek);
+
+    this.keyVaultConfig.setDek(dek);
   }
 
   private getAuthenticateReq(): Result<AuthenticateReq> {

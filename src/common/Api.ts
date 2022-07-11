@@ -80,6 +80,7 @@ export const IApiKey = diKey<IApi>();
 export interface IApi {
   config(onOK: () => void, onError: (error: Error) => void): void;
   loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void>>;
+  loginDevice(req: LoginDeviceReq): Promise<Result<string>>;
   login(user: User): Promise<Result<LoginRsp>>;
   logoff(): Promise<Result<void>>;
   createAccount(createUser: CreateUserReq): Promise<Result<void>>;

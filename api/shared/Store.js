@@ -91,7 +91,7 @@ async function updateUser(userId, user) {
         credentialID: device.credentialID.toString('base64'),
         credentialPublicKey: device.credentialPublicKey.toString('base64'),
         counter: device.counter,
-        transports: device.transxports
+        transports: device.transports
     }))
 
     const wDek = ""
@@ -119,11 +119,10 @@ exports.loginDeviceSet = async (context, body) => {
         //     await table.deleteEntity(authenticatorTableName, entity)
         //     return
         // }
-        const authenticatorTableEntity = toAuthenticatorAuthTableEntity(channelId, authData, clientId, sessionId)
-        await table.insertEntity(authenticatorTableName, authenticatorTableEntity)
+        const entity = toAuthenticatorAuthTableEntity(channelId, authData, clientId, sessionId)
+        await table.insertEntity(authenticatorTableName, entity)
         return {}
     } catch (error) {
-        context.log('Error', error)
         throwIfEmulatorError(error)
         throw new Error(invalidRequestError)
     }
@@ -145,8 +144,11 @@ exports.loginDevice = async (context, body) => {
                     return { response: entity.authData, cookies: cookies };
                 }
             } catch (error) {
-                context.log('Error', error)
-                throwIfEmulatorError(error)
+                if (error.code === 'ResourceNotFound') {
+                    continue
+                }
+
+                throw error
             }
         }
         throw new Error('Failed to wait for device info')

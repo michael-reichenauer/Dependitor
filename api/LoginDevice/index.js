@@ -5,7 +5,7 @@ module.exports = async function (context, req) {
     try {
         store.verifyApiKey(context)
 
-        const { response, cookies } = await store.getDeviceResponse(context, req.body)
+        const { response, cookies } = await store.loginDevice(context, req.body)
 
         context.res = { status: 200, body: response, cookies: cookies };
     } catch (err) {

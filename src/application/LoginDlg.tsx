@@ -1,4 +1,4 @@
-import React, { FC, useState } from "react";
+import React, { FC, useEffect } from "react";
 import { atom, useAtom } from "jotai";
 import {
   Box,
@@ -14,48 +14,38 @@ import { Formik, Form } from "formik";
 import Result, { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
-import { stringToBase64 } from "../common/utils";
-import {
-  AuthenticateReq,
-  getAuthenticateUrl,
-} from "../authenticator/Authenticator";
-import { di } from "../common/di";
-import { IDataCryptKey } from "../common/DataCrypt";
+
+import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
 
 const dialogWidth = 290;
 const dialogHeight = 340;
+const deviseSyncOKMessage = "Device sync is enabled";
+// const deviceSyncCanceledMsg = "Authentication canceled";
+const deviceSyncFailedMsg = "Failed to enable device sync";
 
 export interface ILoginProvider {
   login(): Promise<Result<void>>;
+  enableSync(): Promise<Result<void>>;
   cancelLogin(): void;
+  getAuthenticateUrl(): string;
+  tryLoginViaAuthenticator(): Promise<Result<void>>;
 }
 
-export let showLoginDlg: SetAtom<ILoginProvider> = () => {};
+export function showLoginDlg(provider: ILoginProvider) {
+  setLoginFunc(provider);
+}
 
+let setLoginFunc: SetAtom<ILoginProvider> = () => {};
 type loginProvider = ILoginProvider | null;
 const loginAtom = atom(null as loginProvider);
-export const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
+const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
   const [login, setLogin] = useAtom(loginAtom);
-  showLoginDlg = setLogin;
+  setLoginFunc = setLogin;
   return [login, setLogin];
 };
 
 export const LoginDlg: FC = () => {
-  const dataCrypt = di(IDataCryptKey);
   const [login, setLogin] = useLogin();
-  const [id, setId] = useState("");
-
-  if (!id) {
-    const qrDeviceInfo: AuthenticateReq = {
-      n: dataCrypt.generateRandomString(10),
-      d: "Edge IPad",
-      k: dataCrypt.generateRandomString(10),
-      c: dataCrypt.generateRandomString(10),
-    };
-    const js = JSON.stringify(qrDeviceInfo);
-    const js64 = stringToBase64(js);
-    setId(js64);
-  }
 
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
@@ -64,20 +54,42 @@ export const LoginDlg: FC = () => {
     }
   };
 
+  useEffect(() => {
+    console.log("use Effect", login);
+    if (login) {
+      console.log("Trying to login ########################################");
+      login.tryLoginViaAuthenticator().then((rsp) => {
+        setLogin(null);
+        if (isError(rsp)) {
+          console.error("Failed to get response");
+          setErrorMessage(deviceSyncFailedMsg);
+          return;
+        }
+
+        console.log("got response");
+        setSuccessMessage(deviseSyncOKMessage);
+        login?.enableSync();
+      });
+    }
+  }, [login, setLogin]);
   const cancel = (): void => {
     login?.cancelLogin();
     setLogin(null);
   };
 
+  const authenticateUrl = login?.getAuthenticateUrl() ?? "";
+  console.log("authurl", authenticateUrl.length, authenticateUrl);
+
   return (
-    <Dialog open={login !== null} onClose={cancel}>
+    <Dialog open={login !== null} onClose={() => {}}>
       <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
+        <LinearProgress style={{ marginBottom: 5 }} />
         <Typography variant="h5" style={{ paddingBottom: 0 }}>
           Enable Sync
         </Typography>
 
         <QRCodeGuideText />
-        <QRCodeElement id={id} />
+        <QRCodeElement url={authenticateUrl} />
         <ClickHint />
 
         <Formik
@@ -193,13 +205,10 @@ const QRCodeGuideText: FC = () => {
 };
 
 type QRCodeProps = {
-  id: string;
+  url: string;
 };
 
-const QRCodeElement: FC<QRCodeProps> = ({ id }) => {
-  const authenticateUrl = getAuthenticateUrl(id);
-  console.log("authurl", authenticateUrl.length);
-
+const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
   return (
     <>
       <div
@@ -209,9 +218,9 @@ const QRCodeElement: FC<QRCodeProps> = ({ id }) => {
           paddingTop: 20,
         }}
       >
-        <Tooltip title={authenticateUrl}>
-          <Link href={authenticateUrl} target="_blank">
-            <QRCode value={authenticateUrl} />
+        <Tooltip title={url}>
+          <Link href={url} target="_blank">
+            <QRCode value={url} />
           </Link>
         </Tooltip>
       </div>

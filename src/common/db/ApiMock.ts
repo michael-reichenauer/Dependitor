@@ -13,6 +13,7 @@ import {
   LoginRsp,
   CreateUserReq,
   LoginDeviceSetReq,
+  LoginDeviceReq,
 } from "../Api";
 import { di } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
@@ -22,6 +23,9 @@ const prefix = "ApiMock-";
 
 export class ApiMock implements IApi {
   constructor(private local: ILocalStore = di(ILocalStoreKey)) {}
+  loginDevice(req: LoginDeviceReq): Promise<Result<string, Error>> {
+    throw new Error("Method not implemented.");
+  }
   loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void, Error>> {
     throw new Error("Method not implemented.");
   }

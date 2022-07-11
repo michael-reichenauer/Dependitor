@@ -2,7 +2,7 @@ import { atom, useAtom } from "jotai";
 import { di, diKey, singleton } from "./../common/di";
 import { SetAtom } from "jotai/core/types";
 import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
-import { ILoginProvider, showLoginDlg } from "./LoginDlg";
+import { showLoginDlg } from "./LoginDlg";
 import {
   NoContactError,
   LocalApiServerError,
@@ -25,12 +25,16 @@ import {
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
 import { showOKAlert } from "../common/AlertDialog";
+import { LoginProvider } from "./LoginProvider";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
 export interface IOnline {
   enableSync(): Promise<Result<void>>;
   disableSync(): void;
+
+  login(): Promise<Result<void>>;
+  cancelLogin(): void;
 }
 
 // Current sync state to be shown e.g. in ui
@@ -58,25 +62,25 @@ const deviceSyncDisabledMsg = "Device sync is disabled";
 const deviceSyncCanceledMsg = "Authentication canceled";
 
 @singleton(IOnlineKey)
-export class Online implements IOnline, ILoginProvider {
+export class Online implements IOnline {
   private isEnabled = false;
   private isError = false;
   private firstActivate = true;
 
-    constructor( 
-      private authenticate: IAuthenticate = di(IAuthenticateKey),
-      private store: IStore = di(IStoreKey),
-      private localStore: ILocalStore = di(ILocalStoreKey)
-    ) {
-      // Listen for user activate events to control if device sync should be activated or deactivated
-      document.addEventListener(activityEventName, (activity: any) =>
-        this.onActivityEvent(activity)
-      );
-      // Listen for StoreDB sync OK or error when syncing
-      this.store.configure({
-        onSyncChanged: (f: boolean, e?: Error) => this.onSyncChanged(f, e),
-      });
-    }
+  constructor(
+    private authenticate: IAuthenticate = di(IAuthenticateKey),
+    private store: IStore = di(IStoreKey),
+    private localStore: ILocalStore = di(ILocalStoreKey)
+  ) {
+    // Listen for user activate events to control if device sync should be activated or deactivated
+    document.addEventListener(activityEventName, (activity: any) =>
+      this.onActivityEvent(activity)
+    );
+    // Listen for StoreDB sync OK or error when syncing
+    this.store.configure({
+      onSyncChanged: (f: boolean, e?: Error) => this.onSyncChanged(f, e),
+    });
+  }
 
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
   public async login(): Promise<Result<void>> {
@@ -139,7 +143,7 @@ export class Online implements IOnline, ILoginProvider {
         if (this.getPersistentIsEnabled()) {
           return await this.login();
         }
-        showLoginDlg(this);
+        showLoginDlg(new LoginProvider(this));
         return checkRsp;
       }
 
