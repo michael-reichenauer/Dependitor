@@ -16,7 +16,10 @@ import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
 
 import { setErrorMessage } from "../common/MessageSnackbar";
-import { AuthenticationNotAcceptedError } from "../authenticator/Authenticator";
+import {
+  AuthenticationCanceledError,
+  AuthenticationNotAcceptedError,
+} from "../authenticator/Authenticator";
 
 const dialogWidth = 290;
 const dialogHeight = 340;
@@ -60,6 +63,11 @@ export const LoginDlg: FC = () => {
     if (login) {
       login.tryLoginViaAuthenticator().then((rsp) => {
         setLogin(null);
+
+        if (isError(rsp, AuthenticationCanceledError)) {
+          console.log("Canceled");
+          return;
+        }
         if (isError(rsp, AuthenticationNotAcceptedError)) {
           setErrorMessage(authenticationNotAcceptedMsg);
           return;

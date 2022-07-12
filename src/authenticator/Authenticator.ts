@@ -4,18 +4,13 @@ import {
   LocalApiServerError,
   LocalEmulatorError,
   IApiKey,
-  IApi,
   LoginDeviceSetReq,
   User,
   LoginDeviceReq,
 } from "../common/Api";
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "../common/Api";
-import {
-  IAuthenticate,
-  IAuthenticateKey,
-  UserInfo,
-} from "../common/authenticate";
+import { IAuthenticateKey, UserInfo } from "../common/authenticate";
 import {
   showConfirmAlert,
   showNoOKAlert,
@@ -27,18 +22,15 @@ import {
 } from "../common/webauthn";
 import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
 import { IAddDeviceProvider } from "./AddDeviceDlg";
-import { ILocalStore, ILocalStoreKey } from "../common/LocalStore";
-import { base64ToString, stringToBase64 } from "../common/utils";
-import {
-  IKeyVault,
-  IKeyVaultConfigure,
-  IKeyVaultConfigureKey,
-  IKeyVaultKey,
-} from "../common/keyVault";
-import { IDataCrypt, IDataCryptKey } from "../common/DataCrypt";
+import { ILocalStoreKey } from "../common/LocalStore";
+import { base64ToString, delay, stringToBase64 } from "../common/utils";
+import { IKeyVaultConfigureKey, IKeyVaultKey } from "../common/keyVault";
+import { IDataCryptKey } from "../common/DataCrypt";
 import { CustomError } from "../common/CustomError";
+import now from "../common/stopwatch";
 
 export class AuthenticationNotAcceptedError extends CustomError {}
+export class AuthenticationCanceledError extends CustomError {}
 
 // AuthenticateReq is request info that a device encodes in a QR code to the authenticator
 interface AuthenticateReq {
@@ -58,6 +50,7 @@ interface AuthenticateRsp {
 export interface AuthenticateOperation {
   request: AuthenticateReq;
   isStarted: boolean;
+  isCanceled: boolean;
 }
 
 // Online is uses to control if device database sync should and can be enable or not
@@ -75,18 +68,20 @@ export interface IAuthenticator {
 const baseAuthenticatorPart = "/a/";
 const deviceIdsKey = "authenticator.deviceIds";
 const maxDeviceIdSize = 10;
+const tryLoginTimeout = 60 * 1000; // One minute to wait for authenticator to allow/deny login
+const tryLoginPreWait = 4 * 1000; // Time before starting to poll for result
 
 @singleton(IAuthenticatorKey)
 export class Authenticator implements IAuthenticator, IAddDeviceProvider {
   private activated = false;
 
   constructor(
-    private authenticate: IAuthenticate = di(IAuthenticateKey),
-    private api: IApi = di(IApiKey),
-    private localStore: ILocalStore = di(ILocalStoreKey),
-    private dataCrypt: IDataCrypt = di(IDataCryptKey),
-    private keyVault: IKeyVault = di(IKeyVaultKey),
-    private keyVaultConfig: IKeyVaultConfigure = di(IKeyVaultConfigureKey)
+    private authenticate = di(IAuthenticateKey),
+    private api = di(IApiKey),
+    private localStore = di(ILocalStoreKey),
+    private dataCrypt = di(IDataCryptKey),
+    private keyVault = di(IKeyVaultKey),
+    private keyVaultConfig = di(IKeyVaultConfigureKey)
   ) {}
 
   async add(): Promise<Result<void>> {
@@ -109,7 +104,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       k: dataCrypt.generateRandomString(10),
       c: dataCrypt.generateRandomString(10),
     };
-    return { request: authenticateReq, isStarted: false };
+    return { request: authenticateReq, isStarted: false, isCanceled: false };
   }
 
   public getAuthenticateUrl(operation: AuthenticateOperation): string {
@@ -310,8 +305,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     operation: AuthenticateOperation,
     user: User
   ): Promise<Result<AuthenticateRsp>> {
-    const req: LoginDeviceReq = { channelId: operation.request.c };
-    const authData = await this.api.loginDevice(req);
+    const authData = await this.loginDevice(operation);
     if (isError(authData)) {
       return authData;
     }
@@ -320,6 +314,48 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     const rspJson = await this.dataCrypt.decryptText(authData, authDataDek);
     const authenticateRsp = JSON.parse(rspJson);
     return authenticateRsp;
+  }
+
+  private async loginDevice(
+    operation: AuthenticateOperation
+  ): Promise<Result<string>> {
+    const req: LoginDeviceReq = { channelId: operation.request.c };
+
+    const startTime = now();
+
+    // Wait a little before starting to poll since authenticator needs some time anyway
+    while (startTime.time() < tryLoginPreWait) {
+      if (operation.isCanceled) {
+        return new AuthenticationCanceledError();
+      }
+      await delay(100);
+    }
+
+    while (startTime.time() < tryLoginTimeout) {
+      const authData = await this.api.loginDevice(req);
+      if (operation.isCanceled) {
+        return new AuthenticationCanceledError();
+      }
+      if (isError(authData)) {
+        return authData;
+      }
+
+      if (!authData) {
+        // No auth data yet, lets wait a little before retrying again
+        for (let t = now(); t.time() < 1000; ) {
+          if (operation.isCanceled) {
+            return new AuthenticationCanceledError();
+          }
+          await delay(100);
+        }
+        continue;
+      }
+
+      return authData;
+    }
+
+    // Failed to get auth data within timeout
+    return new AuthenticateError();
   }
 
   private getAuthenticateReq(): Result<AuthenticateReq> {

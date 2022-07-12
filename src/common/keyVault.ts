@@ -22,7 +22,10 @@ export class KeyVault implements IKeyVault, IKeyVaultConfigure {
   constructor(private dataCrypt: IDataCrypt = di(IDataCryptKey)) {}
 
   public hasDataEncryptionKey(): boolean {
-    return this.dek !== null;
+    if (this.dek) {
+      return true;
+    }
+    return false;
   }
 
   public async encryptString(value: string): Promise<string> {

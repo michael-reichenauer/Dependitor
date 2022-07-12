@@ -2,7 +2,6 @@ import { di, diKey, singleton } from "../di";
 import Result, { isError } from "../Result";
 import { CustomError } from "../CustomError";
 import { ApiEntity, IApi, IApiKey, Query } from "../Api";
-import { IDataCrypt, IDataCryptKey } from "../DataCrypt";
 import { IKeyVault, IKeyVaultKey } from "../keyVault";
 
 export interface RemoteEntity {
@@ -36,8 +35,7 @@ const notModifiedError = new NotModifiedError();
 export class RemoteDB implements IRemoteDB {
   constructor(
     private api: IApi = di(IApiKey),
-    private keyVault: IKeyVault = di(IKeyVaultKey),
-    private dataCrypt: IDataCrypt = di(IDataCryptKey)
+    private keyVault: IKeyVault = di(IKeyVaultKey)
   ) {}
 
   public async tryReadBatch(

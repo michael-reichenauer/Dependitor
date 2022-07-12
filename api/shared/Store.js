@@ -131,27 +131,20 @@ exports.loginDeviceSet = async (context, body) => {
 exports.loginDevice = async (context, body) => {
     try {
         const { channelId } = body
-        const maxWait = 20 * 1000 // seconds
-        const waitTime = 1000 // ms
 
-        for (let i = 0; i < maxWait; i += waitTime) {
-            await delay(waitTime)
-
-            try {
-                const entity = await table.retrieveEntity(authenticatorTableName, authenticatorPartitionKey, channelId)
-                if (entity.authData) {
-                    const cookies = createCookies(entity.clientId, entity.sessionId)
-                    return { response: entity.authData, cookies: cookies };
-                }
-            } catch (error) {
-                if (error.code === 'ResourceNotFound') {
-                    continue
-                }
-
-                throw error
+        try {
+            const entity = await table.retrieveEntity(authenticatorTableName, authenticatorPartitionKey, channelId)
+            if (entity.authData) {
+                const cookies = createCookies(entity.clientId, entity.sessionId)
+                return { response: entity.authData, cookies: cookies };
             }
+        } catch (error) {
+            if (error.code === 'ResourceNotFound') {
+                return { response: '', cookies: null };
+            }
+
+            throw error
         }
-        throw new Error('Failed to wait for device info')
     } catch (error) {
         context.log('Error', error)
         throwIfEmulatorError(error)
