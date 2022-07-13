@@ -24,8 +24,8 @@ import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
-import { showOKAlert } from "../common/AlertDialog";
 import { LoginProvider } from "./LoginProvider";
+import { showAlert } from "../common/AlertDialog";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
@@ -55,8 +55,9 @@ export const useSyncMode = (): SyncState => {
   return syncMode;
 };
 
-const persistentSyncKeyName = "syncState";
-const loginAfterReloadKeyName = "loginAfterReload";
+const persistentSyncKeyName = "online.syncState";
+const loginAfterReloadKeyName = "online.loginAfterReload";
+
 const deviseSyncOKMessage = "Device sync is enabled and OK";
 const deviceSyncDisabledMsg = "Device sync is disabled";
 const deviceSyncCanceledMsg = "Authentication canceled";
@@ -91,7 +92,7 @@ export class Online implements IOnline {
       const loginRsp = await this.authenticate.login();
       if (loginRsp instanceof WebAuthnNeedReloadError) {
         this.setLoginAfterReloadEnabled(true);
-        showOKAlert(
+        showAlert(
           "Reload Page",
           "Please manually reload this page to show the authentication dialog.\n" +
             "Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication."
@@ -140,7 +141,7 @@ export class Online implements IOnline {
 
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
-        if (this.getPersistentIsEnabled()) {
+        if (this.getPersistentIsEnabled() && this.authenticate.isLocalLogin()) {
           return await this.login();
         }
         showLoginDlg(new LoginProvider(this));

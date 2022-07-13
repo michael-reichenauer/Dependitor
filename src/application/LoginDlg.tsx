@@ -20,6 +20,7 @@ import {
   AuthenticationCanceledError,
   AuthenticationNotAcceptedError,
 } from "../authenticator/Authenticator";
+import { showAlert } from "../common/AlertDialog";
 
 const dialogWidth = 290;
 const dialogHeight = 340;
@@ -52,34 +53,40 @@ const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
 export const LoginDlg: FC = () => {
   const [login, setLogin] = useLogin();
 
-  const handleEnter = (event: any): void => {
-    if (event.code === "Enter") {
-      const okButton = document.getElementById("OKButton");
-      okButton?.click();
-    }
-  };
-
   useEffect(() => {
     if (login) {
       login.tryLoginViaAuthenticator().then((rsp) => {
         setLogin(null);
 
         if (isError(rsp, AuthenticationCanceledError)) {
-          console.log("Canceled");
+          // User canceled the login dialog
           return;
         }
         if (isError(rsp, AuthenticationNotAcceptedError)) {
+          // The authenticator did not accept this device authenticate request
           setErrorMessage(authenticationNotAcceptedMsg);
           return;
         }
-
         if (isError(rsp)) {
+          // Some other error
           setErrorMessage(deviceSyncFailedMsg);
           return;
         }
+
+        showAlert("Enable Device Login", "Enable", {
+          onOk: () => login?.login(),
+          showCancel: true,
+        });
       });
     }
   }, [login, setLogin]);
+
+  const handleEnter = (event: any): void => {
+    if (event.code === "Enter") {
+      const okButton = document.getElementById("OKButton");
+      okButton?.click();
+    }
+  };
 
   const cancel = (): void => {
     login?.cancelLogin();

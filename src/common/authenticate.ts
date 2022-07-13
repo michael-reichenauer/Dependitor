@@ -11,13 +11,17 @@ import { ILocalStore, ILocalStoreKey } from "./LocalStore";
 export const IAuthenticateKey = diKey<IAuthenticate>();
 export interface IAuthenticate {
   check(): Promise<Result<void>>;
-  //createUser(user: User): Promise<Result<void>>;
   login(): Promise<Result<void>>;
+  isLocalLogin(): boolean;
+  setLoggedIn(username: string, dek: CryptoKey): void;
   resetLogin(): void;
   readUserInfo(): Result<UserInfo>;
+  setIsAuthenticator(): void;
 }
 
-const userInfoKey = "userInfo";
+const userInfoKeyDefault = "authenticate.userInfo";
+
+const authenticatorUserInfoKeyDefault = "authenticator.authenticate.userInfo";
 const randomUsernameLength = 10;
 const randomKekPasswordLength = 10;
 
@@ -28,6 +32,8 @@ export interface UserInfo {
 
 @singleton(IAuthenticateKey)
 export class Authenticate implements IAuthenticate {
+  private userInfoKey = userInfoKeyDefault;
+
   constructor(
     private api: IApi = di(IApiKey),
     private webAuthn: IWebAuthn = di(IWebAuthnKey),
@@ -36,6 +42,10 @@ export class Authenticate implements IAuthenticate {
     private localStore: ILocalStore = di(ILocalStoreKey)
   ) {}
 
+  public setIsAuthenticator(): void {
+    this.userInfoKey = authenticatorUserInfoKeyDefault;
+  }
+
   public async check(): Promise<Result<void>> {
     if (!this.keyVaultConfigure.hasDataEncryptionKey()) {
       console.log("No DEK");
@@ -43,6 +53,21 @@ export class Authenticate implements IAuthenticate {
     }
 
     return await this.api.check();
+  }
+
+  public isLocalLogin(): boolean {
+    const userInfo = this.readUserInfo();
+    if (isError(userInfo)) {
+      return false;
+    }
+    if (!userInfo.wDek) {
+      return false;
+    }
+    return true;
+  }
+
+  public setLoggedIn(username: string, dek: CryptoKey): void {
+    this.keyVaultConfigure.setDataEncryptionKey(dek);
   }
 
   public async login(): Promise<Result<void>> {
@@ -61,18 +86,18 @@ export class Authenticate implements IAuthenticate {
   }
 
   public resetLogin(): void {
-    this.keyVaultConfigure.setDataEncryptionKey(null);
+    this.keyVaultConfigure.clearDataEncryptionKey();
 
     // Try to logoff from server ass well (but don't await result)
     this.api.logoff();
   }
 
   public readUserInfo(): Result<UserInfo> {
-    return this.localStore.tryRead<UserInfo>(userInfoKey);
+    return this.localStore.tryRead<UserInfo>(this.userInfoKey);
   }
 
   private writeUserInfo(userInfo: UserInfo): void {
-    this.localStore.write(userInfoKey, userInfo);
+    this.localStore.write(this.userInfoKey, userInfo);
   }
 
   // Creates a new user, which is registered in the device Authenticator and in the server
@@ -95,8 +120,8 @@ export class Authenticate implements IAuthenticate {
 
     // Unwrap the wrapped DEK so it can be used and make it available
     // to be used when encrypting/decrypting data when accessing server
-    const dek = await expectValue(
-      this.dataCrypt.unwrapDataEncryptionKey(wDek, user)
+    const dek = expectValue(
+      await this.dataCrypt.unwrapDataEncryptionKey(wDek, user)
     );
     this.keyVaultConfigure.setDataEncryptionKey(dek);
 
@@ -107,8 +132,6 @@ export class Authenticate implements IAuthenticate {
 
   // Authenticates the existing server in the device Authenticator
   private async loginExistingUser(userInfo: UserInfo): Promise<Result<void>> {
-    console.log("loginExistingUser");
-
     // Authenticate the existing registered username
     const { username, wDek } = userInfo;
     const password = await this.authenticate(username);
@@ -121,6 +144,7 @@ export class Authenticate implements IAuthenticate {
     // Unwrap the dek so it can be used
     const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
     if (isError(dek)) {
+      console.log("Error", dek);
       return dek;
     }
 

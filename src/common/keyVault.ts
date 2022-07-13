@@ -12,7 +12,8 @@ export interface IKeyVault {
 
 export const IKeyVaultConfigureKey = diKey<IKeyVaultConfigure>();
 export interface IKeyVaultConfigure extends IKeyVault {
-  setDataEncryptionKey(dek: any): void;
+  setDataEncryptionKey(dek: CryptoKey): void;
+  clearDataEncryptionKey(): void;
 }
 
 @singleton(IKeyVaultKey, IKeyVaultConfigureKey)
@@ -42,5 +43,9 @@ export class KeyVault implements IKeyVault, IKeyVaultConfigure {
 
   public setDataEncryptionKey(dek: CryptoKey): void {
     this.dek = dek;
+  }
+
+  public clearDataEncryptionKey(): void {
+    this.dek = null;
   }
 }

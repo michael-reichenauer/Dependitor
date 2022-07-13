@@ -7,12 +7,12 @@ import { AppMenu, menuItem, menuParentItem } from "../common/Menus";
 import { IStoreKey } from "./diagram/Store";
 import Printer from "../common/Printer";
 import { useAbout } from "./About";
-import { showConfirmAlert } from "../common/AlertDialog";
 import { showPrompt } from "../common/PromptDialog";
 import { di } from "../common/di";
 import { useTitle } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
+import { showAlert } from "../common/AlertDialog";
 
 const getDiagramsMenuItems = (recentDiagrams: DiagramInfoDto[]) => {
   const diagrams = recentDiagrams.slice(1);
@@ -38,11 +38,10 @@ export function ApplicationMenu() {
   });
 
   const deleteDiagram = () => {
-    showConfirmAlert(
-      "Delete",
-      "Do you really want to delete the current diagram?",
-      () => PubSub.publish("canvas.DeleteDiagram")
-    );
+    showAlert("Delete", "Do you really want to delete the current diagram?", {
+      onOk: () => PubSub.publish("canvas.DeleteDiagram"),
+      showCancel: true,
+    });
   };
 
   const renameDiagram = () => {

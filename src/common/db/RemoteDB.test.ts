@@ -28,7 +28,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   // Simulate logout and reset DEK
-  di(IKeyVaultConfigureKey).setDataEncryptionKey(null);
+  di(IKeyVaultConfigureKey).clearDataEncryptionKey();
 });
 
 describe("Test IRemoteData", () => {
