@@ -31,13 +31,17 @@ export const showAlert = (
   title: string,
   message: string,
   properties?: AlertProperties
-) =>
+) => {
+  const showCancel =
+    properties?.showCancel || properties?.cancelText || properties?.onCancel;
   setAlertFunc?.({
     title: title,
     message: message,
     ...defaultProperties,
     ...properties,
+    showCancel: showCancel,
   });
+};
 
 // // Show a confirm (ok/cancel) alert
 // export const showConfirmAlert = (
@@ -101,9 +105,6 @@ export default function AlertDialog() {
     alert?.onOk?.();
   };
 
-  const showCancel =
-    alert?.showCancel || alert?.onCancel || alert?.cancelText !== "Cancel";
-
   return (
     <Dialog open={!!alert} onClose={() => {}}>
       <DialogTitle>{alert?.title}</DialogTitle>
@@ -122,7 +123,7 @@ export default function AlertDialog() {
             {alert?.okText}
           </Button>
         )}
-        {showCancel && (
+        {alert?.showCancel && (
           <Button
             onClick={handleCancel}
             color="primary"

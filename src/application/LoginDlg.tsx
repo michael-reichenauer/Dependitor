@@ -23,7 +23,7 @@ import {
 import { showAlert } from "../common/AlertDialog";
 
 const dialogWidth = 290;
-const dialogHeight = 340;
+const dialogHeight = 380;
 
 // const deviceSyncCanceledMsg = "Authentication canceled";
 const deviceSyncFailedMsg = "Failed to enable device sync";
@@ -33,6 +33,7 @@ const authenticationNotAcceptedMsg =
 export interface ILoginProvider {
   login(): Promise<Result<void>>;
   cancelLogin(): void;
+  loginViaAuthenticator(): void;
   getAuthenticateUrl(): string;
   tryLoginViaAuthenticator(): Promise<Result<void>>;
 }
@@ -57,7 +58,6 @@ export const LoginDlg: FC = () => {
     if (login) {
       login.tryLoginViaAuthenticator().then((rsp) => {
         setLogin(null);
-
         if (isError(rsp, AuthenticationCanceledError)) {
           // User canceled the login dialog
           return;
@@ -72,7 +72,6 @@ export const LoginDlg: FC = () => {
           setErrorMessage(deviceSyncFailedMsg);
           return;
         }
-
         showAlert("Enable Device Login", "Enable", {
           onOk: () => login?.login(),
           showCancel: true,
@@ -89,6 +88,7 @@ export const LoginDlg: FC = () => {
   };
 
   const cancel = (): void => {
+    login?.loginViaAuthenticator();
     login?.cancelLogin();
     setLogin(null);
   };
@@ -110,6 +110,7 @@ export const LoginDlg: FC = () => {
         <Formik
           initialValues={{ deviceName: "" }}
           validate={async (values) => {
+            console.log("validate");
             const errors: any = {};
             // if (!values.username) {
             //   errors.username = "Required";
@@ -117,6 +118,7 @@ export const LoginDlg: FC = () => {
             return errors;
           }}
           onSubmit={async (values, { setErrors, setFieldValue }) => {
+            console.log("onSubmit");
             // if (createAccount) {
             //   const createResult = await login?.createAccount({
             //     username: "",
@@ -134,6 +136,7 @@ export const LoginDlg: FC = () => {
             //   // setFieldValue("confirm", "", false);
             // }
 
+            login?.loginViaAuthenticator();
             const loginResult = await login?.login();
             if (isError(loginResult)) {
               // setFieldValue("password", "", false);
@@ -152,8 +155,7 @@ export const LoginDlg: FC = () => {
         >
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
-              {isSubmitting && <LinearProgress style={{ marginBottom: 5 }} />}
-              {/* <div
+              <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
@@ -161,7 +163,7 @@ export const LoginDlg: FC = () => {
                 }}
               >
                 <Button
-                  id="LoginButton"
+                  id="OKButton"
                   variant="contained"
                   color="primary"
                   disabled={isSubmitting}
@@ -173,7 +175,7 @@ export const LoginDlg: FC = () => {
                 >
                   Login
                 </Button>
-              </div> */}
+              </div>
 
               <div
                 style={{

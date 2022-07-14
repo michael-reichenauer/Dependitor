@@ -38,8 +38,11 @@ export class LoginProvider implements ILoginProvider {
     return await this.online.login();
   }
 
-  public cancelLogin(): void {
+  public loginViaAuthenticator(): void {
     this.operation.isCanceled = true;
+  }
+
+  public cancelLogin(): void {
     this.online.cancelLogin();
   }
 }

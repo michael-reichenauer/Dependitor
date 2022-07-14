@@ -62,11 +62,13 @@ export interface IAuthenticator {
 }
 
 const baseAuthenticatorPart = "/a/";
-const deviceIdsKey = "authenticator.authenticator.deviceIds";
-const maxDeviceIdSize = 10;
+const deviceIdsKey = "/a/authenticator.deviceIds";
+const maxStoredDeviceIdCount = 10;
+const randomIdLength = 10;
 const tryLoginTimeout = 60 * 1000; // One minute to wait for authenticator to allow/deny login
 const tryLoginPreWait = 4 * 1000; // Time before starting to poll for result
-const closeMsg = "This request has been handled, please close this page.";
+const closeMsg =
+  "This device request has been handled, please close this page.";
 
 @singleton(IAuthenticatorKey)
 export class Authenticator implements IAuthenticator, IAddDeviceProvider {
@@ -96,13 +98,19 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
   }
 
   public getAuthenticateRequest(): AuthenticateOperation {
-    const dataCrypt = di(IDataCryptKey);
+    let clientId: string;
+    const userInfo = this.authenticate.readUserInfo();
+    if (isError(userInfo) || !userInfo.clientId) {
+      clientId = this.dataCrypt.generateRandomString(randomIdLength);
+    } else {
+      clientId = userInfo.clientId;
+    }
 
     const authenticateReq: AuthenticateReq = {
-      n: dataCrypt.generateRandomString(10),
+      n: clientId,
       d: "Edge IPad",
-      k: dataCrypt.generateRandomString(10),
-      c: dataCrypt.generateRandomString(10),
+      k: this.dataCrypt.generateRandomString(randomIdLength),
+      c: this.dataCrypt.generateRandomString(randomIdLength),
     };
     return { request: authenticateReq, isStarted: false, isCanceled: false };
   }
@@ -126,6 +134,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
 
     operation.isStarted = true;
 
+    const clientId = operation.request.n;
     const user: User = {
       username: operation.request.n,
       password: operation.request.k,
@@ -149,7 +158,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       return dek;
     }
 
-    this.authenticate.setLoggedIn(authenticateRsp.username, dek);
+    this.authenticate.setLoggedIn(authenticateRsp.username, clientId, dek);
   }
 
   public activate(): void {
@@ -296,6 +305,7 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     channelId: string,
     isAccept: boolean
   ): Promise<Result<void>> {
+    console.log("post auth rsp", authenticateRsp);
     // Serialize the response
     const rspJson = JSON.stringify(authenticateRsp);
 
@@ -409,7 +419,10 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
 
     // Prepend id and store the most resent ids
     deviceIds.unshift(id);
-    this.localStore.write(deviceIdsKey, deviceIds.slice(0, maxDeviceIdSize));
+    this.localStore.write(
+      deviceIdsKey,
+      deviceIds.slice(0, maxStoredDeviceIdCount)
+    );
   }
 
   // isClearedId returns true if this device id has been handled before
