@@ -84,7 +84,7 @@ export class Authenticate implements IAuthenticate {
 
     const userInfo = orDefault(this.readUserInfo(), defaultUserInfo);
     if (username === userInfo.username) {
-      // Same username, no need to update
+      // Same username, no need to update.
       return;
     }
 
