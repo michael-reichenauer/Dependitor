@@ -17,6 +17,7 @@ export interface IAuthenticate {
   resetLogin(): void;
   readUserInfo(): Result<UserInfo>;
   setIsAuthenticator(): void;
+  supportLocalLogin(): Promise<boolean>;
 }
 
 const userInfoKeyDefault = "authenticate.userInfo";
@@ -56,6 +57,10 @@ export class Authenticate implements IAuthenticate {
     private localStore = di(ILocalStoreKey)
   ) {}
 
+  public async supportLocalLogin(): Promise<boolean> {
+    return await this.webAuthn.platformAuthenticatorIsAvailable();
+  }
+
   public setIsAuthenticator(): void {
     this.userInfoKey = authenticatorUserInfoKeyDefault;
     this.deviceUsername = authenticatorUserDisplayNameDefault;
@@ -76,7 +81,7 @@ export class Authenticate implements IAuthenticate {
       return false;
     }
 
-    return !!userInfo.wDek;
+    return !!userInfo.wDek && !!userInfo.credentialId;
   }
 
   public setLoggedIn(username: string, clientId: string, dek: CryptoKey): void {

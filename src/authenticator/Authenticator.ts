@@ -65,7 +65,7 @@ const baseAuthenticatorPart = "/a/";
 const deviceIdsKey = "/a/authenticator.deviceIds";
 const maxStoredDeviceIdCount = 10;
 const randomIdLength = 10;
-const tryLoginTimeout = 60 * 1000; // One minute to wait for authenticator to allow/deny login
+const tryLoginTimeout = 3 * 60 * 1000; // Wait for authenticator to allow/deny login
 const tryLoginPreWait = 4 * 1000; // Time before starting to poll for result
 const closeMsg =
   "This device request has been handled, please close this page.";

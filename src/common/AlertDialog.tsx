@@ -109,7 +109,9 @@ export default function AlertDialog() {
     <Dialog open={!!alert} onClose={() => {}}>
       <DialogTitle>{alert?.title}</DialogTitle>
       <DialogContent style={{ minWidth: 300 }}>
-        <DialogContentText>{alert?.message}</DialogContentText>
+        <DialogContentText style={{ whiteSpace: "pre-line" }}>
+          {alert?.message}
+        </DialogContentText>
       </DialogContent>
       <DialogActions>
         {alert?.showOk && (

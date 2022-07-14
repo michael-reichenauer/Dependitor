@@ -1,21 +1,29 @@
 import Result, { isError } from "../common/Result";
 import { ILoginProvider } from "./LoginDlg";
-import { IOnline, IOnlineKey } from "./Online";
+import { IOnlineKey } from "./Online";
 import {
   AuthenticateOperation,
-  IAuthenticator,
   IAuthenticatorKey,
 } from "../authenticator/Authenticator";
 import { di } from "../common/di";
+import { IAuthenticateKey } from "../common/authenticate";
 
 export class LoginProvider implements ILoginProvider {
   private operation: AuthenticateOperation;
 
   constructor(
-    private online: IOnline = di(IOnlineKey),
-    private authenticator: IAuthenticator = di(IAuthenticatorKey)
+    private online = di(IOnlineKey),
+    private authenticator = di(IAuthenticatorKey),
+    private authenticate = di(IAuthenticateKey)
   ) {
     this.operation = authenticator.getAuthenticateRequest();
+  }
+  public async supportLocalLogin(): Promise<boolean> {
+    return await this.authenticate.supportLocalLogin();
+  }
+
+  public hasLocalLogin(): boolean {
+    return this.authenticate.isLocalLogin();
   }
 
   public getAuthenticateUrl(): string {

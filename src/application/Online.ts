@@ -69,9 +69,9 @@ export class Online implements IOnline {
   private firstActivate = true;
 
   constructor(
-    private authenticate: IAuthenticate = di(IAuthenticateKey),
-    private store: IStore = di(IStoreKey),
-    private localStore: ILocalStore = di(ILocalStoreKey)
+    private authenticate = di(IAuthenticateKey),
+    private store = di(IStoreKey),
+    private localStore = di(ILocalStoreKey)
   ) {
     // Listen for user activate events to control if device sync should be activated or deactivated
     document.addEventListener(activityEventName, (activity: any) =>

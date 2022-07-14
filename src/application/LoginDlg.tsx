@@ -23,12 +23,15 @@ import {
 import { showAlert } from "../common/AlertDialog";
 
 const dialogWidth = 290;
-const dialogHeight = 380;
+const dialogHeight = 400;
 
 // const deviceSyncCanceledMsg = "Authentication canceled";
 const deviceSyncFailedMsg = "Failed to enable device sync";
 const authenticationNotAcceptedMsg =
   "Authentication was denied by the authenticator";
+const initialQrGuideText =
+  "Scan QR code on your mobile to enable sync with all your devices.";
+const localQrGuideText = "Or scan QR code on your mobile.";
 
 export interface ILoginProvider {
   login(): Promise<Result<void>>;
@@ -36,6 +39,8 @@ export interface ILoginProvider {
   loginViaAuthenticator(): void;
   getAuthenticateUrl(): string;
   tryLoginViaAuthenticator(): Promise<Result<void>>;
+  hasLocalLogin(): boolean;
+  supportLocalLogin(): Promise<boolean>;
 }
 
 export function showLoginDlg(provider: ILoginProvider) {
@@ -72,9 +77,21 @@ export const LoginDlg: FC = () => {
           setErrorMessage(deviceSyncFailedMsg);
           return;
         }
-        showAlert("Enable Device Login", "Enable", {
-          onOk: () => login?.login(),
-          showCancel: true,
+
+        login.supportLocalLogin().then((isSupported) => {
+          if (isSupported && !login.hasLocalLogin()) {
+            showAlert(
+              "Enable Device Login",
+              `Would you like to setup login on this device?
+
+              Recommended since you do not need your mobile every time you login.`,
+              {
+                onOk: () => login?.login(),
+                cancelText: "Skip",
+                showCancel: true,
+              }
+            );
+          }
         });
       });
     }
@@ -93,6 +110,9 @@ export const LoginDlg: FC = () => {
     setLogin(null);
   };
 
+  const qrGuideText = login?.hasLocalLogin()
+    ? localQrGuideText
+    : initialQrGuideText;
   const qrCodeUrl = login?.getAuthenticateUrl() ?? "";
 
   return (
@@ -103,79 +123,48 @@ export const LoginDlg: FC = () => {
           Enable Sync
         </Typography>
 
-        <QRCodeGuideText />
-        <QRCodeElement url={qrCodeUrl} />
-        <ClickHint />
-
         <Formik
           initialValues={{ deviceName: "" }}
-          validate={async (values) => {
-            console.log("validate");
-            const errors: any = {};
-            // if (!values.username) {
-            //   errors.username = "Required";
-            // }
-            return errors;
-          }}
           onSubmit={async (values, { setErrors, setFieldValue }) => {
             console.log("onSubmit");
-            // if (createAccount) {
-            //   const createResult = await login?.createAccount({
-            //     username: "",
-            //     password: "",
-            //   });
 
-            //   if (isError(createResult)) {
-            //     // setFieldValue("password", "", false);
-            //     // setErrors({ username: "User already exist" });
-            //     return;
-            //   }
-
-            //   // setDefaultUserName(values.username);
-            //   // setCreateAccount(false);
-            //   // setFieldValue("confirm", "", false);
-            // }
-
+            // Cancel login via authenticator, since we are logging in locally
             login?.loginViaAuthenticator();
-            const loginResult = await login?.login();
-            if (isError(loginResult)) {
-              // setFieldValue("password", "", false);
-              // if (isError(loginResult, AuthenticateError)) {
-              //   setErrors({ username: "Invalid username or password" });
-              // } else {
-              //   setErrors({ username: "Failed to enable device sync" });
-              // }
+            login?.login();
 
-              return;
-            }
-
-            //setDefaultUserName(values.username);
+            // Closing the login dialog
             setLogin(null);
           }}
         >
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Button
-                  id="OKButton"
-                  variant="contained"
-                  color="primary"
-                  disabled={isSubmitting}
-                  onClick={submitForm}
+              {login?.hasLocalLogin() && (
+                <div
                   style={{
-                    marginTop: 15,
-                    marginBottom: 30,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
                   }}
                 >
-                  Login
-                </Button>
-              </div>
+                  <Button
+                    id="OKButton"
+                    variant="contained"
+                    color="primary"
+                    disabled={isSubmitting}
+                    onClick={submitForm}
+                    style={{
+                      marginTop: 15,
+                      marginBottom: 15,
+                    }}
+                  >
+                    Login on this Device
+                  </Button>
+                </div>
+              )}
+
+              <QRCodeGuideText text={qrGuideText} />
+              <QRCodeElement url={qrCodeUrl} />
+              <ClickHint />
 
               <div
                 style={{
@@ -204,15 +193,16 @@ export const LoginDlg: FC = () => {
   );
 };
 
-const QRCodeGuideText: FC = () => {
-  const text =
-    "Scan QR code on your mobile to enable sync with all your devices.";
+type QRCodeGuideTextProps = {
+  text: string;
+};
 
+const QRCodeGuideText: FC<QRCodeGuideTextProps> = ({ text }) => {
   return (
     <Typography
       style={{
         fontSize: "14px",
-        paddingTop: 15,
+        paddingTop: 10,
         lineHeight: 1,
       }}
     >
@@ -232,7 +222,7 @@ const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
         style={{
           display: "flex",
           justifyContent: "center",
-          paddingTop: 20,
+          paddingTop: 10,
         }}
       >
         <Tooltip title={url}>
@@ -252,6 +242,7 @@ const ClickHint: FC = () => {
         style={{
           display: "flex",
           justifyContent: "center",
+          marginTop: -5,
         }}
       >
         <Typography style={{ fontSize: "12px" }}>
