@@ -20,7 +20,7 @@ import {
   AuthenticationCanceledError,
   AuthenticationNotAcceptedError,
 } from "../authenticator/Authenticator";
-import { showAlert } from "../common/AlertDialog";
+import { showAlert, ErrorAlert, QuestionAlert } from "../common/AlertDialog";
 
 const dialogWidth = 290;
 const dialogHeight = 400;
@@ -89,6 +89,7 @@ export const LoginDlg: FC = () => {
                 onOk: () => login?.login(),
                 cancelText: "Skip",
                 showCancel: true,
+                icon: QuestionAlert,
               }
             );
           }
@@ -128,12 +129,14 @@ export const LoginDlg: FC = () => {
           onSubmit={async (values, { setErrors, setFieldValue }) => {
             console.log("onSubmit");
 
-            // Cancel login via authenticator, since we are logging in locally
-            login?.loginViaAuthenticator();
-            login?.login();
+            showAlert("Test", "test", { icon: ErrorAlert });
 
-            // Closing the login dialog
-            setLogin(null);
+            // // Cancel login via authenticator, since we are logging in locally
+            // login?.loginViaAuthenticator();
+            // login?.login();
+
+            // // Closing the login dialog
+            // setLogin(null);
           }}
         >
           {({ submitForm, isSubmitting }) => (

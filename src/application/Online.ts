@@ -1,7 +1,7 @@
 import { atom, useAtom } from "jotai";
 import { di, diKey, singleton } from "./../common/di";
 import { SetAtom } from "jotai/core/types";
-import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
+import { IAuthenticateKey } from "../common/authenticate";
 import { showLoginDlg } from "./LoginDlg";
 import {
   NoContactError,
@@ -16,9 +16,9 @@ import {
   setInfoMessage,
 } from "../common/MessageSnackbar";
 import { setSuccessMessage } from "./../common/MessageSnackbar";
-import { IStore, IStoreKey } from "./diagram/Store";
+import { IStoreKey } from "./diagram/Store";
 import { activityEventName } from "../common/activity";
-import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
+import { ILocalStoreKey } from "./../common/LocalStore";
 import { orDefault } from "./../common/Result";
 import {
   WebAuthnCanceledError,

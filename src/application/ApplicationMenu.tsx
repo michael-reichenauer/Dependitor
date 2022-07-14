@@ -12,7 +12,7 @@ import { di } from "../common/di";
 import { useTitle } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
-import { showAlert } from "../common/AlertDialog";
+import { QuestionAlert, showAlert } from "../common/AlertDialog";
 
 const getDiagramsMenuItems = (recentDiagrams: DiagramInfoDto[]) => {
   const diagrams = recentDiagrams.slice(1);
@@ -41,6 +41,7 @@ export function ApplicationMenu() {
     showAlert("Delete", "Do you really want to delete the current diagram?", {
       onOk: () => PubSub.publish("canvas.DeleteDiagram"),
       showCancel: true,
+      icon: QuestionAlert,
     });
   };
 

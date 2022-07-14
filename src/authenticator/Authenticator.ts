@@ -11,7 +11,7 @@ import {
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "../common/Api";
 import { IAuthenticateKey, UserInfo } from "../common/authenticate";
-import { showAlert } from "../common/AlertDialog";
+import { ErrorAlert, QuestionAlert, showAlert } from "../common/AlertDialog";
 import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
@@ -183,7 +183,11 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     if (isError(checkRsp)) {
       if (!isError(checkRsp, AuthenticateError)) {
         const errorMsg = this.toErrorMessage(checkRsp);
-        showAlert("Error", errorMsg, { showOk: false, showCancel: false });
+        showAlert("Error", errorMsg, {
+          showOk: false,
+          showCancel: false,
+          icon: ErrorAlert,
+        });
         return;
       }
 
@@ -200,7 +204,11 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
         }
 
         const errorMsg = this.toErrorMessage(loginRsp);
-        showAlert("Error", errorMsg, { showOk: false, showCancel: false });
+        showAlert("Error", errorMsg, {
+          showOk: false,
+          showCancel: false,
+          icon: ErrorAlert,
+        });
         return;
       }
     }
@@ -223,13 +231,15 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       "Add Device",
       `Do you want to allow device '${description}' to sync with all your devices?`,
       {
+        icon: QuestionAlert,
         okText: "Allow",
         onOk: async () => {
           const rsp = await this.postAuthenticateOKResponse(device, userInfo);
           if (isError(rsp)) {
             showAlert(
               "Error",
-              "Failed to communicate with device requesting authorization."
+              "Failed to communicate with device requesting authorization.",
+              { icon: ErrorAlert }
             );
             return;
           }
@@ -242,7 +252,8 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
           if (isError(rsp)) {
             showAlert(
               "Error",
-              "Failed to communicate with device requesting authorization."
+              "Failed to communicate with device requesting authorization.",
+              { icon: ErrorAlert }
             );
             return;
           }

@@ -1,14 +1,27 @@
-import React from "react";
+import React, { FC } from "react";
 import Button from "@material-ui/core/Button";
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
+import InfoIcon from "@material-ui/icons/Info";
+import ErrorIcon from "@material-ui/icons/Error";
+import HelpIcon from "@material-ui/icons/Help";
+import WarningIcon from "@material-ui/icons/Warning";
 import { atom, useAtom } from "jotai";
+import { Box } from "@material-ui/core";
+import { red, yellow } from "@material-ui/core/colors";
 
 const alertAtom = atom(null);
 let setAlertFunc: any = null;
+
+type AlertIcon = string;
+
+export const InfoAlert: AlertIcon = "info";
+export const ErrorAlert: AlertIcon = "error";
+export const WarningAlert: AlertIcon = "warning";
+export const QuestionAlert: AlertIcon = "question";
 
 export interface AlertProperties {
   onOk?: () => void;
@@ -17,6 +30,7 @@ export interface AlertProperties {
   showCancel?: boolean;
   okText?: string;
   cancelText?: string;
+  icon?: AlertIcon;
 }
 
 const defaultProperties: AlertProperties = {
@@ -26,7 +40,9 @@ const defaultProperties: AlertProperties = {
   showCancel: false,
   okText: "OK",
   cancelText: "Cancel",
+  icon: InfoAlert,
 };
+
 export const showAlert = (
   title: string,
   message: string,
@@ -42,43 +58,6 @@ export const showAlert = (
     showCancel: showCancel,
   });
 };
-
-// // Show a confirm (ok/cancel) alert
-// export const showConfirmAlert = (
-//   title: string,
-//   message: string,
-//   onOk?: () => void,
-//   onCancel?: () => void
-// ) =>
-//   setAlertFunc?.({
-//     title: title,
-//     message: message,
-//     onOk: onOk,
-//     onCancel: onCancel,
-//     confirm: true,
-//   });
-
-// // Shows a OK alert
-// export const showNoOKAlert = (title: string, message: string) =>
-//   setAlertFunc?.({
-//     title: title,
-//     message: message,
-//     onOk: null,
-//     confirm: false,
-//   });
-
-// // Shows a OK alert
-// export const showOKAlert = (
-//   title: string,
-//   message: string,
-//   onOk: () => void = () => {}
-// ) =>
-//   setAlertFunc?.({
-//     title: title,
-//     message: message,
-//     onOk: onOk,
-//     confirm: false,
-//   });
 
 // Use alert for OK/cancel or just OK
 export const useAlert = (): [any, any] => {
@@ -107,7 +86,19 @@ export default function AlertDialog() {
 
   return (
     <Dialog open={!!alert} onClose={() => {}}>
-      <DialogTitle>{alert?.title}</DialogTitle>
+      <DialogTitle>
+        <Box display="flex" alignItems="center">
+          <Box>
+            <Icon alert={alert} />
+          </Box>
+          <Box flexGrow={1} style={{ marginLeft: 10, marginTop: -10 }}>
+            {alert?.title}
+          </Box>
+        </Box>
+      </DialogTitle>
+
+      {/* <DialogTitle>{alert?.title}</DialogTitle> */}
+
       <DialogContent style={{ minWidth: 300 }}>
         <DialogContentText style={{ whiteSpace: "pre-line" }}>
           {alert?.message}
@@ -139,3 +130,21 @@ export default function AlertDialog() {
     </Dialog>
   );
 }
+
+type IconProps = {
+  alert: AlertProperties;
+};
+
+const Icon: FC<IconProps> = ({ alert }) => {
+  if (alert?.icon === QuestionAlert) {
+    return <HelpIcon color="primary" fontSize="large" />;
+  }
+  if (alert?.icon === ErrorAlert) {
+    return <ErrorIcon style={{ color: red[900] }} fontSize="large" />;
+  }
+  if (alert?.icon === WarningAlert) {
+    return <WarningIcon style={{ color: yellow[900] }} fontSize="large" />;
+  }
+
+  return <InfoIcon color="primary" fontSize="large" />;
+};
