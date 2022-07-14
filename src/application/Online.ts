@@ -95,7 +95,8 @@ export class Online implements IOnline {
         showAlert(
           "Reload Page",
           "Please manually reload this page to show the authentication dialog.\n" +
-            "Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication."
+            "Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication.",
+          { showOk: false, showCancel: false }
         );
         return;
       }
