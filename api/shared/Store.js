@@ -156,7 +156,7 @@ exports.loginDevice = async (context, body) => {
 // getWebAuthnRegistrationOptions is called when a user wants to register a device for authentication
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     try {
-        // Make sure the user table exists
+        // Make sure the user table exists.
         await table.createTableIfNotExists(usersTableName)
 
         const { username } = data
