@@ -84,7 +84,7 @@ export const LoginDlg: FC = () => {
               "Enable Device Login",
               `Would you like to setup login on this device?
 
-              Recommended since you do not need your mobile every time you login.`,
+              Recommended, since you do not need your mobile every time you login.`,
               {
                 onOk: () => login?.login(),
                 cancelText: "Skip",
@@ -129,14 +129,12 @@ export const LoginDlg: FC = () => {
           onSubmit={async (values, { setErrors, setFieldValue }) => {
             console.log("onSubmit");
 
-            showAlert("Test", "test", { icon: ErrorAlert });
+            // Cancel login via authenticator, since we are logging in locally
+            login?.loginViaAuthenticator();
+            login?.login();
 
-            // // Cancel login via authenticator, since we are logging in locally
-            // login?.loginViaAuthenticator();
-            // login?.login();
-
-            // // Closing the login dialog
-            // setLogin(null);
+            // Closing the login dialog
+            setLogin(null);
           }}
         >
           {({ submitForm, isSubmitting }) => (
@@ -157,7 +155,7 @@ export const LoginDlg: FC = () => {
                     onClick={submitForm}
                     style={{
                       marginTop: 15,
-                      marginBottom: 15,
+                      marginBottom: 20,
                     }}
                   >
                     Login on this Device
