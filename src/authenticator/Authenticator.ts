@@ -237,7 +237,7 @@ export class Authenticator implements IAuthenticator {
         }
 
         const errorMsg = this.toErrorMessage(loginRsp);
-        showAlert("Error", errorMsg, {
+        showAlert("Error", errorMsg + errorMsg.toString(), {
           showOk: false,
           showCancel: false,
           icon: ErrorAlert,
