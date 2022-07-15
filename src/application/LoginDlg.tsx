@@ -20,7 +20,7 @@ import {
   AuthenticationCanceledError,
   AuthenticationNotAcceptedError,
 } from "../authenticator/Authenticator";
-import { showAlert, ErrorAlert, QuestionAlert } from "../common/AlertDialog";
+import { showAlert, QuestionAlert } from "../common/AlertDialog";
 
 const dialogWidth = 290;
 const dialogHeight = 400;

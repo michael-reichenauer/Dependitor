@@ -11,13 +11,11 @@ import {
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "../common/Api";
 import { IAuthenticateKey, UserInfo } from "../common/authenticate";
-import { ErrorAlert, QuestionAlert, showAlert } from "../common/AlertDialog";
+import { ErrorAlert, showAlert, SuccessAlert } from "../common/AlertDialog";
 import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
-import { setErrorMessage, setSuccessMessage } from "../common/MessageSnackbar";
-import { IAddDeviceProvider } from "./AddDeviceDlg";
 import { ILocalStoreKey } from "../common/LocalStore";
 import { base64ToString, delay, stringToBase64 } from "../common/utils";
 import { IKeyVaultKey } from "../common/keyVault";
@@ -67,11 +65,12 @@ const maxStoredDeviceIdCount = 10;
 const randomIdLength = 10;
 const tryLoginTimeout = 3 * 60 * 1000; // Wait for authenticator to allow/deny login
 const tryLoginPreWait = 4 * 1000; // Time before starting to poll for result
-const closeMsg =
-  "This device request has been handled, please close this page.";
+const closeMsg = `This device request has been handled.
+  
+  Please close this page.`;
 
 @singleton(IAuthenticatorKey)
-export class Authenticator implements IAuthenticator, IAddDeviceProvider {
+export class Authenticator implements IAuthenticator {
   private activated = false;
 
   constructor(
@@ -84,13 +83,6 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     if (this.isAuthenticatorApp()) {
       this.authenticate.setIsAuthenticator();
     }
-  }
-
-  async add(): Promise<Result<void>> {
-    console.log("add device");
-  }
-  cancelAdd(): void {
-    console.log("cancel add");
   }
 
   public isAuthenticatorApp(): boolean {
@@ -179,15 +171,39 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       return;
     }
 
+    const device = this.getAuthenticateReq();
+    if (isError(device)) {
+      showAlert(
+        "Error",
+        `Invalid device request
+
+        Please close this page.`,
+        {
+          showOk: false,
+          showCancel: false,
+          icon: ErrorAlert,
+        }
+      );
+      return;
+    }
+
+    const description = device.d;
+
     const checkRsp = await this.authenticate.check();
     if (isError(checkRsp)) {
       if (!isError(checkRsp, AuthenticateError)) {
         const errorMsg = this.toErrorMessage(checkRsp);
-        showAlert("Error", errorMsg, {
-          showOk: false,
-          showCancel: false,
-          icon: ErrorAlert,
-        });
+        showAlert(
+          "Error",
+          `${errorMsg}
+
+          Please close this page.`,
+          {
+            showOk: false,
+            showCancel: false,
+            icon: ErrorAlert,
+          }
+        );
         return;
       }
 
@@ -196,9 +212,22 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
         if (isError(loginRsp, WebAuthnNeedReloadError)) {
           showAlert(
             "Reload Page",
-            "Please manually reload this page to show the authentication dialog.\n" +
-              "Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication.",
+            `Please manually reload this page to show the authentication dialog.
+
+            Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication.`,
             { showOk: false, showCancel: false }
+          );
+          return;
+        }
+
+        if (isError(loginRsp, WebAuthnCanceledError)) {
+          showAlert(
+            "Canceled",
+            `Authentication was canceled. 
+            Device '${description}' was not authenticated and allowed to sync. 
+
+            Please close this page.`,
+            { icon: ErrorAlert, showOk: false, showCancel: false }
           );
           return;
         }
@@ -220,45 +249,24 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
       return userInfo;
     }
 
-    const device = this.getAuthenticateReq();
-    if (isError(device)) {
+    const rsp = await this.postAuthenticateOKResponse(device, userInfo);
+    if (isError(rsp)) {
+      showAlert(
+        "Error",
+        `Failed to communicate with device '${description}' requesting authorization.
+
+        Please close this page.`,
+        { icon: ErrorAlert, showOk: false }
+      );
       return;
     }
 
-    const description = device.d;
-
     showAlert(
-      "Add Device",
-      `Do you want to allow device '${description}' to sync with all your devices?`,
-      {
-        icon: QuestionAlert,
-        okText: "Allow",
-        onOk: async () => {
-          const rsp = await this.postAuthenticateOKResponse(device, userInfo);
-          if (isError(rsp)) {
-            showAlert(
-              "Error",
-              "Failed to communicate with device requesting authorization.",
-              { icon: ErrorAlert }
-            );
-            return;
-          }
-          setSuccessMessage(`Allowed '${description}' to sync`);
-        },
-        cancelText: "Deny",
-        onCancel: async () => {
-          setErrorMessage(`Denied device '${description}' request`);
-          const rsp = await this.postAuthenticateFailedResponse(device);
-          if (isError(rsp)) {
-            showAlert(
-              "Error",
-              "Failed to communicate with device requesting authorization.",
-              { icon: ErrorAlert }
-            );
-            return;
-          }
-        },
-      }
+      "Allowed Device",
+      `Device '${description}' is now authenticated and allowed to sync with all your devices.
+
+      You can now close this page.`,
+      { icon: SuccessAlert, showOk: false }
     );
   }
 
@@ -288,27 +296,27 @@ export class Authenticator implements IAuthenticator, IAddDeviceProvider {
     );
   }
 
-  private async postAuthenticateFailedResponse(
-    authRequest: AuthenticateReq
-  ): Promise<Result<void>> {
-    const user: User = { username: authRequest.n, password: authRequest.k };
+  // private async postAuthenticateFailedResponse(
+  //   authRequest: AuthenticateReq
+  // ): Promise<Result<void>> {
+  //   const user: User = { username: authRequest.n, password: authRequest.k };
 
-    // Post a response to the device, where device is NOT accepted
-    const isAccepted = false;
-    const rsp: AuthenticateRsp = {
-      username: "",
-      wDek: "",
-      isAccepted: isAccepted,
-    };
+  //   // Post a response to the device, where device is NOT accepted
+  //   const isAccepted = false;
+  //   const rsp: AuthenticateRsp = {
+  //     username: "",
+  //     wDek: "",
+  //     isAccepted: isAccepted,
+  //   };
 
-    const channelId = authRequest.c;
-    return await this.postAuthenticateResponse(
-      rsp,
-      user,
-      channelId,
-      isAccepted
-    );
-  }
+  //   const channelId = authRequest.c;
+  //   return await this.postAuthenticateResponse(
+  //     rsp,
+  //     user,
+  //     channelId,
+  //     isAccepted
+  //   );
+  // }
 
   private async postAuthenticateResponse(
     authenticateRsp: AuthenticateRsp,

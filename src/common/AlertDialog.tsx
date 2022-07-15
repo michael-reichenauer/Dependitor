@@ -9,9 +9,10 @@ import InfoIcon from "@material-ui/icons/Info";
 import ErrorIcon from "@material-ui/icons/Error";
 import HelpIcon from "@material-ui/icons/Help";
 import WarningIcon from "@material-ui/icons/Warning";
+import CheckCircleIcon from "@material-ui/icons/CheckCircle";
 import { atom, useAtom } from "jotai";
 import { Box } from "@material-ui/core";
-import { red, yellow } from "@material-ui/core/colors";
+import { blue, green, red, yellow } from "@material-ui/core/colors";
 
 const alertAtom = atom(null);
 let setAlertFunc: any = null;
@@ -19,6 +20,7 @@ let setAlertFunc: any = null;
 type AlertIcon = string;
 
 export const InfoAlert: AlertIcon = "info";
+export const SuccessAlert: AlertIcon = "success";
 export const ErrorAlert: AlertIcon = "error";
 export const WarningAlert: AlertIcon = "warning";
 export const QuestionAlert: AlertIcon = "question";
@@ -136,15 +138,34 @@ type IconProps = {
 };
 
 const Icon: FC<IconProps> = ({ alert }) => {
+  if (alert?.icon === SuccessAlert) {
+    return (
+      <CheckCircleIcon
+        style={{ color: green[900], marginLeft: -5 }}
+        fontSize="large"
+      />
+    );
+  }
   if (alert?.icon === QuestionAlert) {
-    return <HelpIcon color="primary" fontSize="large" />;
+    return (
+      <HelpIcon style={{ color: blue[800], marginLeft: -5 }} fontSize="large" />
+    );
   }
   if (alert?.icon === ErrorAlert) {
-    return <ErrorIcon style={{ color: red[900] }} fontSize="large" />;
+    return (
+      <ErrorIcon style={{ color: red[900], marginLeft: -5 }} fontSize="large" />
+    );
   }
   if (alert?.icon === WarningAlert) {
-    return <WarningIcon style={{ color: yellow[900] }} fontSize="large" />;
+    return (
+      <WarningIcon
+        style={{ color: yellow[900], marginLeft: -5 }}
+        fontSize="large"
+      />
+    );
   }
 
-  return <InfoIcon color="primary" fontSize="large" />;
+  return (
+    <InfoIcon style={{ color: blue[800], marginLeft: -5 }} fontSize="large" />
+  );
 };
