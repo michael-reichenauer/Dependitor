@@ -1,5 +1,4 @@
 import {
-  PublicKeyCredentialCreationOptionsJSON,
   RegistrationCredentialJSON,
   PublicKeyCredentialRequestOptionsJSON,
   AuthenticationCredentialJSON,
@@ -14,6 +13,7 @@ import {
   CreateUserReq,
   LoginDeviceSetReq,
   LoginDeviceReq,
+  GetWebAuthnRegistrationOptionsRsp,
 } from "../Api";
 import { di } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
@@ -31,7 +31,7 @@ export class ApiMock implements IApi {
   }
   getWebAuthnRegistrationOptions(
     username: string
-  ): Promise<Result<PublicKeyCredentialCreationOptionsJSON, Error>> {
+  ): Promise<Result<GetWebAuthnRegistrationOptionsRsp>> {
     throw new Error("Method not implemented.");
   }
   verifyWebAuthnRegistration(
@@ -42,13 +42,13 @@ export class ApiMock implements IApi {
   }
   getWebAuthnAuthenticationOptions(
     username: string
-  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON, Error>> {
+  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON>> {
     throw new Error("Method not implemented.");
   }
   verifyWebAuthnAuthentication(
     username: string,
     authentication: AuthenticationCredentialJSON
-  ): Promise<Result<boolean, Error>> {
+  ): Promise<Result<boolean>> {
     throw new Error("Method not implemented.");
   }
 

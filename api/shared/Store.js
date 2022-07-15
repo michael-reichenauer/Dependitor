@@ -23,7 +23,6 @@ const sessionsPartitionKey = 'sessions'
 const authenticatorPartitionKey = 'authenticator'
 
 const standardApiKey = '0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade'
-const saltRounds = 10
 
 const invalidRequestError = 'InvalidRequestError'
 const authenticateError = 'AuthenticateError'
@@ -40,64 +39,11 @@ exports.verifyApiKey = context => {
 }
 
 
-exports.createUser = async (context, data) => {
-    const { user, wDek } = data
-    if (!user || !user.username || !user.password || !wDek) {
-        throw new Error(invalidRequestError)
-    }
-
-    try {
-        const { username, password } = user
-
-        const userId = toUserId(username)
-
-        // Hash the password using bcrypt
-        const salt = await bcryptGenSalt(saltRounds)
-        const passwordHash = await bcryptHash(password, salt)
-
-        const userItem = toUserTableEntity(userId, passwordHash, wDek)
-
-        await table.createTableIfNotExists(usersTableName)
-        await table.insertEntity(usersTableName, userItem)
-    } catch (err) {
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
-        throw new Error(authenticateError)
-    }
+exports.check = async (context, body) => {
+    // Verify authentication
+    await getUserId(context)
 }
 
-
-async function getUser(userId) {
-    const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
-
-    const user = JSON.parse(userTableEntity.user)
-
-    // Since user.devices contain binary buffers, they need to be decoded manually
-    user.devices = user.devices.map(device => ({
-        credentialID: Buffer.from(device.credentialID, 'base64'),
-        credentialPublicKey: Buffer.from(device.credentialPublicKey, 'base64'),
-        counter: device.counter,
-        transports: device.transports
-    }))
-
-    return user
-}
-
-
-async function updateUser(userId, user) {
-    // Since user.devices contain binary buffers, they need to be encoded manually
-    user.devices = user.devices.map(device => ({
-        credentialID: device.credentialID.toString('base64'),
-        credentialPublicKey: device.credentialPublicKey.toString('base64'),
-        counter: device.counter,
-        transports: device.transports
-    }))
-
-    const wDek = ""
-    const userItem = toUserTableEntity2(userId, user, wDek)
-    await table.insertOrReplaceEntity(usersTableName, userItem)
-}
 
 exports.loginDeviceSet = async (context, body) => {
     // Ensure user is logged in
@@ -146,7 +92,6 @@ exports.loginDevice = async (context, body) => {
             throw error
         }
     } catch (error) {
-        context.log('Error', error)
         throwIfEmulatorError(error)
         throw new Error(authenticateError)
     }
@@ -159,7 +104,18 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         // Make sure the user table exists.
         await table.createTableIfNotExists(usersTableName)
 
-        const { username } = data
+        let { username } = data
+        if (!username) {
+            username = makeRandomId()
+        } else {
+            // client has specified a proposed username, lets verify it is same as logged in user
+            const proposedUserId = toUserId(username)
+            const contextUserId = await getUserId(context)
+            if (proposedUserId !== contextUserId) {
+                throw new Error(authenticateError)
+            }
+        }
+
         const userId = toUserId(username)
 
         // Try get the user, if it is the first time for this user, we create a default user
@@ -180,16 +136,6 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
                 userVerification: 'preferred', // ("discouraged", "preferred", "required")
             },
             supportedAlgorithmIDs: [-7, -257],
-
-            // Passing in a user's list of already-registered authenticator IDs here prevents users from
-            //  registering the same device multiple times. The authenticator will simply throw an error in
-            //  the browser if it's asked to perform registration when one of these ID's already resides
-            //  on it.     
-            // excludeCredentials: user.devices.map(device => ({
-            //     id: device.credentialID,
-            //     type: 'public-key',
-            //     transports: device.transports,
-            // })),
         };
 
         const options = SimpleWebAuthnServer.generateRegistrationOptions(generateOptions);
@@ -198,9 +144,8 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         user.currentChallenge = options.challenge
         await updateUser(userId, user)
 
-        return { options: options };
+        return { options: options, username: username };
     } catch (err) {
-        context.log('Error:', err)
         throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
@@ -257,7 +202,6 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
 
         return { response: { verified: verified }, cookies: cookies }
     } catch (err) {
-        context.log('Error:', err)
         throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
@@ -351,10 +295,40 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
         return { response: { verified }, cookies: cookies };
     } catch (err) {
-        context.log('Error', err)
         throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
+}
+
+async function getUser(userId) {
+    const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
+
+    const user = JSON.parse(userTableEntity.user)
+
+    // Since user.devices contain binary buffers, they need to be decoded manually
+    user.devices = user.devices.map(device => ({
+        credentialID: Buffer.from(device.credentialID, 'base64'),
+        credentialPublicKey: Buffer.from(device.credentialPublicKey, 'base64'),
+        counter: device.counter,
+        transports: device.transports
+    }))
+
+    return user
+}
+
+
+async function updateUser(userId, user) {
+    // Since user.devices contain binary buffers, they need to be encoded manually
+    user.devices = user.devices.map(device => ({
+        credentialID: device.credentialID.toString('base64'),
+        credentialPublicKey: device.credentialPublicKey.toString('base64'),
+        counter: device.counter,
+        transports: device.transports
+    }))
+
+    const wDek = ""
+    const userItem = toUserTableEntity2(userId, user, wDek)
+    await table.insertOrReplaceEntity(usersTableName, userItem)
 }
 
 
@@ -399,61 +373,6 @@ function createCookies(clientId, sessionId) {
     return cookies
 }
 
-exports.login = async (context, data) => {
-    //context.log('connectUser', context, data)
-    const { username, password } = data
-    if (!username || !password) {
-        throw new Error(invalidRequestError)
-    }
-
-    try {
-        // Verify user and password
-        const clientId = getClientId(context)
-        const userId = toUserId(username)
-        const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
-        const isMatch = await bcryptCompare(password, userTableEntity.passwordHash)
-        if (!isMatch) {
-            throw new Error(authenticateError)
-        }
-
-        // Create user data table if it does not already exist
-        const tableName = dataBaseTableName + userId
-        await table.createTableIfNotExists(tableName)
-        await table.createTableIfNotExists(sessionsTableName)
-
-        // Clear previous sessions from this client
-        await clearClientSessions(clientId)
-
-        // Create new session id and store
-        const sessionId = makeRandomId()
-        const sessionTableEntity = toSessionTableEntity(sessionId, userId, clientId)
-        await table.insertEntity(sessionsTableName, sessionTableEntity)
-
-        // Set session id and client id
-        const cookies = [{
-            name: 'sessionId',
-            value: sessionId,
-            path: '/',
-            secure: true,
-            httpOnly: true,
-            sameSite: "Strict",
-        },
-        {
-            name: 'clientId',
-            value: clientId,
-            path: '/',
-            expires: clientIdExpires,  // Persistent for a long time
-            secure: true,
-            httpOnly: true,
-            sameSite: "Strict"
-        }]
-
-        return { data: { wDek: userTableEntity.wDek }, cookies: cookies }
-    } catch (err) {
-        throwIfEmulatorError(err)
-        throw new Error(authenticateError)
-    }
-}
 
 exports.logoff = async (context, data) => {
     await getUserId(context)
@@ -487,11 +406,6 @@ exports.logoff = async (context, data) => {
         throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
-}
-
-exports.check = async (context, body) => {
-    // Verify authentication
-    await getUserId(context)
 }
 
 
@@ -630,9 +544,7 @@ async function getUserId(context) {
         const sessionTableEntity = await table.retrieveEntity(sessionsTableName, sessionsPartitionKey, sessionId)
         return sessionTableEntity.userId
     } catch (err) {
-        if (err.message.includes(emulatorErrorText)) {
-            throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-        }
+        throwIfEmulatorError(err)
         throw new Error(authenticateError)
     }
 }
@@ -707,13 +619,20 @@ function delay(time) {
 }
 
 function makeRandomId() {
-    let ID = "";
-    let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    for (var i = 0; i < 12; i++) {
-        ID += characters.charAt(Math.floor(Math.random() * 36));
-    }
-    return ID;
+    return randomString(12)
 }
+
+function randomString(count) {
+    let randomText = "";
+    const randomBytes = crypto.randomBytes(count);
+    let characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789";
+
+    for (var i = 0; i < count; i++) {
+        randomText += characters.charAt(randomBytes[i] % characters.length);
+    }
+    return randomText;
+};
 
 function throwIfEmulatorError(error) {
     if (error.message.includes(emulatorErrorText)) {

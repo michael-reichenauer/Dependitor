@@ -12,6 +12,11 @@ import {
 } from "@simplewebauthn/typescript-types";
 import { withProgress } from "./Progress";
 
+export interface GetWebAuthnRegistrationOptionsRsp {
+  options: PublicKeyCredentialCreationOptionsJSON;
+  username: string;
+}
+
 export interface LoginDeviceSetReq {
   channelId: string;
   isAccept: boolean;
@@ -79,19 +84,17 @@ export class LocalEmulatorError extends NoContactError {}
 export const IApiKey = diKey<IApi>();
 export interface IApi {
   config(onOK: () => void, onError: (error: Error) => void): void;
+  check(): Promise<Result<void>>;
   loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void>>;
   loginDevice(req: LoginDeviceReq): Promise<Result<string>>;
-  login(user: User): Promise<Result<LoginRsp>>;
   logoff(): Promise<Result<void>>;
-  createAccount(createUser: CreateUserReq): Promise<Result<void>>;
-  check(): Promise<Result<void>>;
   tryReadBatch(queries: Query[]): Promise<Result<ApiEntity[]>>;
   writeBatch(entities: ApiEntity[]): Promise<Result<ApiEntityRsp[]>>;
   removeBatch(keys: string[]): Promise<Result<void>>;
 
   getWebAuthnRegistrationOptions(
     username: string
-  ): Promise<Result<PublicKeyCredentialCreationOptionsJSON>>;
+  ): Promise<Result<GetWebAuthnRegistrationOptionsRsp>>;
   verifyWebAuthnRegistration(
     username: string,
     registration: RegistrationCredentialJSON
@@ -128,14 +131,14 @@ export class Api implements IApi {
 
   public async getWebAuthnRegistrationOptions(
     username: string
-  ): Promise<Result<PublicKeyCredentialCreationOptionsJSON>> {
+  ): Promise<Result<GetWebAuthnRegistrationOptionsRsp>> {
     const rsp = await this.post("/api/GetWebAuthnRegistrationOptions", {
       username: username,
     });
     if (isError(rsp)) {
       return rsp;
     }
-    return (rsp as any).options;
+    return rsp;
   }
 
   public async verifyWebAuthnRegistration(

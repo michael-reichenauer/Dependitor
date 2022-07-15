@@ -335,7 +335,7 @@ export class Authenticator implements IAuthenticator {
     // Post the response
     const loginDeviceSetReq: LoginDeviceSetReq = {
       channelId: channelId,
-      username: user.username,
+      username: authenticateRsp.username,
       isAccept: isAccept,
       authData: authData,
     };

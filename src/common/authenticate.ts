@@ -26,8 +26,8 @@ const authenticatorUserInfoKeyDefault = "/a/authenticate.userInfo";
 const userDisplayNameDefault = "Dependitor";
 const authenticatorUserDisplayNameDefault = "Authenticator";
 
-const randomUsernameLength = 10;
-const randomKekPasswordLength = 10;
+const randomUsernameLength = 12;
+const randomKekPasswordLength = 12;
 
 export interface UserInfo {
   username: string;
@@ -42,6 +42,11 @@ const defaultUserInfo: UserInfo = {
   credentialId: "",
   wDek: "",
 };
+
+interface RegisterRsp {
+  credentialId: string;
+  user: User;
+}
 
 @singleton(IAuthenticateKey)
 export class Authenticate implements IAuthenticate {
@@ -136,15 +141,14 @@ export class Authenticate implements IAuthenticate {
   private async loginNewUser(userInfo: UserInfo): Promise<Result<void>> {
     console.log("loginNewUser");
 
-    // Generating a new user with random password
-    const user = this.generateNewUser(userInfo);
-
     // Register this user in the system authenticator using WebAuthn api and let the
     // api server verify that registration
-    const credentialId = await this.registerDevice(user);
-    if (isError(credentialId)) {
-      return credentialId;
+    const registerRsp = await this.registerDevice(userInfo);
+    if (isError(registerRsp)) {
+      return registerRsp;
     }
+
+    const { credentialId, user } = registerRsp;
 
     let wDek: string;
     if (this.keyVault.hasDataEncryptionKey()) {
@@ -199,28 +203,28 @@ export class Authenticate implements IAuthenticate {
     this.keyVaultConfigure.setDataEncryptionKey(dek);
   }
 
-  private generateNewUser(userInfo: UserInfo): User {
-    const username = !userInfo.username
-      ? this.dataCrypt.generateRandomString(randomUsernameLength)
-      : userInfo.username;
+  private async registerDevice(
+    userInfo: UserInfo
+  ): Promise<Result<RegisterRsp>> {
+    // Generating a new user with random password
+    const proposedUsername = !userInfo.username ? "" : userInfo.username;
+
+    // Getting the registration options, including the random unique challenge, from the server,
+    // Which will then later be verified by the server in the verifyWebAuthnRegistration() call.
+    const registrationRsp = await this.api.getWebAuthnRegistrationOptions(
+      proposedUsername
+    );
+    if (isError(registrationRsp)) {
+      return registrationRsp;
+    }
+    console.log("got register options", registrationRsp);
+
+    const username = registrationRsp.username;
     const password = this.dataCrypt.generateRandomString(
       randomKekPasswordLength
     );
-
     const user: User = { username, password };
-    return user;
-  }
-
-  private async registerDevice(user: User): Promise<Result<string>> {
-    const { username, password } = user;
-    console.log("Get reg options for ", user);
-    // Getting the registration options, including the random unique challenge, from the server,
-    // Which will then later be verified by the server in the verifyWebAuthnRegistration() call.
-    const options = await this.api.getWebAuthnRegistrationOptions(username);
-    if (isError(options)) {
-      return options;
-    }
-    console.log("got register options", options);
+    const options = registrationRsp.options;
 
     // Prefix the user id with the KEK password.
     // This password-userId is then returned when authenticating as the response.userHandle
@@ -235,7 +239,7 @@ export class Authenticate implements IAuthenticate {
     if (isError(registration)) {
       return registration;
     }
-    console.log("registered", registration);
+    console.log("registered");
 
     // Let the server verify the registration by validating the challenge is signed with the
     // authenticator hidden private key, which corresponds with the public key
@@ -250,8 +254,8 @@ export class Authenticate implements IAuthenticate {
       return new Error(`Failed to verify registration`);
     }
 
-    console.log("Verified registration", verified);
-    return registration.id;
+    console.log("Verified registration");
+    return { credentialId: registration.id, user: user };
   }
 
   private async authenticate(
