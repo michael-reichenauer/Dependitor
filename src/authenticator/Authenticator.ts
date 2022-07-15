@@ -22,6 +22,7 @@ import { IKeyVaultKey } from "../common/keyVault";
 import { IDataCryptKey } from "../common/DataCrypt";
 import { CustomError } from "../common/CustomError";
 import now from "../common/stopwatch";
+const uaParser = require("ua-parser-js");
 
 export class AuthenticationNotAcceptedError extends CustomError {}
 export class AuthenticationCanceledError extends CustomError {}
@@ -90,6 +91,9 @@ export class Authenticator implements IAuthenticator {
   }
 
   public getAuthenticateRequest(): AuthenticateOperation {
+    const ua = uaParser();
+
+    const description = `${ua.browser.name} on ${ua.os.name}`;
     let clientId: string;
     const userInfo = this.authenticate.readUserInfo();
     if (isError(userInfo) || !userInfo.clientId) {
@@ -100,7 +104,7 @@ export class Authenticator implements IAuthenticator {
 
     const authenticateReq: AuthenticateReq = {
       n: clientId,
-      d: "Edge IPad",
+      d: description,
       k: this.dataCrypt.generateRandomString(randomIdLength),
       c: this.dataCrypt.generateRandomString(randomIdLength),
     };

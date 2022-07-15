@@ -31,7 +31,7 @@ const authenticationNotAcceptedMsg =
   "Authentication was denied by the authenticator";
 const initialQrGuideText =
   "Scan QR code on your mobile to enable sync with all your devices.";
-const localQrGuideText = "Or scan QR code on your mobile.";
+const localQrGuideText = "Or scan QR code on your mobile device.";
 
 export interface ILoginProvider {
   login(): Promise<Result<void>>;
@@ -111,6 +111,8 @@ export const LoginDlg: FC = () => {
     setLogin(null);
   };
 
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+
   const qrGuideText = login?.hasLocalLogin()
     ? localQrGuideText
     : initialQrGuideText;
@@ -155,7 +157,7 @@ export const LoginDlg: FC = () => {
                     onClick={submitForm}
                     style={{
                       marginTop: 15,
-                      marginBottom: 20,
+                      marginBottom: 30,
                     }}
                   >
                     Login on this Device
@@ -165,7 +167,7 @@ export const LoginDlg: FC = () => {
 
               <QRCodeGuideText text={qrGuideText} />
               <QRCodeElement url={qrCodeUrl} />
-              <ClickHint />
+              {isMobile && <ClickHint />}
 
               <div
                 style={{
