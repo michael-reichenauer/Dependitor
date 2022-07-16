@@ -14,8 +14,6 @@ function getValue(key: string): Result<string> {
 
 describe("Test", () => {
   test("Test", () => {
-    const val = getValue("lll");
-    console.log(getValue("okdd"));
     const value: string = orDefault(getValue("ok"), "some");
     expect(value).toEqual("ok");
   });
