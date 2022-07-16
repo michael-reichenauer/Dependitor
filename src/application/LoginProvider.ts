@@ -31,7 +31,6 @@ export class LoginProvider implements ILoginProvider {
   }
 
   public async tryLoginViaAuthenticator(): Promise<Result<void>> {
-    console.log("######## tryLoginViaAuthenticator");
     const rsp = await this.authenticator.tryLoginViaAuthenticator(
       this.operation
     );
