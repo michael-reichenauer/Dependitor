@@ -73,6 +73,7 @@ export interface Query {
 }
 
 export class NetworkError extends CustomError {}
+export class ServerError extends NetworkError {}
 export class AuthenticateError extends NetworkError {}
 export class CredentialError extends AuthenticateError {}
 export class TokenError extends AuthenticateError {}
@@ -301,20 +302,20 @@ export class Api implements IApi {
       // Request made and server responded
       //console.log("Failed:", rspError.response);
       const rsp = rspError.response;
-      const axiosError = new NetworkError(
+      const serverError = new ServerError(
         `Status: ${rsp.status} '${rsp.statusText}': ${rsp.data}`
       );
 
       if (rsp.status === 500 && rsp.data?.includes("(ECONNREFUSED)")) {
         return new LocalApiServerError(
           "Local api server not started, Start local Azure functions server",
-          axiosError
+          serverError
         );
       } else if (rsp.status === 400) {
         if (rsp.data?.includes("ECONNREFUSED 127.0.0.1:10002")) {
           return new LocalEmulatorError(
             "Local storage emulator not started. Call 'AzureStorageEmulator.exe start'",
-            axiosError
+            serverError
           );
         }
         if (
@@ -323,11 +324,11 @@ export class Api implements IApi {
           rsp.data?.includes("Invalid user") ||
           rsp.data?.includes("AuthenticateError")
         ) {
-          return new AuthenticateError(axiosError);
+          return new AuthenticateError(serverError);
         }
       }
 
-      return new RequestError("Invalid or unsupported request", axiosError);
+      return new RequestError("Invalid or unsupported request", serverError);
     } else if (rspError.request) {
       // The request was made but no response was received
       return new NoContactError(rspError);

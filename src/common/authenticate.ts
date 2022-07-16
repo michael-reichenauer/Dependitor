@@ -140,7 +140,6 @@ export class Authenticate implements IAuthenticate {
   // Creates a new user, which is registered in the device Authenticator and in the server
   private async loginNewUser(userInfo: UserInfo): Promise<Result<void>> {
     console.log("loginNewUser");
-    alert("loginNewUser");
 
     // Register this user in the system authenticator using WebAuthn api and let the
     // api server verify that registration
@@ -191,21 +190,25 @@ export class Authenticate implements IAuthenticate {
     if (isError(password)) {
       return password;
     }
-    alert("authenticated and verified");
 
     const user = { username, password };
 
     // Unwrap the dek so it can be used
     const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
     if (isError(dek)) {
-      alert("Failed to unwrap" + dek);
       console.log("Error", dek);
+      // The wDek could not be unwrapped, lets clear the wDek and it might work next time
+      this.writeUserInfo({
+        username: username,
+        clientId: userInfo.clientId,
+        credentialId: "",
+        wDek: "",
+      });
       return dek;
     }
 
     // Make the DEK available to be used when encrypting/decrypting data when accessing server
     this.keyVaultConfigure.setDataEncryptionKey(dek);
-    alert("key set");
   }
 
   private async registerDevice(
@@ -271,10 +274,9 @@ export class Authenticate implements IAuthenticate {
     console.log("Get auth options for ", username);
     const options = await this.api.getWebAuthnAuthenticationOptions(username);
     if (isError(options)) {
-      alert("getWebAuthnAuthenticationOptions" + options.stack);
       return options;
     }
-    console.log("got authentication options", options);
+    console.log("got authentication options");
 
     // Since both Dependitor and Authenticator can be logged in to same authenticator, lets filter
     options.allowCredentials = options.allowCredentials?.filter(
@@ -284,11 +286,10 @@ export class Authenticate implements IAuthenticate {
     // Pass the options to the authenticator and wait for a response
     const authentication = await this.webAuthn.startAuthentication(options);
     if (isError(authentication)) {
-      alert("startAuthentication" + authentication.stack);
       return authentication;
     }
 
-    console.log("authentiocated", authentication);
+    console.log("authentiocated");
 
     // Extract the password, which prefixed to the user id
     const password =
@@ -307,14 +308,13 @@ export class Authenticate implements IAuthenticate {
       authentication
     );
     if (isError(verified)) {
-      alert("verified" + verified.stack);
       return verified;
     }
     if (!verified) {
-      return new Error(`Failed to verify authentication`);
+      return new AuthenticateError(`Failed to verify authentication`);
     }
 
-    console.log("Verified authentication", verified);
+    console.log("Verified authentication");
     return password;
   }
 }
