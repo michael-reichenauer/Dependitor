@@ -184,7 +184,7 @@ export class Authenticate implements IAuthenticate {
   // Authenticates the existing server in the device Authenticator
   private async loginExistingUser(userInfo: UserInfo): Promise<Result<void>> {
     console.log("loginExistingUser");
-    alert("loginExistingUser");
+
     // Authenticate the existing registered username
     const { username, credentialId, wDek } = userInfo;
     const password = await this.authenticate(username, credentialId);
@@ -198,6 +198,7 @@ export class Authenticate implements IAuthenticate {
     // Unwrap the dek so it can be used
     const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
     if (isError(dek)) {
+      alert("Failed to unwrap" + dek);
       console.log("Error", dek);
       return dek;
     }
@@ -287,7 +288,6 @@ export class Authenticate implements IAuthenticate {
       return authentication;
     }
 
-    alert("authentiocated on device");
     console.log("authentiocated", authentication);
 
     // Extract the password, which prefixed to the user id
@@ -313,7 +313,6 @@ export class Authenticate implements IAuthenticate {
     if (!verified) {
       return new Error(`Failed to verify authentication`);
     }
-    alert("verified");
 
     console.log("Verified authentication", verified);
     return password;
