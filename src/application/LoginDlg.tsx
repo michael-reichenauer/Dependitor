@@ -61,40 +61,45 @@ export const LoginDlg: FC = () => {
 
   useEffect(() => {
     if (login) {
-      login.tryLoginViaAuthenticator().then((rsp) => {
-        setLogin(null);
-        if (isError(rsp, AuthenticationCanceledError)) {
-          // User canceled the login dialog
-          return;
-        }
-        if (isError(rsp, AuthenticationNotAcceptedError)) {
-          // The authenticator did not accept this device authenticate request
-          setErrorMessage(authenticationNotAcceptedMsg);
-          return;
-        }
-        if (isError(rsp)) {
-          // Some other error
-          setErrorMessage(deviceSyncFailedMsg);
-          return;
-        }
-
-        login.supportLocalLogin().then((isSupported) => {
-          if (isSupported && !login.hasLocalLogin()) {
-            showAlert(
-              "Enable Device Login",
-              `Would you like to setup login on this device?
-
-              Recommended, since you do not need your mobile every time you login.`,
-              {
-                onOk: () => login?.login(),
-                cancelText: "Skip",
-                showCancel: true,
-                icon: QuestionAlert,
-              }
-            );
+      try {
+        login.tryLoginViaAuthenticator().then((rsp) => {
+          setLogin(null);
+          if (isError(rsp, AuthenticationCanceledError)) {
+            // User canceled the login dialog
+            return;
           }
+          if (isError(rsp, AuthenticationNotAcceptedError)) {
+            // The authenticator did not accept this device authenticate request
+            setErrorMessage(authenticationNotAcceptedMsg);
+            return;
+          }
+          if (isError(rsp)) {
+            // Some other error
+            setErrorMessage(deviceSyncFailedMsg);
+            return;
+          }
+
+          login.supportLocalLogin().then((isSupported) => {
+            if (isSupported && !login.hasLocalLogin()) {
+              showAlert(
+                "Enable Device Login",
+                `Would you like to setup login on this device?
+  
+                Recommended, since you do not need your mobile every time you login.`,
+                {
+                  onOk: () => login?.login(),
+                  cancelText: "Skip",
+                  showCancel: true,
+                  icon: QuestionAlert,
+                }
+              );
+            }
+          });
         });
-      });
+      } catch (error) {
+        console.log("error", error);
+        return;
+      }
     }
   }, [login, setLogin]);
 

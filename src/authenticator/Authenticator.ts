@@ -122,44 +122,39 @@ export class Authenticator implements IAuthenticator {
   public async tryLoginViaAuthenticator(
     operation: AuthenticateOperation
   ): Promise<Result<void>> {
-    try {
-      console.log("tryLoginViaAuthenticator ", operation);
-      if (operation.isStarted) {
-        console.log("Already started");
-        return;
-      }
-
-      operation.isStarted = true;
-
-      const clientId = operation.request.n;
-      const user: User = {
-        username: operation.request.n,
-        password: operation.request.k,
-      };
-
-      const authenticateRsp = await this.retrieveAuthenticateResponse(
-        operation,
-        user
-      );
-      if (isError(authenticateRsp)) {
-        return authenticateRsp;
-      }
-
-      if (!authenticateRsp.isAccepted) {
-        return new AuthenticationNotAcceptedError();
-      }
-
-      const wDek = authenticateRsp.wDek;
-      const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
-      if (isError(dek)) {
-        return dek;
-      }
-
-      this.authenticate.setLoggedIn(authenticateRsp.username, clientId, dek);
-    } catch (error) {
-      console.log("error", error);
-      return error as Error;
+    console.log("tryLoginViaAuthenticator ", operation);
+    if (operation.isStarted) {
+      console.log("Already started");
+      return;
     }
+
+    operation.isStarted = true;
+
+    const clientId = operation.request.n;
+    const user: User = {
+      username: operation.request.n,
+      password: operation.request.k,
+    };
+
+    const authenticateRsp = await this.retrieveAuthenticateResponse(
+      operation,
+      user
+    );
+    if (isError(authenticateRsp)) {
+      return authenticateRsp;
+    }
+
+    if (!authenticateRsp.isAccepted) {
+      return new AuthenticationNotAcceptedError();
+    }
+
+    const wDek = authenticateRsp.wDek;
+    const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
+    if (isError(dek)) {
+      return dek;
+    }
+
+    this.authenticate.setLoggedIn(authenticateRsp.username, clientId, dek);
   }
 
   public activate(): void {
