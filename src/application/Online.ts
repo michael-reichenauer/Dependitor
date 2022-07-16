@@ -133,6 +133,7 @@ export class Online implements IOnline {
       // Check connection and authentication with server
       const checkRsp = await this.authenticate.check();
 
+      console.log("checkRsp", checkRsp);
       if (checkRsp instanceof NoContactError) {
         // No contact with server, cannot enable sync
         this.isError = true;
@@ -141,6 +142,7 @@ export class Online implements IOnline {
         return checkRsp;
       }
 
+      console.log("before autherror");
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
         if (this.getPersistentIsEnabled() && this.authenticate.isLocalLogin()) {
@@ -150,6 +152,7 @@ export class Online implements IOnline {
         return checkRsp;
       }
 
+      console.log("before error");
       if (isError(checkRsp)) {
         // Som other unexpected error (neither contact nor authenticate error)
         this.isError = true;
@@ -158,9 +161,12 @@ export class Online implements IOnline {
         return checkRsp;
       }
 
+      console.log("enable sync");
       // Enable database sync and verify that sync does work
       this.setDatabaseSync(true);
       const syncResult = await this.store.triggerSync();
+
+      console.log("after trigger sync", syncResult);
       if (isError(syncResult)) {
         // Database sync failed, it should nog happen in production but might during development
         setErrorMessage(this.toErrorMessage(syncResult));
@@ -177,6 +183,9 @@ export class Online implements IOnline {
       this.isError = false;
       setSuccessMessage(deviseSyncOKMessage);
       showSyncState(SyncState.Enabled);
+    } catch (error) {
+      console.log("error", error);
+      return error as Error;
     } finally {
       this.hideProgress();
     }

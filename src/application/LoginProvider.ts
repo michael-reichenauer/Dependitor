@@ -35,7 +35,6 @@ export class LoginProvider implements ILoginProvider {
       const rsp = await this.authenticator.tryLoginViaAuthenticator(
         this.operation
       );
-      console.log("rsp", rsp);
       if (isError(rsp)) {
         return rsp;
       }

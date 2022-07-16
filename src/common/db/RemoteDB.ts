@@ -116,14 +116,24 @@ export class RemoteDB implements IRemoteDB {
   }
 
   private async encryptValue(value: any): Promise<any> {
-    const valueText = JSON.stringify(value);
-    const encryptedValue = await this.keyVault.encryptString(valueText);
-    return encryptedValue;
+    try {
+      const valueText = JSON.stringify(value);
+      const encryptedValue = await this.keyVault.encryptString(valueText);
+      return encryptedValue;
+    } catch (error) {
+      console.log("error", error);
+      throw error;
+    }
   }
 
   private async decryptValue(encryptedValue: any): Promise<any> {
-    const valueText = await this.keyVault.decryptString(encryptedValue);
-    const value = JSON.parse(valueText);
-    return value;
+    try {
+      const valueText = await this.keyVault.decryptString(encryptedValue);
+      const value = JSON.parse(valueText);
+      return value;
+    } catch (error) {
+      console.log("error", error);
+      throw error;
+    }
   }
 }
