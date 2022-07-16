@@ -126,6 +126,7 @@ export class Online implements IOnline {
 
   // enableSync called when device sync should be enabled
   public async enableSync(): Promise<Result<void>> {
+    console.log("enable");
     try {
       this.showProgress();
 

@@ -31,14 +31,20 @@ export class LoginProvider implements ILoginProvider {
   }
 
   public async tryLoginViaAuthenticator(): Promise<Result<void>> {
-    const rsp = await this.authenticator.tryLoginViaAuthenticator(
-      this.operation
-    );
-    if (isError(rsp)) {
-      return rsp;
-    }
+    try {
+      const rsp = await this.authenticator.tryLoginViaAuthenticator(
+        this.operation
+      );
+      console.log("rsp", rsp);
+      if (isError(rsp)) {
+        return rsp;
+      }
 
-    return this.online.enableSync();
+      return this.online.enableSync();
+    } catch (error) {
+      console.log("error", error);
+      return error as Error;
+    }
   }
 
   public async login(): Promise<Result<void>> {
