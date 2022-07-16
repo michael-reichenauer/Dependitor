@@ -6,7 +6,6 @@ import Result, { expectValue, isError, orDefault } from "./Result";
 import { IDataCryptKey } from "./DataCrypt";
 import { IWebAuthnKey } from "./webauthn";
 import { ILocalStoreKey } from "./LocalStore";
-import { showAlert } from "./AlertDialog";
 
 // IAuthenticate provides crate account and login functionality.
 export const IAuthenticateKey = diKey<IAuthenticate>();
