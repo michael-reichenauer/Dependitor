@@ -141,7 +141,7 @@ export class Authenticate implements IAuthenticate {
   // Creates a new user, which is registered in the device Authenticator and in the server
   private async loginNewUser(userInfo: UserInfo): Promise<Result<void>> {
     console.log("loginNewUser");
-    showAlert("test", "loginNewUser");
+    alert("loginNewUser");
 
     // Register this user in the system authenticator using WebAuthn api and let the
     // api server verify that registration
@@ -185,7 +185,7 @@ export class Authenticate implements IAuthenticate {
   // Authenticates the existing server in the device Authenticator
   private async loginExistingUser(userInfo: UserInfo): Promise<Result<void>> {
     console.log("loginExistingUser");
-    showAlert("test", "loginExistingUser");
+    alert("loginExistingUser");
     // Authenticate the existing registered username
     const { username, credentialId, wDek } = userInfo;
     const password = await this.authenticate(username, credentialId);
@@ -269,7 +269,7 @@ export class Authenticate implements IAuthenticate {
     console.log("Get auth options for ", username);
     const options = await this.api.getWebAuthnAuthenticationOptions(username);
     if (isError(options)) {
-      showAlert("test", "getWebAuthnAuthenticationOptions" + options);
+      alert("getWebAuthnAuthenticationOptions" + options.stack);
       return options;
     }
     console.log("got authentication options", options);
@@ -282,7 +282,7 @@ export class Authenticate implements IAuthenticate {
     // Pass the options to the authenticator and wait for a response
     const authentication = await this.webAuthn.startAuthentication(options);
     if (isError(authentication)) {
-      showAlert("test", "startAuthentication" + options);
+      alert("startAuthentication" + authentication.stack);
       return authentication;
     }
 
@@ -305,6 +305,7 @@ export class Authenticate implements IAuthenticate {
       authentication
     );
     if (isError(verified)) {
+      alert("verified" + verified.stack);
       return verified;
     }
     if (!verified) {
