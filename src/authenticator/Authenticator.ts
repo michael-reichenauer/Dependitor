@@ -196,6 +196,7 @@ export class Authenticator implements IAuthenticator {
     const checkRsp = await this.authenticate.check();
     if (isError(checkRsp)) {
       if (!isError(checkRsp, AuthenticateError)) {
+        this.clearDeviceId();
         const errorMsg = this.toErrorMessage(checkRsp);
         showAlert(
           "Error",
@@ -223,6 +224,7 @@ export class Authenticator implements IAuthenticator {
           );
           return;
         }
+        this.clearDeviceId();
 
         if (isError(loginRsp, WebAuthnCanceledError)) {
           showAlert(
@@ -248,6 +250,7 @@ export class Authenticator implements IAuthenticator {
 
     //await this.login();
     console.log("Logged in");
+    this.clearDeviceId();
     const userInfo = this.authenticate.readUserInfo();
     if (isError(userInfo)) {
       return userInfo;
@@ -405,6 +408,7 @@ export class Authenticator implements IAuthenticator {
   }
 
   private getAuthenticateReq(): Result<AuthenticateReq> {
+    let id: string = "";
     try {
       if (!this.isAuthenticatorApp()) {
         return new Error();
@@ -415,22 +419,27 @@ export class Authenticator implements IAuthenticator {
         return new Error();
       }
 
-      const id = window.location.pathname.substring(
-        baseAuthenticatorPart.length
-      );
-      this.clearDeviceId(id);
+      id = window.location.pathname.substring(baseAuthenticatorPart.length);
 
       const infoJs = base64ToString(id);
       const authenticateReq: AuthenticateReq = JSON.parse(infoJs);
 
       return authenticateReq;
     } catch (error) {
+      if (id) {
+        this.clearDeviceId();
+      }
       return error as Error;
     }
   }
 
   // clearDeviceId remembers handled device id, in case the page is reloaded.
-  private clearDeviceId(id: string): void {
+  private clearDeviceId(): void {
+    const id = window.location.pathname.substring(baseAuthenticatorPart.length);
+    if (!id) {
+      return;
+    }
+
     let deviceIds = this.localStore.readOrDefault<Array<string>>(
       deviceIdsKey,
       []
