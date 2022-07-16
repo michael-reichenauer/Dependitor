@@ -270,9 +270,7 @@ export class Authenticator implements IAuthenticator {
 
     showAlert(
       "Allowed Device",
-      `Device '${description}' is now authenticated and allowed to sync with all your devices.
-
-      You can now close this page.`,
+      `Device '${description}' is now authenticated and allowed to sync with all your devices.`,
       { icon: SuccessAlert, showOk: false }
     );
   }

@@ -62,6 +62,7 @@ export const LoginDlg: FC = () => {
   useEffect(() => {
     if (login) {
       login.tryLoginViaAuthenticator().then((rsp) => {
+        console.log("after login");
         setLogin(null);
         if (isError(rsp, AuthenticationCanceledError)) {
           // User canceled the login dialog
@@ -78,6 +79,7 @@ export const LoginDlg: FC = () => {
           return;
         }
 
+        console.log("before support");
         login.supportLocalLogin().then((isSupported) => {
           if (isSupported && !login.hasLocalLogin()) {
             showAlert(
