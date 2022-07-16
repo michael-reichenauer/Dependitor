@@ -191,6 +191,7 @@ export class Authenticate implements IAuthenticate {
     if (isError(password)) {
       return password;
     }
+    alert("authenticated and verified");
 
     const user = { username, password };
 
@@ -203,6 +204,7 @@ export class Authenticate implements IAuthenticate {
 
     // Make the DEK available to be used when encrypting/decrypting data when accessing server
     this.keyVaultConfigure.setDataEncryptionKey(dek);
+    alert("key set");
   }
 
   private async registerDevice(
@@ -285,6 +287,7 @@ export class Authenticate implements IAuthenticate {
       return authentication;
     }
 
+    alert("authentiocated on device");
     console.log("authentiocated", authentication);
 
     // Extract the password, which prefixed to the user id
@@ -310,6 +313,7 @@ export class Authenticate implements IAuthenticate {
     if (!verified) {
       return new Error(`Failed to verify authentication`);
     }
+    alert("verified");
 
     console.log("Verified authentication", verified);
     return password;
