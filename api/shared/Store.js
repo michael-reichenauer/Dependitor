@@ -30,6 +30,17 @@ const emulatorErrorText = "ECONNREFUSED 127.0.0.1:10002"
 const clientIdExpires = new Date(2040, 12, 31) // Persistent for a long time
 const deleteCookieExpires = new Date(1970, 1, 1) // past date to delete cookie
 
+
+const isIncludeExceptionsDetails = true
+
+
+function toError(errorMsg, error) {
+    const exceptionDetails = isIncludeExceptionsDetails ?
+        `\ncaused by server error:\n${error.stack}\n---- end of server error ----` :
+        ''
+    return new Error(`${errorMsg}${exceptionDetails}`)
+}
+
 exports.verifyApiKey = context => {
     const req = context.req
     const apiKey = req.headers['x-api-key']
@@ -70,7 +81,7 @@ exports.loginDeviceSet = async (context, body) => {
         return {}
     } catch (error) {
         throwIfEmulatorError(error)
-        throw new Error(invalidRequestError)
+        throw toError(invalidRequestError, error)
     }
 }
 
@@ -88,12 +99,11 @@ exports.loginDevice = async (context, body) => {
             if (error.code === 'ResourceNotFound') {
                 return { response: '', cookies: null };
             }
-
             throw error
         }
     } catch (error) {
         throwIfEmulatorError(error)
-        throw new Error(authenticateError)
+        throw toError(authenticateError, error)
     }
 }
 
@@ -145,9 +155,9 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         await updateUser(userId, user)
 
         return { options: options, username: username };
-    } catch (err) {
-        throwIfEmulatorError(err)
-        throw new Error(authenticateError)
+    } catch (error) {
+        throwIfEmulatorError(error)
+        throw toError(authenticateError, error)
     }
 }
 
@@ -201,9 +211,9 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
         const cookies = createCookies(clientId, sessionId)
 
         return { response: { verified: verified }, cookies: cookies }
-    } catch (err) {
-        throwIfEmulatorError(err)
-        throw new Error(authenticateError)
+    } catch (error) {
+        throwIfEmulatorError(error)
+        throw toError(authenticateError, error)
     }
 }
 
@@ -241,9 +251,9 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
         await updateUser(userId, user)
 
         return { options: options };
-    } catch (err) {
-        throwIfEmulatorError(err)
-        throw new Error(authenticateError)
+    } catch (error) {
+        throwIfEmulatorError(error)
+        throw toError(authenticateError, error)
     }
 }
 
@@ -294,9 +304,9 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
         const cookies = createCookies(clientId, sessionId)
 
         return { response: { verified }, cookies: cookies };
-    } catch (err) {
-        throwIfEmulatorError(err)
-        throw new Error(authenticateError)
+    } catch (error) {
+        throwIfEmulatorError(error)
+        throw toError(authenticateError, error)
     }
 }
 
@@ -402,9 +412,9 @@ exports.logoff = async (context, data) => {
             }]
 
         return { cookies: cookies }
-    } catch (err) {
-        throwIfEmulatorError(err)
-        throw new Error(authenticateError)
+    } catch (error) {
+        throwIfEmulatorError(error)
+        throw toError(authenticateError, error)
     }
 }
 
@@ -441,7 +451,7 @@ exports.tryReadBatch = async (context, body) => {
         return responses
     } catch (err) {
         throwIfEmulatorError(err)
-        throw new Error(invalidRequestError)
+        throw toError(invalidRequestError, err)
     }
 }
 
@@ -478,7 +488,7 @@ exports.writeBatch = async (context, body) => {
         return responses
     } catch (err) {
         throwIfEmulatorError(err)
-        throw new Error(invalidRequestError)
+        throw toError(invalidRequestError, err)
     }
 }
 
@@ -499,7 +509,7 @@ exports.removeBatch = async (context, body) => {
         return ''
     } catch (err) {
         throwIfEmulatorError(err)
-        throw new Error(invalidRequestError)
+        throw toError(invalidRequestError, err)
     }
 }
 
@@ -545,7 +555,7 @@ async function getUserId(context) {
         return sessionTableEntity.userId
     } catch (err) {
         throwIfEmulatorError(err)
-        throw new Error(authenticateError)
+        throw toError(authenticateError, err)
     }
 }
 

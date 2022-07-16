@@ -4,9 +4,11 @@ const tableService = azure.createTableService();
 
 
 exports.createTableIfNotExists = (tableName) => {
+    const err = new Error('server stack:')
     return new Promise(function (resolve, reject) {
         tableService.createTableIfNotExists(tableName, function (error, result) {
             if (error) {
+                error.stack = `${error.name}: ${error.message} \n${err.stack}`
                 reject(error);
             }
             else {
@@ -17,9 +19,11 @@ exports.createTableIfNotExists = (tableName) => {
 }
 
 exports.executeBatch = (tableName, batch) => {
+    const err = new Error('server stack:')
     return new Promise(function (resolve, reject) {
         tableService.executeBatch(tableName, batch, function (error, result) {
             if (error) {
+                error.stack = `${error.name}: ${error.message} \n${err.stack}`
                 reject(error);
             }
             else {
@@ -30,9 +34,11 @@ exports.executeBatch = (tableName, batch) => {
 }
 
 exports.insertEntity = (tableName, item) => {
+    const err = new Error('server stack:')
     return new Promise(function (resolve, reject) {
         tableService.insertEntity(tableName, item, function (error, result) {
             if (error) {
+                error.stack = `${error.name}: ${error.message} \n${err.stack}`
                 reject(error);
             }
             else {
@@ -43,9 +49,11 @@ exports.insertEntity = (tableName, item) => {
 }
 
 exports.deleteEntity = (tableName, item) => {
+    const err = new Error('server stack:')
     return new Promise(function (resolve, reject) {
         tableService.deleteEntity(tableName, item, function (error, result) {
             if (error) {
+                error.stack = `${error.name}: ${error.message} \n${err.stack}`
                 reject(error);
             }
             else {
@@ -56,9 +64,11 @@ exports.deleteEntity = (tableName, item) => {
 }
 
 exports.insertOrReplaceEntity = (tableName, item) => {
+    const err = new Error('server stack:')
     return new Promise(function (resolve, reject) {
         tableService.insertOrReplaceEntity(tableName, item, function (error, result) {
             if (error) {
+                error.stack = `${error.name}: ${error.message} \n${err.stack}`
                 reject(error);
             }
             else {
@@ -70,9 +80,11 @@ exports.insertOrReplaceEntity = (tableName, item) => {
 
 
 exports.retrieveEntity = (tableName, partitionKey, rowKey) => {
+    const err = new Error('server stack:')
     return new Promise(function (resolve, reject) {
         tableService.retrieveEntity(tableName, partitionKey, rowKey, function (error, result, response) {
             if (error) {
+                error.stack = `${error.name}: ${error.message} \n${err.stack}`
                 reject(error);
             }
             else {
@@ -84,9 +96,11 @@ exports.retrieveEntity = (tableName, partitionKey, rowKey) => {
 
 
 exports.queryEntities = (tableName, tableQuery, continuationToken) => {
+    const err = new Error('server stack:')
     return new Promise(function (resolve, reject) {
         tableService.queryEntities(tableName, tableQuery, continuationToken, function (error, result, response) {
             if (error) {
+                error.stack = `${error.name}: ${error.message} \n${err.stack}`
                 reject(error);
             }
             else {
@@ -97,9 +111,11 @@ exports.queryEntities = (tableName, tableQuery, continuationToken) => {
 }
 
 exports.deleteTableIfExists = (tableName) => {
+    const err = new Error('server stack:')
     return new Promise(function (resolve, reject) {
         tableService.deleteTableIfExists(tableName, function (error, result) {
             if (error) {
+                error.stack = `${error.name}: ${error.message} \n${err.stack}`
                 reject(error);
             }
             else {
