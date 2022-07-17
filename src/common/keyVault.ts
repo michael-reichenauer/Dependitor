@@ -1,12 +1,13 @@
 import { User } from "./Api";
 import { IDataCrypt, IDataCryptKey } from "./DataCrypt";
 import { di, diKey, singleton } from "./di";
+import Result from "./Result";
 
 export const IKeyVaultKey = diKey<IKeyVault>();
 export interface IKeyVault {
   hasDataEncryptionKey(): boolean;
   encryptString(value: string): Promise<string>;
-  decryptString(encryptedValue: string): Promise<string>;
+  decryptString(encryptedValue: string): Promise<Result<string>>;
   getWrappedDataEncryptionKey(user: User): Promise<string>;
 }
 
@@ -33,7 +34,7 @@ export class KeyVault implements IKeyVault, IKeyVaultConfigure {
     return await this.dataCrypt.encryptText(value, this.dek);
   }
 
-  public async decryptString(encryptedValue: string): Promise<string> {
+  public async decryptString(encryptedValue: string): Promise<Result<string>> {
     return await this.dataCrypt.decryptText(encryptedValue, this.dek);
   }
 

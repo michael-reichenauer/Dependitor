@@ -359,6 +359,9 @@ export class Authenticator implements IAuthenticator {
 
     const authDataDek = await this.dataCrypt.deriveDataEncryptionKey(user);
     const rspJson = await this.dataCrypt.decryptText(authData, authDataDek);
+    if (isError(rspJson)) {
+      return rspJson;
+    }
     const authenticateRsp = JSON.parse(rspJson);
     return authenticateRsp;
   }

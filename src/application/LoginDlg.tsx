@@ -23,7 +23,7 @@ import {
 import { showAlert, QuestionAlert } from "../common/AlertDialog";
 
 const dialogWidth = 290;
-const dialogHeight = 400;
+const dialogHeight = 410;
 
 // const deviceSyncCanceledMsg = "Authentication canceled";
 const deviceSyncFailedMsg = "Failed to enable device sync";
@@ -116,7 +116,7 @@ export const LoginDlg: FC = () => {
     setLogin(null);
   };
 
-  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent) || true;
 
   const qrGuideText = login?.hasLocalLogin()
     ? localQrGuideText
@@ -147,27 +147,38 @@ export const LoginDlg: FC = () => {
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
               {login?.hasLocalLogin() && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Button
-                    id="OKButton"
-                    variant="contained"
-                    color="primary"
-                    disabled={isSubmitting}
-                    onClick={submitForm}
+                <>
+                  <Typography
                     style={{
-                      marginTop: 15,
-                      marginBottom: 30,
+                      fontSize: "14px",
+                      paddingTop: 10,
+                      lineHeight: 1,
                     }}
                   >
-                    Login on this Device
-                  </Button>
-                </div>
+                    Local login:
+                  </Typography>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Button
+                      id="OKButton"
+                      variant="contained"
+                      color="primary"
+                      disabled={isSubmitting}
+                      onClick={submitForm}
+                      style={{
+                        marginTop: 15,
+                        marginBottom: 30,
+                      }}
+                    >
+                      Login on this Device
+                    </Button>
+                  </div>
+                </>
               )}
 
               <QRCodeGuideText text={qrGuideText} />
@@ -210,7 +221,7 @@ const QRCodeGuideText: FC<QRCodeGuideTextProps> = ({ text }) => {
     <Typography
       style={{
         fontSize: "14px",
-        paddingTop: 10,
+        paddingTop: 5,
         lineHeight: 1,
       }}
     >

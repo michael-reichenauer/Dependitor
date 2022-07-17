@@ -39,7 +39,7 @@ export interface IDataCrypt {
   encryptText(text: string, dek: CryptoKey): Promise<string>;
 
   // Decrypts a text block using the data encryption key (DEK)
-  decryptText(encryptedText: string, dek: CryptoKey): Promise<string>;
+  decryptText(encryptedText: string, dek: CryptoKey): Promise<Result<string>>;
 
   generateRandomString(length: number): string;
 }
@@ -149,20 +149,28 @@ export class DataCrypt {
   public async decryptText(
     encryptedText: string,
     dek: CryptoKey
-  ): Promise<string> {
-    // Extract the encrypted text and encrypted DEK key
-    const encryptedJson = b64_to_utf8(encryptedText);
-    const encryptedPacket: EncryptedPacket = JSON.parse(encryptedJson);
+  ): Promise<Result<string>> {
+    try {
+      // Extract the encrypted text and encrypted DEK key
+      const encryptedJson = b64_to_utf8(encryptedText);
+      const encryptedPacket: EncryptedPacket = JSON.parse(encryptedJson);
 
-    // The unique random initialization vector
-    const iv = fromBase64(encryptedPacket.iv);
+      // The unique random initialization vector
+      const iv = fromBase64(encryptedPacket.iv);
 
-    // Decrypt the encrypted text using the DEK key
-    const encryptedData = fromBase64(encryptedPacket.data);
-    const decryptedData = await this.crypt.decryptData(encryptedData, iv, dek);
+      // Decrypt the encrypted text using the DEK key
+      const encryptedData = fromBase64(encryptedPacket.data);
+      const decryptedData = await this.crypt.decryptData(
+        encryptedData,
+        iv,
+        dek
+      );
 
-    const decryptedText = new TextDecoder().decode(decryptedData);
-    return decryptedText;
+      const decryptedText = new TextDecoder().decode(decryptedData);
+      return decryptedText;
+    } catch (error) {
+      return error as Error;
+    }
   }
 
   // Creates a key encryption key (KEK) to encrypt each unique data encryption key (DEK), which is

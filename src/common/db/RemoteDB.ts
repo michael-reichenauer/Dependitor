@@ -85,7 +85,12 @@ export class RemoteDB implements IRemoteDB {
         }
 
         // Decrypt downloaded value
-        const value = await this.decryptValue(entity.value);
+        const decryptedValue = await this.decryptValue(entity.value);
+        if (isError(decryptedValue)) {
+          return decryptedValue;
+        }
+
+        const value = decryptedValue as any;
         return {
           key: entity.key,
           etag: entity.etag ?? "",
@@ -126,9 +131,12 @@ export class RemoteDB implements IRemoteDB {
     }
   }
 
-  private async decryptValue(encryptedValue: any): Promise<any> {
+  private async decryptValue(encryptedValue: any): Promise<Result<any>> {
     try {
       const valueText = await this.keyVault.decryptString(encryptedValue);
+      if (isError(valueText)) {
+        return valueText;
+      }
       const value = JSON.parse(valueText);
       return value;
     } catch (error) {
