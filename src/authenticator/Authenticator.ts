@@ -323,7 +323,7 @@ export class Authenticator implements IAuthenticator {
 
       if (!authData) {
         // No auth data yet, lets wait a little before retrying again
-        for (let t = now(); t.time() < 1000; ) {
+        for (let t = now(); t.time() < 1 * seconds; ) {
           if (operation.isCanceled) {
             return new AuthenticationCanceledError();
           }
