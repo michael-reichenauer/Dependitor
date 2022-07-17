@@ -77,7 +77,7 @@ export class Authenticate implements IAuthenticate {
       return new AuthenticateError();
     }
 
-    return await this.api.check();
+    return await this.api.withNoProgress(() => this.api.check());
   }
 
   public isLocalLogin(): boolean {

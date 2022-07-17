@@ -121,12 +121,10 @@ export class Api implements IApi {
 
   public async withNoProgress<T>(callback: () => Promise<T>): Promise<T> {
     try {
-      console.log("set no progress");
       this.isNoProgress = true;
       return await callback();
     } finally {
       this.isNoProgress = false;
-      console.log("set progress");
     }
   }
 
@@ -237,7 +235,7 @@ export class Api implements IApi {
     // console.log(`Request #${this.requestCount}: GET ${uri} ...`);
     const t = timing();
     try {
-      const rsp = await withProgress(() =>
+      const rsp = await this.withProgress(() =>
         axios.get(uri, {
           headers: { "x-api-key": this.apiKey },
         })
@@ -271,7 +269,7 @@ export class Api implements IApi {
     // console.log(`Request #${this.requestCount}: POST ${uri} ...`);
     const t = timing();
     try {
-      const rsp = await withProgress(() =>
+      const rsp = await this.withProgress(() =>
         axios.post(uri, requestData, {
           headers: { "x-api-key": this.apiKey },
         })
@@ -301,7 +299,15 @@ export class Api implements IApi {
     }
   }
 
-  toError(rspError: any) {
+  private withProgress<T>(callback: () => Promise<T>): Promise<T> {
+    if (this.isNoProgress) {
+      return callback();
+    }
+
+    return withProgress(callback);
+  }
+
+  private toError(rspError: any) {
     if (rspError.response) {
       // Request made and server responded
       //console.log("Failed:", rspError.response);
