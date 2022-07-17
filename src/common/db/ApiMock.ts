@@ -23,8 +23,8 @@ const prefix = "ApiMock-";
 
 export class ApiMock implements IApi {
   constructor(private local: ILocalStore = di(ILocalStoreKey)) {}
-  withNoProgress<T>(callback: () => Promise<T>): Promise<T> {
-    throw new Error("Method not implemented.");
+  public async withNoProgress<T>(callback: () => Promise<T>): Promise<T> {
+    return await callback();
   }
   loginDevice(req: LoginDeviceReq): Promise<Result<string, Error>> {
     throw new Error("Method not implemented.");
