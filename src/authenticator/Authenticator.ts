@@ -30,29 +30,30 @@ import { CustomError } from "../common/CustomError";
 import now from "../common/stopwatch";
 const uaParser = require("ua-parser-js");
 
-export class AuthenticationNotAcceptedError extends CustomError {}
-export class AuthenticationCanceledError extends CustomError {}
-
 // Online is uses to control if device database sync should and can be enable or not
 export const IAuthenticatorKey = diKey<IAuthenticator>();
 export interface IAuthenticator {
   isAuthenticatorApp(): boolean;
   activate(): void;
-  getAuthenticateUrl(operation: AuthenticateOperation): string;
-  getAuthenticateRequest(): AuthenticateOperation;
+  getAuthenticateUrl(operation: AuthenticatorOperation): string;
+  getAuthenticateRequest(): AuthenticatorOperation;
   tryLoginViaAuthenticator(
-    operation: AuthenticateOperation
+    operation: AuthenticatorOperation
   ): Promise<Result<void>>;
 }
 
-export interface AuthenticateOperation {
-  request: AuthenticateReq;
+export class AuthenticatorError extends CustomError {}
+export class AuthenticatorNotAcceptedError extends AuthenticatorError {}
+export class AuthenticatorCanceledError extends AuthenticatorError {}
+
+export interface AuthenticatorOperation {
+  request: AuthenticatorReq;
   isStarted: boolean;
   isCanceled: boolean;
 }
 
 // AuthenticateReq is request info that a device encodes in a QR code to the authenticator
-interface AuthenticateReq {
+interface AuthenticatorReq {
   n: string; // Unique client device name for this client/browser instance
   d: string; // Client description, like .e.g Edge, IPad
   k: string; // The password key to encrypt response from authenticator to this device
@@ -60,7 +61,7 @@ interface AuthenticateReq {
 }
 
 // AuthenticatorRsp is the response to the device for an AuthenticateReq request
-interface AuthenticateRsp {
+interface AuthenticatorRsp {
   wDek: string;
   username: string;
   isAccepted: boolean;
@@ -93,7 +94,7 @@ export class Authenticator implements IAuthenticator {
     return window.location.pathname.startsWith(baseAuthenticatorPart);
   }
 
-  public getAuthenticateRequest(): AuthenticateOperation {
+  public getAuthenticateRequest(): AuthenticatorOperation {
     const ua = uaParser();
 
     const model = !!ua.device.model ? ua.device.model : ua.os.name;
@@ -106,7 +107,7 @@ export class Authenticator implements IAuthenticator {
       clientId = userInfo.clientId;
     }
 
-    const authenticateReq: AuthenticateReq = {
+    const authenticateReq: AuthenticatorReq = {
       n: clientId,
       d: description,
       k: this.dataCrypt.generateRandomString(randomIdLength),
@@ -115,7 +116,7 @@ export class Authenticator implements IAuthenticator {
     return { request: authenticateReq, isStarted: false, isCanceled: false };
   }
 
-  public getAuthenticateUrl(operation: AuthenticateOperation): string {
+  public getAuthenticateUrl(operation: AuthenticatorOperation): string {
     const requestJson = JSON.stringify(operation.request);
     const code = stringToBase64(requestJson);
 
@@ -124,7 +125,7 @@ export class Authenticator implements IAuthenticator {
   }
 
   public async tryLoginViaAuthenticator(
-    operation: AuthenticateOperation
+    operation: AuthenticatorOperation
   ): Promise<Result<void>> {
     if (operation.isStarted) {
       console.log("Already started");
@@ -148,7 +149,7 @@ export class Authenticator implements IAuthenticator {
     }
 
     if (!authenticateRsp.isAccepted) {
-      return new AuthenticationNotAcceptedError();
+      return new AuthenticatorNotAcceptedError();
     }
 
     const wDek = authenticateRsp.wDek;
@@ -229,7 +230,7 @@ export class Authenticator implements IAuthenticator {
   }
 
   private async postAuthenticateOKResponse(
-    authRequest: AuthenticateReq,
+    authRequest: AuthenticatorReq,
     userInfo: UserInfo
   ): Promise<Result<void>> {
     const user: User = { username: authRequest.n, password: authRequest.k };
@@ -239,7 +240,7 @@ export class Authenticator implements IAuthenticator {
 
     // Post a response to the device with the account user name and wDek
     const isAccepted = true;
-    const rsp: AuthenticateRsp = {
+    const rsp: AuthenticatorRsp = {
       username: userInfo.username,
       wDek: wDek,
       isAccepted: isAccepted,
@@ -255,7 +256,7 @@ export class Authenticator implements IAuthenticator {
   }
 
   private async postAuthenticateResponse(
-    authenticateRsp: AuthenticateRsp,
+    authenticateRsp: AuthenticatorRsp,
     user: User,
     channelId: string,
     isAccept: boolean
@@ -280,9 +281,9 @@ export class Authenticator implements IAuthenticator {
   }
 
   private async retrieveAuthenticateResponse(
-    operation: AuthenticateOperation,
+    operation: AuthenticatorOperation,
     user: User
-  ): Promise<Result<AuthenticateRsp>> {
+  ): Promise<Result<AuthenticatorRsp>> {
     const authData = await this.loginDevice(operation);
     if (isError(authData)) {
       return authData;
@@ -298,7 +299,7 @@ export class Authenticator implements IAuthenticator {
   }
 
   private async loginDevice(
-    operation: AuthenticateOperation
+    operation: AuthenticatorOperation
   ): Promise<Result<string>> {
     const req: LoginDeviceReq = { channelId: operation.request.c };
 
@@ -307,7 +308,7 @@ export class Authenticator implements IAuthenticator {
     // Wait a little before starting to poll since authenticator needs some time anyway
     while (startTime.time() < tryLoginPreWait) {
       if (operation.isCanceled) {
-        return new AuthenticationCanceledError();
+        return new AuthenticatorCanceledError();
       }
       await delay(100);
     }
@@ -315,7 +316,7 @@ export class Authenticator implements IAuthenticator {
     while (startTime.time() < tryLoginTimeout) {
       const authData = await this.api.loginDevice(req);
       if (operation.isCanceled) {
-        return new AuthenticationCanceledError();
+        return new AuthenticatorCanceledError();
       }
       if (isError(authData)) {
         return authData;
@@ -325,7 +326,7 @@ export class Authenticator implements IAuthenticator {
         // No auth data yet, lets wait a little before retrying again
         for (let t = now(); t.time() < 1 * seconds; ) {
           if (operation.isCanceled) {
-            return new AuthenticationCanceledError();
+            return new AuthenticatorCanceledError();
           }
           await delay(100);
         }
@@ -339,7 +340,7 @@ export class Authenticator implements IAuthenticator {
     return new AuthenticateError();
   }
 
-  private getAuthenticateReq(): Result<AuthenticateReq> {
+  private getAuthenticateReq(): Result<AuthenticatorReq> {
     let id: string = "";
     try {
       if (!this.isAuthenticatorApp()) {
@@ -354,7 +355,7 @@ export class Authenticator implements IAuthenticator {
       id = window.location.pathname.substring(baseAuthenticatorPart.length);
 
       const infoJs = base64ToString(id);
-      const authenticateReq: AuthenticateReq = JSON.parse(infoJs);
+      const authenticateReq: AuthenticatorReq = JSON.parse(infoJs);
 
       return authenticateReq;
     } catch (error) {

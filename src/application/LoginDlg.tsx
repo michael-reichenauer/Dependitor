@@ -17,8 +17,8 @@ import { QRCode } from "react-qrcode-logo";
 
 import { setErrorMessage } from "../common/MessageSnackbar";
 import {
-  AuthenticationCanceledError,
-  AuthenticationNotAcceptedError,
+  AuthenticatorCanceledError,
+  AuthenticatorNotAcceptedError,
 } from "../authenticator/Authenticator";
 import { showAlert, QuestionAlert } from "../common/AlertDialog";
 
@@ -64,11 +64,11 @@ export const LoginDlg: FC = () => {
       try {
         login.tryLoginViaAuthenticator().then((rsp) => {
           setLogin(null);
-          if (isError(rsp, AuthenticationCanceledError)) {
+          if (isError(rsp, AuthenticatorCanceledError)) {
             // User canceled the login dialog
             return;
           }
-          if (isError(rsp, AuthenticationNotAcceptedError)) {
+          if (isError(rsp, AuthenticatorNotAcceptedError)) {
             // The authenticator did not accept this device authenticate request
             setErrorMessage(authenticationNotAcceptedMsg);
             return;
