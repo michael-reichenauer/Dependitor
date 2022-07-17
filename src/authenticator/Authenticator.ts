@@ -226,7 +226,7 @@ export class Authenticator implements IAuthenticator {
       return;
     }
 
-    this.showAllowedAlert(description);
+    this.showDeviceAuthenticatedAlert(description);
   }
 
   private async postAuthenticateOKResponse(
@@ -401,10 +401,11 @@ export class Authenticator implements IAuthenticator {
     return deviceIds.includes(id);
   }
 
-  private showAllowedAlert(description: string) {
+  private showDeviceAuthenticatedAlert(description: string) {
     showAlert(
-      "Allowed Device",
-      `Device '${description}' is now authenticated and allowed to sync with all your devices.`,
+      "Device Authenticated",
+      `'${description}' is now authenticated
+       and allowed to sync with all your devices.`,
       { icon: SuccessAlert, showOk: false }
     );
   }
@@ -423,9 +424,9 @@ export class Authenticator implements IAuthenticator {
     showAlert(
       "Canceled",
       `Authentication was canceled. 
-            Device '${description}' was not authenticated and allowed to sync. 
+      Device '${description}' was not authenticated and allowed to sync. 
 
-            Please close this page.`,
+      Please close this page.`,
       { icon: ErrorAlert, showOk: false, showCancel: false }
     );
   }
@@ -435,7 +436,7 @@ export class Authenticator implements IAuthenticator {
       "Reload Page",
       `Please manually reload this page to show the authentication dialog.
 
-            This browser requires a recently manually loaded page before allowing access to authentication.`,
+      This browser requires a recently manually loaded page before allowing access to authentication.`,
       { showOk: false, showCancel: false }
     );
   }
@@ -456,7 +457,7 @@ export class Authenticator implements IAuthenticator {
       "Error",
       `${errorMsg}
 
-          Please close this page.`,
+      Please close this page.`,
       {
         showOk: false,
         showCancel: false,
@@ -470,7 +471,7 @@ export class Authenticator implements IAuthenticator {
       "Error",
       `Invalid device request
 
-        Please close this page.`,
+      Please close this page.`,
       {
         showOk: false,
         showCancel: false,
