@@ -243,21 +243,22 @@ export class Api implements IApi {
 
       const rspData = rsp.data;
       const rspBytes = ("" + rsp.request?.responseText).length;
-      console.groupCollapsed(
-        `Request #${this.requestCount}: GET ${uri}: OK: (0->${rspBytes} bytes)`,
-        t()
-      );
+      const text = `Request #${
+        this.requestCount
+      }: GET ${uri}: OK: (0->${rspBytes} bytes) ${t()}`;
+      console.groupCollapsed(text);
+      console.log(text);
       console.log("Response", rspData);
       console.log("#rsp", rsp);
       console.groupEnd();
       return rspData;
     } catch (e) {
       const error = this.toError(e);
-      console.groupCollapsed(
-        `%cRequest #${this.requestCount}: GET ${uri}: ERROR: ${error.name}: ${error.message}`,
-        "color: #CD5C5C",
-        t()
-      );
+      const text = `%cRequest #${this.requestCount}: GET ${uri}: ERROR: ${
+        error.name
+      }: ${error.message} ${t()}`;
+      console.groupCollapsed(text, "color: #CD5C5C");
+      console.log(text);
       console.log("%cError:", "color: #CD5C5C", error);
       console.groupEnd();
       return error;
@@ -277,21 +278,22 @@ export class Api implements IApi {
       const rspData = rsp.data;
       const reqBytes = ("" + rsp.config.data).length;
       const rspBytes = ("" + rsp.request?.responseText).length;
-      console.groupCollapsed(
-        `Request #${this.requestCount}: POST ${uri}: OK: (${reqBytes}->${rspBytes} bytes)`,
-        t()
-      );
+      const text = `Request #${
+        this.requestCount
+      }: POST ${uri}: OK: (${reqBytes}->${rspBytes} bytes) ${t()}`;
+      console.groupCollapsed(text);
+      console.log(text);
       console.log("Request:", requestData);
       console.log("Response:", rspData);
       console.groupEnd();
       return rspData;
     } catch (e) {
       const error = this.toError(e);
-      console.groupCollapsed(
-        `%cRequest #${this.requestCount}: POST ${uri}: ERROR: ${error.name}: ${error.message}`,
-        "color: #CD5C5C",
-        t()
-      );
+      const text = `%cRequest #${this.requestCount}: POST ${uri}: ERROR: ${
+        error.name
+      }: ${error.message} ${t()}`;
+      console.groupCollapsed("color: #CD5C5C");
+      console.log(text);
       console.log("Request:", requestData);
       console.log("%cError:", "color: #CD5C5C", error);
       console.groupEnd();

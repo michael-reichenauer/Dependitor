@@ -14,6 +14,9 @@ import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
 import { di } from "./common/di";
 import { IAuthenticatorKey } from "./authenticator/Authenticator";
 import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
+import { restoreVirtualConsoleState } from "./common/virtualConsole";
+
+restoreVirtualConsoleState();
 
 const App: React.FC = () => {
   const [size] = useWindowSize();

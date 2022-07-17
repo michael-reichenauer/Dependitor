@@ -21,10 +21,6 @@ export const localBuildTime =
     : // @ts-ignore
       dateToLocalISO(process.env.REACT_APP_BUILD_TIME);
 
-console.info(
-  `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
-);
-
 // Monitors server version of the web site and if newer, triggers a force reload to ensure latest web is shown,
 export const useAppVersionMonitor = () => {
   const [isActive] = useActivity();
@@ -41,6 +37,9 @@ export const useAppVersionMonitor = () => {
       }
 
       try {
+        console.info(
+          `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
+        );
         // console.log(`Checking remote, active=${isActive} ...`)
         const manifest = (await axios.get("/manifest.json")).data;
 
@@ -56,9 +55,6 @@ export const useAppVersionMonitor = () => {
         );
 
         if (localSha !== remoteSha) {
-          console.info(
-            `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
-          );
           console.info("Remote version differs, reloading ...");
           window.location.reload();
         }

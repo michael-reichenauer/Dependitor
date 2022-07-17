@@ -21,6 +21,7 @@ import {
   AuthenticatorNotAcceptedError,
 } from "../authenticator/Authenticator";
 import { showAlert, QuestionAlert } from "../common/AlertDialog";
+import { isMobileDevice } from "../common/utils";
 
 const dialogWidth = 290;
 const dialogHeight = 410;
@@ -116,8 +117,6 @@ export const LoginDlg: FC = () => {
     setLogin(null);
   };
 
-  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent) || true;
-
   const qrGuideText = login?.hasLocalLogin()
     ? localQrGuideText
     : initialQrGuideText;
@@ -183,7 +182,7 @@ export const LoginDlg: FC = () => {
 
               <QRCodeGuideText text={qrGuideText} />
               <QRCodeElement url={qrCodeUrl} />
-              {isMobile && <ClickHint />}
+              {isMobileDevice && <ClickHint />}
 
               <div
                 style={{

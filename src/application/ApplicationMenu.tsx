@@ -13,6 +13,11 @@ import { useTitle } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
 import { QuestionAlert, showAlert } from "../common/AlertDialog";
+import { isMobileDevice } from "../common/utils";
+import {
+  enableVirtualConsole,
+  isVirtualConsoleEnabled,
+} from "../common/virtualConsole";
 
 const getDiagramsMenuItems = (recentDiagrams: DiagramInfoDto[]) => {
   const diagrams = recentDiagrams.slice(1);
@@ -112,6 +117,20 @@ export function ApplicationMenu() {
       true,
       isInStandaloneMode()
     ),
+
+    menuItem(
+      "Enable Debug Console",
+      () => enableVirtualConsole(true),
+      true,
+      isMobileDevice && !isVirtualConsoleEnabled()
+    ),
+    menuItem(
+      "Disable Debug Console",
+      () => enableVirtualConsole(false),
+      true,
+      isMobileDevice && isVirtualConsoleEnabled()
+    ),
+
     menuItem("About", () => setShowAbout(true)),
     // menuParentItem('Advanced', [
     //     menuItem('Clear all local data', () => clearLocalData()),

@@ -7,6 +7,8 @@ export const seconds = 1000;
 export const minutes = 60 * seconds;
 export const hours = 60 * minutes;
 
+export const isMobileDevice = /Android|iPhone|iPad/i.test(navigator.userAgent);
+
 // Returns a duration as a nice human readable string
 export const durationString = (duration: number): string => {
   return humanizeDuration(duration);
