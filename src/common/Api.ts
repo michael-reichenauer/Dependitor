@@ -84,11 +84,12 @@ export class LocalEmulatorError extends NoContactError {}
 
 export const IApiKey = diKey<IApi>();
 export interface IApi {
-  config(onOK: () => void, onError: (error: Error) => void): void;
   check(): Promise<Result<void>>;
+
   loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void>>;
   loginDevice(req: LoginDeviceReq): Promise<Result<string>>;
   logoff(): Promise<Result<void>>;
+
   tryReadBatch(queries: Query[]): Promise<Result<ApiEntity[]>>;
   writeBatch(entities: ApiEntity[]): Promise<Result<ApiEntityRsp[]>>;
   removeBatch(keys: string[]): Promise<Result<void>>;
@@ -107,6 +108,8 @@ export interface IApi {
     username: string,
     authentication: AuthenticationCredentialJSON
   ): Promise<Result<boolean>>;
+
+  withNoProgress<T>(callback: () => Promise<T>): Promise<T>;
 }
 
 @singleton(IApiKey)
@@ -114,12 +117,17 @@ export class Api implements IApi {
   private apiKey = "0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade"; // Must be same as in server side api
 
   private requestCount = 0;
-  private onOK: () => void = () => {};
-  private onError: (error: Error) => void = () => {};
+  private isNoProgress = false;
 
-  config(onOK: () => void, onError: (error: Error) => void): void {
-    this.onOK = onOK;
-    this.onError = onError;
+  public async withNoProgress<T>(callback: () => Promise<T>): Promise<T> {
+    try {
+      console.log("set no progress");
+      this.isNoProgress = true;
+      return await callback();
+    } finally {
+      this.isNoProgress = false;
+      console.log("set progress");
+    }
   }
 
   public async loginDeviceSet(req: LoginDeviceSetReq): Promise<Result<void>> {
@@ -244,7 +252,6 @@ export class Api implements IApi {
       console.log("Response", rspData);
       console.log("#rsp", rsp);
       console.groupEnd();
-      this.onOK();
       return rspData;
     } catch (e) {
       const error = this.toError(e);
@@ -255,7 +262,6 @@ export class Api implements IApi {
       );
       console.log("%cError:", "color: #CD5C5C", error);
       console.groupEnd();
-      this.onError(error);
       return error;
     }
   }
@@ -280,7 +286,6 @@ export class Api implements IApi {
       console.log("Request:", requestData);
       console.log("Response:", rspData);
       console.groupEnd();
-      this.onOK();
       return rspData;
     } catch (e) {
       const error = this.toError(e);
@@ -292,7 +297,6 @@ export class Api implements IApi {
       console.log("Request:", requestData);
       console.log("%cError:", "color: #CD5C5C", error);
       console.groupEnd();
-      this.onError(error);
       return error;
     }
   }

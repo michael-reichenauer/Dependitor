@@ -41,7 +41,9 @@ export class RemoteDB implements IRemoteDB {
   public async tryReadBatch(
     queries: Query[]
   ): Promise<Result<Result<RemoteEntity>[]>> {
-    const apiEntities = await this.api.tryReadBatch(queries);
+    const apiEntities = await this.api.withNoProgress(() =>
+      this.api.tryReadBatch(queries)
+    );
     if (isError(apiEntities)) {
       return apiEntities;
     }

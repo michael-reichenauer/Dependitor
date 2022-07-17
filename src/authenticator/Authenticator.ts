@@ -96,7 +96,8 @@ export class Authenticator implements IAuthenticator {
   public getAuthenticateRequest(): AuthenticateOperation {
     const ua = uaParser();
 
-    const description = `${ua.browser.name} on ${ua.os.name}`;
+    const model = !!ua.device.model ? ua.device.model : ua.os.name;
+    const description = `${ua.browser.name} on ${model}`;
     let clientId: string;
     const userInfo = this.authenticate.readUserInfo();
     if (isError(userInfo) || !userInfo.clientId) {
