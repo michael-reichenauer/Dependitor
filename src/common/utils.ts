@@ -3,6 +3,10 @@ import { isError } from "./Result";
 
 const humanizeDuration = require("humanize-duration");
 
+export const seconds = 1000;
+export const minutes = 60 * seconds;
+export const hours = 60 * minutes;
+
 // Returns a duration as a nice human readable string
 export const durationString = (duration: number): string => {
   return humanizeDuration(duration);

@@ -17,7 +17,13 @@ import {
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
 import { ILocalStoreKey } from "../common/LocalStore";
-import { base64ToString, delay, stringToBase64 } from "../common/utils";
+import {
+  base64ToString,
+  delay,
+  minutes,
+  seconds,
+  stringToBase64,
+} from "../common/utils";
 import { IKeyVaultKey } from "../common/keyVault";
 import { IDataCryptKey } from "../common/DataCrypt";
 import { CustomError } from "../common/CustomError";
@@ -26,6 +32,24 @@ const uaParser = require("ua-parser-js");
 
 export class AuthenticationNotAcceptedError extends CustomError {}
 export class AuthenticationCanceledError extends CustomError {}
+
+// Online is uses to control if device database sync should and can be enable or not
+export const IAuthenticatorKey = diKey<IAuthenticator>();
+export interface IAuthenticator {
+  isAuthenticatorApp(): boolean;
+  activate(): void;
+  getAuthenticateUrl(operation: AuthenticateOperation): string;
+  getAuthenticateRequest(): AuthenticateOperation;
+  tryLoginViaAuthenticator(
+    operation: AuthenticateOperation
+  ): Promise<Result<void>>;
+}
+
+export interface AuthenticateOperation {
+  request: AuthenticateReq;
+  isStarted: boolean;
+  isCanceled: boolean;
+}
 
 // AuthenticateReq is request info that a device encodes in a QR code to the authenticator
 interface AuthenticateReq {
@@ -42,33 +66,15 @@ interface AuthenticateRsp {
   isAccepted: boolean;
 }
 
-export interface AuthenticateOperation {
-  request: AuthenticateReq;
-  isStarted: boolean;
-  isCanceled: boolean;
-}
-
-// Online is uses to control if device database sync should and can be enable or not
-export const IAuthenticatorKey = diKey<IAuthenticator>();
-export interface IAuthenticator {
-  isAuthenticatorApp(): boolean;
-  activate(): void;
-  getAuthenticateUrl(operation: AuthenticateOperation): string;
-  getAuthenticateRequest(): AuthenticateOperation;
-  tryLoginViaAuthenticator(
-    operation: AuthenticateOperation
-  ): Promise<Result<void>>;
-}
-
 const baseAuthenticatorPart = "/a/";
 const deviceIdsKey = "/a/authenticator.deviceIds";
-const maxStoredDeviceIdCount = 10;
-const randomIdLength = 10;
-const tryLoginTimeout = 3 * 60 * 1000; // Wait for authenticator to allow/deny login
-const tryLoginPreWait = 4 * 1000; // Time before starting to poll for result
+const maxStoredDeviceIdCount = 20;
+const randomIdLength = 12;
+const tryLoginTimeout = 3 * minutes; // Wait for authenticator to allow/deny login
+const tryLoginPreWait = 4 * seconds; // Time before starting to poll for result
 const closeMsg = `This device request has been handled.
   
-  Please close this page.`;
+  You can close this page.`;
 
 @singleton(IAuthenticatorKey)
 export class Authenticator implements IAuthenticator {

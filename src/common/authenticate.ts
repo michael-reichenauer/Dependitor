@@ -196,7 +196,6 @@ export class Authenticate implements IAuthenticate {
     // Unwrap the dek so it can be used
     const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
     if (isError(dek)) {
-      console.log("Error", dek);
       // The wDek could not be unwrapped, lets clear the wDek and it might work next time
       this.writeUserInfo({
         username: username,
@@ -214,6 +213,7 @@ export class Authenticate implements IAuthenticate {
   private async registerDevice(
     userInfo: UserInfo
   ): Promise<Result<RegisterRsp>> {
+    console.log("RegisterDevice", userInfo);
     // Generating a new user with random password
     const proposedUsername = !userInfo.username ? "" : userInfo.username;
 
@@ -225,7 +225,6 @@ export class Authenticate implements IAuthenticate {
     if (isError(registrationRsp)) {
       return registrationRsp;
     }
-    console.log("got register options", registrationRsp);
 
     const username = registrationRsp.username;
     const password = this.dataCrypt.generateRandomString(
@@ -247,7 +246,6 @@ export class Authenticate implements IAuthenticate {
     if (isError(registration)) {
       return registration;
     }
-    console.log("registered");
 
     // Let the server verify the registration by validating the challenge is signed with the
     // authenticator hidden private key, which corresponds with the public key
@@ -271,12 +269,11 @@ export class Authenticate implements IAuthenticate {
     credentialId: string
   ): Promise<Result<string>> {
     // GET authentication options from the endpoint that calls
-    console.log("Get auth options for ", username);
+    console.log("authenticate", username);
     const options = await this.api.getWebAuthnAuthenticationOptions(username);
     if (isError(options)) {
       return options;
     }
-    console.log("got authentication options");
 
     // Since both Dependitor and Authenticator can be logged in to same authenticator, lets filter
     options.allowCredentials = options.allowCredentials?.filter(
@@ -288,8 +285,6 @@ export class Authenticate implements IAuthenticate {
     if (isError(authentication)) {
       return authentication;
     }
-
-    console.log("authentiocated");
 
     // Extract the password, which prefixed to the user id
     const password =
