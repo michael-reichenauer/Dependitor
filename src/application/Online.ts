@@ -92,12 +92,7 @@ export class Online implements IOnline {
       const loginRsp = await this.authenticate.login();
       if (loginRsp instanceof WebAuthnNeedReloadError) {
         this.setLoginAfterReloadEnabled(true);
-        showAlert(
-          "Reload Page",
-          "Please manually reload this page to show the authentication dialog.\n" +
-            "Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication.",
-          { showOk: false, showCancel: false }
-        );
+        this.showReloadPageAlert();
         return;
       }
       if (loginRsp instanceof WebAuthnCanceledError) {
@@ -302,6 +297,16 @@ export class Online implements IOnline {
     } else {
       showSyncState(SyncState.Enabled);
     }
+  }
+
+  private showReloadPageAlert() {
+    showAlert(
+      "Reload Page",
+      `Please manually reload this page to show the authentication dialog.
+
+      This browser requires a recently manually loaded page before allowing access to authentication.`,
+      { showOk: false, showCancel: false }
+    );
   }
 
   // toErrorMessage translate network and sync errors to ui messages
