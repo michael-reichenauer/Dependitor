@@ -72,9 +72,6 @@ const maxStoredDeviceIdCount = 20;
 const randomIdLength = 12;
 const tryLoginTimeout = 3 * minutes; // Wait for authenticator to allow/deny login
 const tryLoginPreWait = 4 * seconds; // Time before starting to poll for result
-const closeMsg = `This device request has been handled.
-  
-  You can close this page.`;
 
 @singleton(IAuthenticatorKey)
 export class Authenticator implements IAuthenticator {
@@ -128,7 +125,6 @@ export class Authenticator implements IAuthenticator {
   public async tryLoginViaAuthenticator(
     operation: AuthenticateOperation
   ): Promise<Result<void>> {
-    console.log("tryLoginViaAuthenticator ", operation);
     if (operation.isStarted) {
       console.log("Already started");
       return;
@@ -168,7 +164,6 @@ export class Authenticator implements IAuthenticator {
       return;
     }
     this.activated = true;
-    console.log("Authenticator activated");
 
     this.enable();
   }
@@ -177,23 +172,13 @@ export class Authenticator implements IAuthenticator {
     console.log("enable");
 
     if (this.isClearedId()) {
-      showAlert("Close Page", closeMsg, { showOk: false, showCancel: false });
+      this.showClosePageAlert();
       return;
     }
 
     const device = this.getAuthenticateReq();
     if (isError(device)) {
-      showAlert(
-        "Error",
-        `Invalid device request
-
-        Please close this page.`,
-        {
-          showOk: false,
-          showCancel: false,
-          icon: ErrorAlert,
-        }
-      );
+      this.showInvalidRequestAlert();
       return;
     }
 
@@ -203,53 +188,24 @@ export class Authenticator implements IAuthenticator {
     if (isError(checkRsp)) {
       if (!isError(checkRsp, AuthenticateError)) {
         this.clearDeviceId();
-        const errorMsg = this.toErrorMessage(checkRsp);
-        showAlert(
-          "Error",
-          `${errorMsg}
-
-          Please close this page.`,
-          {
-            showOk: false,
-            showCancel: false,
-            icon: ErrorAlert,
-          }
-        );
+        this.showErrorAlert(checkRsp);
         return;
       }
 
       const loginRsp = await this.authenticate.login();
       if (isError(loginRsp)) {
         if (isError(loginRsp, WebAuthnNeedReloadError)) {
-          showAlert(
-            "Reload Page",
-            `Please manually reload this page to show the authentication dialog.
-
-            Unfortunately, this browser requires a recently manually loaded page before allowing access to authentication.`,
-            { showOk: false, showCancel: false }
-          );
+          this.showReloadPageAlert();
           return;
         }
         this.clearDeviceId();
 
         if (isError(loginRsp, WebAuthnCanceledError)) {
-          showAlert(
-            "Canceled",
-            `Authentication was canceled. 
-            Device '${description}' was not authenticated and allowed to sync. 
-
-            Please close this page.`,
-            { icon: ErrorAlert, showOk: false, showCancel: false }
-          );
+          this.showCanceledAlert(description);
           return;
         }
 
-        const errorMsg = this.toErrorMessage(loginRsp);
-        showAlert("Error", `${errorMsg} ${(loginRsp as Error).toString()}`, {
-          showOk: false,
-          showCancel: false,
-          icon: ErrorAlert,
-        });
+        this.showErrorAlert(loginRsp);
         return;
       }
     }
@@ -264,21 +220,11 @@ export class Authenticator implements IAuthenticator {
 
     const rsp = await this.postAuthenticateOKResponse(device, userInfo);
     if (isError(rsp)) {
-      showAlert(
-        "Error",
-        `Failed to communicate with device '${description}' requesting authorization.
-
-        Please close this page.`,
-        { icon: ErrorAlert, showOk: false }
-      );
+      this.showFailedToCommunicateAlert(description);
       return;
     }
 
-    showAlert(
-      "Allowed Device",
-      `Device '${description}' is now authenticated and allowed to sync with all your devices.`,
-      { icon: SuccessAlert, showOk: false }
-    );
+    this.showAllowedAlert(description);
   }
 
   private async postAuthenticateOKResponse(
@@ -306,28 +252,6 @@ export class Authenticator implements IAuthenticator {
       isAccepted
     );
   }
-
-  // private async postAuthenticateFailedResponse(
-  //   authRequest: AuthenticateReq
-  // ): Promise<Result<void>> {
-  //   const user: User = { username: authRequest.n, password: authRequest.k };
-
-  //   // Post a response to the device, where device is NOT accepted
-  //   const isAccepted = false;
-  //   const rsp: AuthenticateRsp = {
-  //     username: "",
-  //     wDek: "",
-  //     isAccepted: isAccepted,
-  //   };
-
-  //   const channelId = authRequest.c;
-  //   return await this.postAuthenticateResponse(
-  //     rsp,
-  //     user,
-  //     channelId,
-  //     isAccepted
-  //   );
-  // }
 
   private async postAuthenticateResponse(
     authenticateRsp: AuthenticateRsp,
@@ -473,6 +397,84 @@ export class Authenticator implements IAuthenticator {
     );
 
     return deviceIds.includes(id);
+  }
+
+  private showAllowedAlert(description: string) {
+    showAlert(
+      "Allowed Device",
+      `Device '${description}' is now authenticated and allowed to sync with all your devices.`,
+      { icon: SuccessAlert, showOk: false }
+    );
+  }
+
+  private showFailedToCommunicateAlert(description: string) {
+    showAlert(
+      "Error",
+      `Failed to communicate with device '${description}' requesting authorization.
+
+        Please close this page.`,
+      { icon: ErrorAlert, showOk: false }
+    );
+  }
+
+  private showCanceledAlert(description: string) {
+    showAlert(
+      "Canceled",
+      `Authentication was canceled. 
+            Device '${description}' was not authenticated and allowed to sync. 
+
+            Please close this page.`,
+      { icon: ErrorAlert, showOk: false, showCancel: false }
+    );
+  }
+
+  private showReloadPageAlert() {
+    showAlert(
+      "Reload Page",
+      `Please manually reload this page to show the authentication dialog.
+
+            This browser requires a recently manually loaded page before allowing access to authentication.`,
+      { showOk: false, showCancel: false }
+    );
+  }
+
+  private showClosePageAlert() {
+    showAlert(
+      "Close Page",
+      `This device request has been handled.
+  
+      You can close this page.`,
+      { showOk: false, showCancel: false }
+    );
+  }
+
+  private showErrorAlert(error: never) {
+    const errorMsg = this.toErrorMessage(error);
+    showAlert(
+      "Error",
+      `${errorMsg}
+
+          Please close this page.`,
+      {
+        showOk: false,
+        showCancel: false,
+        icon: ErrorAlert,
+      }
+    );
+  }
+
+  private showInvalidRequestAlert() {
+    showAlert(
+      "Error",
+      `Invalid device request
+
+        Please close this page.`,
+      {
+        showOk: false,
+        showCancel: false,
+        icon: ErrorAlert,
+      }
+    );
   }
 
   // toErrorMessage translate network and sync errors to ui messages
