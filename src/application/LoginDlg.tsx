@@ -127,7 +127,7 @@ export const LoginDlg: FC = () => {
       <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
         <LinearProgress style={{ marginBottom: 5 }} />
         <Typography variant="h5" style={{ paddingBottom: 0 }}>
-          Enable Sync
+          Login
         </Typography>
 
         <Formik
