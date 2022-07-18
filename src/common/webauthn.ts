@@ -51,17 +51,20 @@ export class WebAuthn implements IWebAuthn {
       const duration = performance.now() - startTime;
       const error = err as Error;
       const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
-      console.warn(msg);
+
       // alert(msg);
       if (this.isReloadError(error, duration)) {
+        console.log("Reload is needed, ", msg);
         return new WebAuthnNeedReloadError(error);
       }
       if (error.name === "NotAllowedError") {
+        console.log("Authentication canceled,", msg);
         return new WebAuthnCanceledError(error);
       }
       // if (error.name === 'InvalidStateError') {
       //   'Error: Authenticator was probably already registered by user';
       // }
+      console.warn(msg);
       return error as Error;
     }
   }
@@ -77,14 +80,18 @@ export class WebAuthn implements IWebAuthn {
       const duration = performance.now() - startTime;
       const error = err as Error;
       const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
-      console.warn(msg);
+
       // alert(msg);
       if (this.isReloadError(error, duration)) {
+        console.log("Reload is needed, ", msg);
         return new WebAuthnNeedReloadError(error);
       }
       if (error.name === "NotAllowedError") {
+        console.log("Authentication canceled,", msg);
         return new WebAuthnCanceledError(error);
       }
+
+      console.warn(msg);
       return error as Error;
     }
   }
