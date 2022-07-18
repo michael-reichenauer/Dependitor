@@ -27,30 +27,17 @@ export const AuthenticatorPage: FC = () => {
   const showResponseMessage = (rsp: any) => {
     if (isError(rsp, NoRequestError)) {
       showClosePageAlert();
-      return;
-    }
-    if (isError(rsp, InvalidRequestError)) {
+    } else if (isError(rsp, InvalidRequestError)) {
       showInvalidRequestAlert();
-      return;
-    }
-    if (isError(rsp, WebAuthnNeedReloadError)) {
+    } else if (isError(rsp, WebAuthnNeedReloadError)) {
       showReloadPageAlert();
-      return;
-    }
-    if (isError(rsp, WebAuthnCanceledError)) {
+    } else if (isError(rsp, WebAuthnCanceledError)) {
       showCanceledAlert();
-      return;
-    }
-    if (isError(rsp, FailedToRespondError)) {
+    } else if (isError(rsp, FailedToRespondError)) {
       showFailedToCommunicateAlert();
-      return;
-    }
-    if (isError(rsp)) {
+    } else if (isError(rsp)) {
       showErrorAlert(rsp);
-      return;
-    }
-
-    if (rsp) {
+    } else if (rsp) {
       showDeviceAuthenticatedMessage(rsp);
     }
   };
@@ -78,7 +65,7 @@ export const AuthenticatorPage: FC = () => {
 function showDeviceAuthenticatedMessage(description: string) {
   showAlert(
     "Device Authenticated",
-    `'${description}' device s now authenticated
+    `'${description}' device is now authenticated
      and allowed to sync with all your devices.`,
     { icon: SuccessAlert, onOk: () => resetUrl() }
   );

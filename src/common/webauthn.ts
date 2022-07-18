@@ -48,24 +48,7 @@ export class WebAuthn implements IWebAuthn {
       // Pass the options to the browsers built-in WebAuthn api
       return await startRegistration(options);
     } catch (err) {
-      const duration = performance.now() - startTime;
-      const error = err as Error;
-      const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
-
-      // alert(msg);
-      if (this.isReloadError(error, duration)) {
-        console.log("Reload is needed, ", msg);
-        return new WebAuthnNeedReloadError(error);
-      }
-      if (error.name === "NotAllowedError") {
-        console.log("Authentication canceled,", msg);
-        return new WebAuthnCanceledError(error);
-      }
-      // if (error.name === 'InvalidStateError') {
-      //   'Error: Authenticator was probably already registered by user';
-      // }
-      console.warn(msg);
-      return error as Error;
+      return this.toError(err, startTime);
     }
   }
 
@@ -77,23 +60,26 @@ export class WebAuthn implements IWebAuthn {
       // Pass the options to the authenticator and wait for a response
       return await startAuthentication(options);
     } catch (err) {
-      const duration = performance.now() - startTime;
-      const error = err as Error;
-      const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
-
-      // alert(msg);
-      if (this.isReloadError(error, duration)) {
-        console.log("Reload is needed, ", msg);
-        return new WebAuthnNeedReloadError(error);
-      }
-      if (error.name === "NotAllowedError") {
-        console.log("Authentication canceled,", msg);
-        return new WebAuthnCanceledError(error);
-      }
-
-      console.warn(msg);
-      return error as Error;
+      return this.toError(err, startTime);
     }
+  }
+
+  private toError(err: any, startTime: number): Error {
+    const error = err as Error;
+    const duration = performance.now() - startTime;
+    const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
+
+    if (this.isReloadError(error, duration)) {
+      console.log("Reload is needed, ", msg);
+      return new WebAuthnNeedReloadError(error);
+    }
+    if (error.name === "NotAllowedError") {
+      console.log("Authentication canceled,", msg);
+      return new WebAuthnCanceledError(error);
+    }
+
+    console.warn(msg);
+    return error;
   }
 
   private isReloadError(error: Error, duration: number): boolean {

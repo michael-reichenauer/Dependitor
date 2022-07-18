@@ -1,13 +1,21 @@
 import Result, { isError } from "../common/Result";
-import { ILoginProvider } from "./LoginDlg";
 import { IOnlineKey } from "./Online";
-
 import { di } from "../common/di";
 import { IAuthenticateKey } from "../common/authenticate";
 import {
   AuthenticateOperation,
   IAuthenticatorClientKey,
 } from "../authenticator/AuthenticatorClient";
+
+export interface ILoginProvider {
+  login(): Promise<Result<void>>;
+  cancelLogin(): void;
+  loginViaAuthenticator(): void;
+  getAuthenticateUrl(): string;
+  tryLoginViaAuthenticator(): Promise<Result<void>>;
+  hasLocalLogin(): boolean;
+  supportLocalLogin(): Promise<boolean>;
+}
 
 export class LoginProvider implements ILoginProvider {
   private operation: AuthenticateOperation;

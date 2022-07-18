@@ -10,11 +10,9 @@ import {
   Typography,
 } from "@material-ui/core";
 import { Formik, Form } from "formik";
-
-import Result, { isError } from "../common/Result";
+import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
-
 import { setErrorMessage } from "../common/MessageSnackbar";
 import { showAlert, QuestionAlert } from "../common/AlertDialog";
 import { isMobileDevice } from "../common/utils";
@@ -22,6 +20,7 @@ import {
   AuthenticatorCanceledError,
   AuthenticatorNotAcceptedError,
 } from "../authenticator/AuthenticatorClient";
+import { ILoginProvider } from "./LoginProvider";
 
 const dialogWidth = 290;
 const dialogHeight = 410;
@@ -33,16 +32,6 @@ const authenticationNotAcceptedMsg =
 const initialQrGuideText =
   "Scan QR code on your mobile to enable sync with all your devices.";
 const localQrGuideText = "Or scan QR code on your mobile device.";
-
-export interface ILoginProvider {
-  login(): Promise<Result<void>>;
-  cancelLogin(): void;
-  loginViaAuthenticator(): void;
-  getAuthenticateUrl(): string;
-  tryLoginViaAuthenticator(): Promise<Result<void>>;
-  hasLocalLogin(): boolean;
-  supportLocalLogin(): Promise<boolean>;
-}
 
 export function showLoginDlg(provider: ILoginProvider) {
   setLoginFunc(provider);
@@ -62,45 +51,28 @@ export const LoginDlg: FC = () => {
 
   useEffect(() => {
     if (login) {
-      try {
-        login.tryLoginViaAuthenticator().then((rsp) => {
-          setLogin(null);
+      login.tryLoginViaAuthenticator().then((rsp) => {
+        setLogin(null);
+        if (isError(rsp)) {
           if (isError(rsp, AuthenticatorCanceledError)) {
-            // User canceled the login dialog
-            return;
-          }
-          if (isError(rsp, AuthenticatorNotAcceptedError)) {
+            // Ignore user canceled
+          } else if (isError(rsp, AuthenticatorNotAcceptedError)) {
             // The authenticator did not accept this device authenticate request
             setErrorMessage(authenticationNotAcceptedMsg);
-            return;
-          }
-          if (isError(rsp)) {
+          } else {
             // Some other error
             setErrorMessage(deviceSyncFailedMsg);
-            return;
           }
 
-          login.supportLocalLogin().then((isSupported) => {
-            if (isSupported && !login.hasLocalLogin()) {
-              showAlert(
-                "Enable Device Login",
-                `Would you like to setup login on this device?
-  
-                Recommended, since you do not need your mobile every time you login.`,
-                {
-                  onOk: () => login?.login(),
-                  cancelText: "Skip",
-                  showCancel: true,
-                  icon: QuestionAlert,
-                }
-              );
-            }
-          });
+          return;
+        }
+
+        login.supportLocalLogin().then((isSupported) => {
+          if (isSupported && !login.hasLocalLogin()) {
+            showEnableLocalLoginPrompt(login);
+          }
         });
-      } catch (error) {
-        console.log("error", error);
-        return;
-      }
+      });
     }
   }, [login, setLogin]);
 
@@ -270,3 +242,18 @@ const ClickHint: FC = () => {
     </>
   );
 };
+
+function showEnableLocalLoginPrompt(login: ILoginProvider) {
+  showAlert(
+    "Enable Device Login",
+    `Would you like to setup login on this device?
+  
+                Recommended, since you do not need your mobile every time you login.`,
+    {
+      onOk: () => login?.login(),
+      cancelText: "Skip",
+      showCancel: true,
+      icon: QuestionAlert,
+    }
+  );
+}

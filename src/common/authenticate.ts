@@ -133,7 +133,6 @@ export class Authenticate implements IAuthenticate {
   }
 
   private writeUserInfo(userInfo: UserInfo): void {
-    console.log("write user info", userInfo);
     this.localStore.write(this.userInfoKey, userInfo);
   }
 
@@ -213,7 +212,7 @@ export class Authenticate implements IAuthenticate {
   private async registerDevice(
     userInfo: UserInfo
   ): Promise<Result<RegisterRsp>> {
-    console.log("RegisterDevice", userInfo);
+    console.log("RegisterDevice");
     // Generating a new user with random password
     const proposedUsername = !userInfo.username ? "" : userInfo.username;
 
