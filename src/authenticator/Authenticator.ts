@@ -10,16 +10,16 @@ import {
 } from "../common/Api";
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "../common/Api";
-import { IAuthenticateKey, UserInfo } from "../common/authenticate";
+import { IAuthenticateKey } from "../common/authenticate";
 import { ErrorAlert, showAlert, SuccessAlert } from "../common/AlertDialog";
 import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
-import { ILocalStoreKey } from "../common/LocalStore";
 import {
   base64ToString,
   delay,
+  jsonParse,
   minutes,
   seconds,
   stringToBase64,
@@ -30,15 +30,18 @@ import { CustomError } from "../common/CustomError";
 import now from "../common/stopwatch";
 const uaParser = require("ua-parser-js");
 
+export function isAuthenticatorApp(): boolean {
+  return window.location.pathname.startsWith(authenticatorUrlPath);
+}
+
 // Online is uses to control if device database sync should and can be enable or not
 export const IAuthenticatorKey = diKey<IAuthenticator>();
 export interface IAuthenticator {
-  isAuthenticatorApp(): boolean;
   activate(): void;
-  getAuthenticateUrl(operation: AuthenticatorOperation): string;
-  getAuthenticateRequest(): AuthenticatorOperation;
+  getAuthenticateUrl(operation: AuthenticateOperation): string;
+  getAuthenticateOperation(): AuthenticateOperation;
   tryLoginViaAuthenticator(
-    operation: AuthenticatorOperation
+    operation: AuthenticateOperation
   ): Promise<Result<void>>;
 }
 
@@ -46,14 +49,14 @@ export class AuthenticatorError extends CustomError {}
 export class AuthenticatorNotAcceptedError extends AuthenticatorError {}
 export class AuthenticatorCanceledError extends AuthenticatorError {}
 
-export interface AuthenticatorOperation {
-  request: AuthenticatorReq;
+export interface AuthenticateOperation {
+  request: AuthenticateReq;
   isStarted: boolean;
   isCanceled: boolean;
 }
 
 // AuthenticateReq is request info that a device encodes in a QR code to the authenticator
-interface AuthenticatorReq {
+interface AuthenticateReq {
   n: string; // Unique client device name for this client/browser instance
   d: string; // Client description, like .e.g Edge, IPad
   k: string; // The password key to encrypt response from authenticator to this device
@@ -67,12 +70,10 @@ interface AuthenticatorRsp {
   isAccepted: boolean;
 }
 
-const baseAuthenticatorPart = "/a/";
-const deviceIdsKey = "/a/authenticator.deviceIds";
-const maxStoredDeviceIdCount = 20;
-const randomIdLength = 12;
+const authenticatorUrlPath = "/a/"; // The base path which determines if authenticator is requested
+const randomIdLength = 12; // The length of random user id and names
 const tryLoginTimeout = 3 * minutes; // Wait for authenticator to allow/deny login
-const tryLoginPreWait = 4 * seconds; // Time before starting to poll for result
+const tryLoginPreWait = 4 * seconds; // Time before starting to poll server for result
 
 @singleton(IAuthenticatorKey)
 export class Authenticator implements IAuthenticator {
@@ -81,51 +82,35 @@ export class Authenticator implements IAuthenticator {
   constructor(
     private authenticate = di(IAuthenticateKey),
     private api = di(IApiKey),
-    private localStore = di(ILocalStoreKey),
     private dataCrypt = di(IDataCryptKey),
     private keyVault = di(IKeyVaultKey)
   ) {
-    if (this.isAuthenticatorApp()) {
+    if (isAuthenticatorApp()) {
+      // Since authenticate stores some local values, which needs to be separated from main app
       this.authenticate.setIsAuthenticator();
     }
   }
 
-  public isAuthenticatorApp(): boolean {
-    return window.location.pathname.startsWith(baseAuthenticatorPart);
-  }
-
-  public getAuthenticateRequest(): AuthenticatorOperation {
-    const ua = uaParser();
-
-    const model = !!ua.device.model ? ua.device.model : ua.os.name;
-    const description = `${ua.browser.name} on ${model}`;
-    let clientId: string;
-    const userInfo = this.authenticate.readUserInfo();
-    if (isError(userInfo) || !userInfo.clientId) {
-      clientId = this.dataCrypt.generateRandomString(randomIdLength);
-    } else {
-      clientId = userInfo.clientId;
-    }
-
-    const authenticateReq: AuthenticatorReq = {
-      n: clientId,
-      d: description,
+  public getAuthenticateOperation(): AuthenticateOperation {
+    const authenticateReq: AuthenticateReq = {
+      n: this.getClientId(),
+      d: this.getDeviceDescription(),
       k: this.dataCrypt.generateRandomString(randomIdLength),
       c: this.dataCrypt.generateRandomString(randomIdLength),
     };
+
     return { request: authenticateReq, isStarted: false, isCanceled: false };
   }
 
-  public getAuthenticateUrl(operation: AuthenticatorOperation): string {
-    const requestJson = JSON.stringify(operation.request);
-    const code = stringToBase64(requestJson);
+  public getAuthenticateUrl(operation: AuthenticateOperation): string {
+    const request = operation.request;
+    const code = this.stringifyAuthenticatorReq(request);
 
-    const baseUrl = `${window.location.protocol}//${window.location.host}`;
-    return `${baseUrl}${baseAuthenticatorPart}${code}`;
+    return `${this.getAuthenticatorUrl()}${code}`;
   }
 
   public async tryLoginViaAuthenticator(
-    operation: AuthenticatorOperation
+    operation: AuthenticateOperation
   ): Promise<Result<void>> {
     if (operation.isStarted) {
       console.log("Already started");
@@ -172,13 +157,12 @@ export class Authenticator implements IAuthenticator {
 
   private async enable(): Promise<Result<void>> {
     console.log("enable");
-
-    if (this.isClearedId()) {
+    if (!this.getAuthenticateCode()) {
       this.showClosePageAlert();
       return;
     }
 
-    const device = this.getAuthenticateReq();
+    const device = this.parseAuthenticatorReq();
     if (isError(device)) {
       this.showInvalidRequestAlert();
       return;
@@ -189,7 +173,6 @@ export class Authenticator implements IAuthenticator {
     const checkRsp = await this.authenticate.check();
     if (isError(checkRsp)) {
       if (!isError(checkRsp, AuthenticateError)) {
-        this.clearDeviceId();
         this.showErrorAlert(checkRsp);
         return;
       }
@@ -200,7 +183,6 @@ export class Authenticator implements IAuthenticator {
           this.showReloadPageAlert();
           return;
         }
-        this.clearDeviceId();
 
         if (isError(loginRsp, WebAuthnCanceledError)) {
           this.showCanceledAlert(description);
@@ -212,27 +194,27 @@ export class Authenticator implements IAuthenticator {
       }
     }
 
-    //await this.login();
-    console.log("Logged in");
-    this.clearDeviceId();
-    const userInfo = this.authenticate.readUserInfo();
-    if (isError(userInfo)) {
-      return userInfo;
-    }
+    console.log("Authenticator logged in");
 
-    const rsp = await this.postAuthenticateOKResponse(device, userInfo);
+    const rsp = await this.postAuthenticateOKResponse(device);
     if (isError(rsp)) {
       this.showFailedToCommunicateAlert(description);
       return;
     }
 
+    // A message was posted to the device that it is now authenticated and allowed to sync
     this.showDeviceAuthenticatedAlert(description);
   }
 
   private async postAuthenticateOKResponse(
-    authRequest: AuthenticatorReq,
-    userInfo: UserInfo
+    authRequest: AuthenticateReq
   ): Promise<Result<void>> {
+    const userInfo = this.authenticate.readUserInfo();
+    if (isError(userInfo)) {
+      this.showErrorAlert(userInfo);
+      return userInfo;
+    }
+
     const user: User = { username: authRequest.n, password: authRequest.k };
 
     // Get the data encryption key and wrap/encrypt it for the device user (as string)
@@ -281,7 +263,7 @@ export class Authenticator implements IAuthenticator {
   }
 
   private async retrieveAuthenticateResponse(
-    operation: AuthenticatorOperation,
+    operation: AuthenticateOperation,
     user: User
   ): Promise<Result<AuthenticatorRsp>> {
     const authData = await this.loginDevice(operation);
@@ -299,7 +281,7 @@ export class Authenticator implements IAuthenticator {
   }
 
   private async loginDevice(
-    operation: AuthenticatorOperation
+    operation: AuthenticateOperation
   ): Promise<Result<string>> {
     const req: LoginDeviceReq = { channelId: operation.request.c };
 
@@ -340,65 +322,51 @@ export class Authenticator implements IAuthenticator {
     return new AuthenticateError();
   }
 
-  private getAuthenticateReq(): Result<AuthenticatorReq> {
-    let id: string = "";
-    try {
-      if (!this.isAuthenticatorApp()) {
-        return new Error();
-      }
+  private getDeviceDescription(): string {
+    const ua = uaParser();
 
-      if (this.isClearedId()) {
-        // This id has been handled and the page was just reloaded, ignore
-        return new Error();
-      }
-
-      id = window.location.pathname.substring(baseAuthenticatorPart.length);
-
-      const infoJs = base64ToString(id);
-      const authenticateReq: AuthenticatorReq = JSON.parse(infoJs);
-
-      return authenticateReq;
-    } catch (error) {
-      if (id) {
-        this.clearDeviceId();
-      }
-      return error as Error;
-    }
+    const model = !!ua.device.model ? ua.device.model : ua.os.name;
+    return `${ua.browser.name} on ${model}`;
   }
 
-  // clearDeviceId remembers handled device id, in case the page is reloaded.
-  private clearDeviceId(): void {
-    const id = window.location.pathname.substring(baseAuthenticatorPart.length);
-    if (!id) {
-      return;
+  private getClientId() {
+    let clientId: string;
+    const userInfo = this.authenticate.readUserInfo();
+    if (isError(userInfo) || !userInfo.clientId) {
+      clientId = this.dataCrypt.generateRandomString(randomIdLength);
+    } else {
+      clientId = userInfo.clientId;
     }
-
-    let deviceIds = this.localStore.readOrDefault<Array<string>>(
-      deviceIdsKey,
-      []
-    );
-
-    if (deviceIds.includes(id)) {
-      return;
-    }
-
-    // Prepend id and store the most resent ids
-    deviceIds.unshift(id);
-    this.localStore.write(
-      deviceIdsKey,
-      deviceIds.slice(0, maxStoredDeviceIdCount)
-    );
+    return clientId;
   }
 
-  // isClearedId returns true if this device id has been handled before
-  private isClearedId(): boolean {
-    const id = window.location.pathname.substring(baseAuthenticatorPart.length);
-    const deviceIds = this.localStore.readOrDefault<Array<string>>(
-      deviceIdsKey,
-      []
-    );
+  private stringifyAuthenticatorReq(request: AuthenticateReq) {
+    const requestJson = JSON.stringify(request);
+    const code = stringToBase64(requestJson);
+    return code;
+  }
 
-    return deviceIds.includes(id);
+  private parseAuthenticatorReq(): Result<AuthenticateReq> {
+    const authenticateCode = this.getAuthenticateCode();
+
+    const infoJs = base64ToString(authenticateCode);
+    return jsonParse<AuthenticateReq>(infoJs);
+  }
+
+  private getAuthenticatorUrl(): string {
+    const baseUrl = `${window.location.protocol}//${window.location.host}`;
+    return `${baseUrl}${authenticatorUrlPath}`;
+  }
+
+  private getAuthenticateCode(): string {
+    return window.location.pathname.substring(authenticatorUrlPath.length);
+  }
+
+  private showInvalidRequestAlert() {
+    showAlert("Error", `Invalid device authentication request`, {
+      icon: ErrorAlert,
+      onOk: () => this.resetUrl(),
+    });
   }
 
   private showDeviceAuthenticatedAlert(description: string) {
@@ -406,17 +374,15 @@ export class Authenticator implements IAuthenticator {
       "Device Authenticated",
       `'${description}' is now authenticated
        and allowed to sync with all your devices.`,
-      { icon: SuccessAlert, showOk: false }
+      { icon: SuccessAlert, onOk: () => this.resetUrl() }
     );
   }
 
   private showFailedToCommunicateAlert(description: string) {
     showAlert(
       "Error",
-      `Failed to communicate with device '${description}' requesting authorization.
-
-        Please close this page.`,
-      { icon: ErrorAlert, showOk: false }
+      `Failed to communicate with device '${description}' requesting authorization.`,
+      { icon: ErrorAlert, onOk: () => this.resetUrl() }
     );
   }
 
@@ -424,10 +390,8 @@ export class Authenticator implements IAuthenticator {
     showAlert(
       "Canceled",
       `Authentication was canceled. 
-      Device '${description}' was not authenticated and allowed to sync. 
-
-      Please close this page.`,
-      { icon: ErrorAlert, showOk: false, showCancel: false }
+      Device '${description}' was not authenticated and allowed to sync. `,
+      { icon: ErrorAlert, onOk: () => this.resetUrl() }
     );
   }
 
@@ -442,42 +406,22 @@ export class Authenticator implements IAuthenticator {
   }
 
   private showClosePageAlert() {
-    showAlert(
-      "Close Page",
-      `This device request has been handled.
-  
-      You can close this page.`,
-      { showOk: false, showCancel: false }
-    );
+    showAlert("Close Page", `You can now close this page.`, {
+      showOk: false,
+      showCancel: false,
+    });
   }
 
-  private showErrorAlert(error: never) {
+  private showErrorAlert(error: Error) {
     const errorMsg = this.toErrorMessage(error);
-    showAlert(
-      "Error",
-      `${errorMsg}
-
-      Please close this page.`,
-      {
-        showOk: false,
-        showCancel: false,
-        icon: ErrorAlert,
-      }
-    );
+    showAlert("Error", `${errorMsg}`, {
+      icon: ErrorAlert,
+      onOk: () => this.resetUrl(),
+    });
   }
 
-  private showInvalidRequestAlert() {
-    showAlert(
-      "Error",
-      `Invalid device request
-
-      Please close this page.`,
-      {
-        showOk: false,
-        showCancel: false,
-        icon: ErrorAlert,
-      }
-    );
+  private resetUrl(): void {
+    window.location.replace(this.getAuthenticatorUrl());
   }
 
   // toErrorMessage translate network and sync errors to ui messages

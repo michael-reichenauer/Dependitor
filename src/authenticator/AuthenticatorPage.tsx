@@ -7,6 +7,7 @@ export const AuthenticatorPage: FC = () => {
   const authenticator = di(IAuthenticatorKey);
 
   useEffect(() => {
+    document.title = "Authenticator";
     authenticator.activate();
   });
 
@@ -18,9 +19,6 @@ export const AuthenticatorPage: FC = () => {
         }}
       >
         <Progress />
-        {/* <Typography variant="h6">Devices:</Typography>
-        <Typography>Some device 1</Typography>
-        <Typography>Some device 2 ...</Typography> */}
       </div>
     </>
   );

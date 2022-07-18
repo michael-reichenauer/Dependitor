@@ -10,9 +10,8 @@ import AlertDialog from "./common/AlertDialog";
 import PromptDialog from "./common/PromptDialog";
 import Nodes from "./application/Nodes";
 import NodeLabelDialog from "./application/diagram/LabelEditor";
+import { isAuthenticatorApp } from "./authenticator/Authenticator";
 import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
-import { di } from "./common/di";
-import { IAuthenticatorKey } from "./authenticator/Authenticator";
 import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 import { restoreVirtualConsoleState } from "./common/virtualConsole";
 
@@ -26,7 +25,7 @@ const App: React.FC = () => {
   useAppVersionMonitor();
 
   // If the authenticator app is requested, show that ui
-  if (di(IAuthenticatorKey).isAuthenticatorApp()) {
+  if (isAuthenticatorApp()) {
     return (
       <>
         <AuthenticatorBar height={55} />

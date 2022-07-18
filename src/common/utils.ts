@@ -1,5 +1,5 @@
 // Some handy utility functions
-import { isError } from "./Result";
+import Result, { isError } from "./Result";
 
 const humanizeDuration = require("humanize-duration");
 
@@ -32,6 +32,19 @@ export const randomString = (count: number): string => {
   }
   return randomText;
 };
+
+export function jsonStringify<T>(obj: T): string {
+  return JSON.stringify(obj);
+}
+
+export function jsonParse<T>(jsonText: string): Result<T> {
+  try {
+    const obj = JSON.parse(jsonText);
+    return obj as T;
+  } catch (error) {
+    return error as Error;
+  }
+}
 
 // Returns the distance between 2 points
 export const distance = (
