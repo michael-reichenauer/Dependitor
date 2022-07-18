@@ -162,9 +162,13 @@ export function stringToBase64(text: string): string {
   return bufferToBase64(enc.encode(text));
 }
 
-export function base64ToString(text: string): string {
-  var enc = new TextDecoder("utf-8");
-  return enc.decode(base64ToBuffer(text));
+export function base64ToString(text: string): Result<string> {
+  try {
+    var enc = new TextDecoder("utf-8");
+    return enc.decode(base64ToBuffer(text));
+  } catch (error) {
+    return error as Error;
+  }
 }
 
 export function bufferToBase64(buffer: ArrayBuffer): string {

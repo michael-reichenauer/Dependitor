@@ -16,12 +16,12 @@ import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
 
 import { setErrorMessage } from "../common/MessageSnackbar";
+import { showAlert, QuestionAlert } from "../common/AlertDialog";
+import { isMobileDevice } from "../common/utils";
 import {
   AuthenticatorCanceledError,
   AuthenticatorNotAcceptedError,
-} from "../authenticator/Authenticator";
-import { showAlert, QuestionAlert } from "../common/AlertDialog";
-import { isMobileDevice } from "../common/utils";
+} from "../authenticator/AuthenticatorClient";
 
 const dialogWidth = 290;
 const dialogHeight = 410;

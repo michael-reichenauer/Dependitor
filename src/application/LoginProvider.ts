@@ -1,22 +1,23 @@
 import Result, { isError } from "../common/Result";
 import { ILoginProvider } from "./LoginDlg";
 import { IOnlineKey } from "./Online";
-import {
-  AuthenticateOperation,
-  IAuthenticatorKey,
-} from "../authenticator/Authenticator";
+
 import { di } from "../common/di";
 import { IAuthenticateKey } from "../common/authenticate";
+import {
+  AuthenticateOperation,
+  IAuthenticatorClientKey,
+} from "../authenticator/AuthenticatorClient";
 
 export class LoginProvider implements ILoginProvider {
   private operation: AuthenticateOperation;
 
   constructor(
     private online = di(IOnlineKey),
-    private authenticator = di(IAuthenticatorKey),
+    private authenticatorClient = di(IAuthenticatorClientKey),
     private authenticate = di(IAuthenticateKey)
   ) {
-    this.operation = authenticator.getAuthenticateOperation();
+    this.operation = authenticatorClient.getAuthenticateOperation();
   }
   public async supportLocalLogin(): Promise<boolean> {
     return await this.authenticate.supportLocalLogin();
@@ -27,12 +28,12 @@ export class LoginProvider implements ILoginProvider {
   }
 
   public getAuthenticateUrl(): string {
-    return this.authenticator.getAuthenticateUrl(this.operation);
+    return this.authenticatorClient.getAuthenticateUrl(this.operation);
   }
 
   public async tryLoginViaAuthenticator(): Promise<Result<void>> {
     try {
-      const rsp = await this.authenticator.tryLoginViaAuthenticator(
+      const rsp = await this.authenticatorClient.tryLoginViaAuthenticator(
         this.operation
       );
       if (isError(rsp)) {

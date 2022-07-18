@@ -10,7 +10,7 @@ import AlertDialog from "./common/AlertDialog";
 import PromptDialog from "./common/PromptDialog";
 import Nodes from "./application/Nodes";
 import NodeLabelDialog from "./application/diagram/LabelEditor";
-import { isAuthenticatorApp } from "./authenticator/Authenticator";
+import { isAuthenticatorApp } from "./authenticator/AuthenticatorProtocol";
 import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
 import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 import { restoreVirtualConsoleState } from "./common/virtualConsole";
