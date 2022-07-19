@@ -1,12 +1,9 @@
 import { atom, useAtom } from "jotai";
 import { di, diKey, singleton } from "./../common/di";
 import { SetAtom } from "jotai/core/types";
-import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
-import { ILoginProvider, showLoginDlg } from "./LoginDlg";
+import { IAuthenticateKey } from "../common/authenticate";
+import { showLoginDlg } from "./LoginDlg";
 import {
-  IApi,
-  User,
-  IApiKey,
   NoContactError,
   LocalApiServerError,
   LocalEmulatorError,
@@ -19,16 +16,25 @@ import {
   setInfoMessage,
 } from "../common/MessageSnackbar";
 import { setSuccessMessage } from "./../common/MessageSnackbar";
-import { IStore, IStoreKey } from "./diagram/Store";
+import { IStoreKey } from "./diagram/Store";
 import { activityEventName } from "../common/activity";
-import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
+import { ILocalStoreKey } from "./../common/LocalStore";
 import { orDefault } from "./../common/Result";
+import {
+  WebAuthnCanceledError,
+  WebAuthnNeedReloadError,
+} from "../common/webauthn";
+import { LoginProvider } from "./LoginProvider";
+import { showAlert } from "../common/AlertDialog";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
 export interface IOnline {
   enableSync(): Promise<Result<void>>;
   disableSync(): void;
+
+  login(): Promise<Result<void>>;
+  cancelLogin(): void;
 }
 
 // Current sync state to be shown e.g. in ui
@@ -49,20 +55,23 @@ export const useSyncMode = (): SyncState => {
   return syncMode;
 };
 
-const persistentSyncKeyName = "syncState";
-const deviseSyncOKMessage = "Device sync is OK";
+const persistentSyncKeyName = "online.syncState";
+const loginAfterReloadKeyName = "online.loginAfterReload";
+
+const deviseSyncOKMessage = "Device sync is enabled and OK";
+const deviceSyncDisabledMsg = "Device sync is disabled";
+const deviceSyncCanceledMsg = "Authentication canceled";
 
 @singleton(IOnlineKey)
-export class Online implements IOnline, ILoginProvider {
+export class Online implements IOnline {
   private isEnabled = false;
   private isError = false;
   private firstActivate = true;
 
   constructor(
-    private authenticate: IAuthenticate = di(IAuthenticateKey),
-    private api: IApi = di(IApiKey),
-    private store: IStore = di(IStoreKey),
-    private localStore: ILocalStore = di(ILocalStoreKey)
+    private authenticate = di(IAuthenticateKey),
+    private store = di(IStoreKey),
+    private localStore = di(ILocalStoreKey)
   ) {
     // Listen for user activate events to control if device sync should be activated or deactivated
     document.addEventListener(activityEventName, (activity: any) =>
@@ -74,28 +83,26 @@ export class Online implements IOnline, ILoginProvider {
     });
   }
 
-  // createAccount called by LoginDlg when user wants to create an new user account
-  public async createAccount(user: User): Promise<Result<void>> {
-    try {
-      this.showProgress();
-      const createRsp = await this.authenticate.createUser(user);
-      if (isError(createRsp)) {
-        setErrorMessage("Failed to create account");
-        return createRsp;
-      }
-      clearErrorMessages();
-    } finally {
-      this.hideProgress();
-    }
-  }
-
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
-  public async login(user: User): Promise<Result<void>> {
+  public async login(): Promise<Result<void>> {
+    console.log("login");
     try {
       this.showProgress();
 
-      const loginRsp = await this.authenticate.login(user);
+      const loginRsp = await this.authenticate.login();
+      if (loginRsp instanceof WebAuthnNeedReloadError) {
+        this.setLoginAfterReloadEnabled(true);
+        this.showReloadPageAlert();
+        return;
+      }
+      if (loginRsp instanceof WebAuthnCanceledError) {
+        setInfoMessage(deviceSyncCanceledMsg);
+        setInfoMessage(deviceSyncDisabledMsg);
+        this.cancelLogin();
+        return;
+      }
       if (isError(loginRsp)) {
+        console.error("Failed to login:", loginRsp);
         setErrorMessage(this.toErrorMessage(loginRsp));
         return loginRsp;
       }
@@ -107,8 +114,14 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
+  // cancelLogin called by LoginDlg if user cancels/closes the dialog
+  public cancelLogin(): void {
+    this.disableSync();
+  }
+
   // enableSync called when device sync should be enabled
   public async enableSync(): Promise<Result<void>> {
+    console.log("enable");
     try {
       this.showProgress();
 
@@ -125,7 +138,10 @@ export class Online implements IOnline, ILoginProvider {
 
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the login dialog
-        showLoginDlg(this);
+        if (this.getPersistentIsEnabled() && this.authenticate.isLocalLogin()) {
+          return await this.login();
+        }
+        showLoginDlg(new LoginProvider(this));
         return checkRsp;
       }
 
@@ -140,6 +156,7 @@ export class Online implements IOnline, ILoginProvider {
       // Enable database sync and verify that sync does work
       this.setDatabaseSync(true);
       const syncResult = await this.store.triggerSync();
+
       if (isError(syncResult)) {
         // Database sync failed, it should nog happen in production but might during development
         setErrorMessage(this.toErrorMessage(syncResult));
@@ -156,6 +173,8 @@ export class Online implements IOnline, ILoginProvider {
       this.isError = false;
       setSuccessMessage(deviseSyncOKMessage);
       showSyncState(SyncState.Enabled);
+    } catch (error) {
+      return error as Error;
     } finally {
       this.hideProgress();
     }
@@ -163,13 +182,17 @@ export class Online implements IOnline, ILoginProvider {
 
   // disableSync called when disabling device sync
   public disableSync(): void {
+    const wasEnabled = this.isEnabled;
     this.setPersistentIsEnabled(false);
     this.isEnabled = false;
     this.isError = false;
     this.setDatabaseSync(false);
-    this.authenticate.resetLogin();
     clearErrorMessages();
-    setInfoMessage("Device sync is disabled");
+    if (wasEnabled) {
+      this.authenticate.resetLogin();
+      setInfoMessage(deviceSyncDisabledMsg);
+    }
+
     showSyncState(SyncState.Disabled);
   }
 
@@ -200,7 +223,7 @@ export class Online implements IOnline, ILoginProvider {
   // onActivityEvent called whenever user activity changes, e.g. not active or activated page
   private onActivityEvent(activity: CustomEvent) {
     const isActive = activity.detail;
-    console.log(`onActivity: ${isActive}`);
+    // console.log(`onActivity: ${isActive}`);
 
     if (!isActive) {
       // User no longer active, inactivate database sync if enabled
@@ -217,6 +240,12 @@ export class Online implements IOnline, ILoginProvider {
     if (this.firstActivate) {
       // First activity signal, checking if sync should be enabled automatically
       this.firstActivate = false;
+      if (this.getLoginAfterReloadEnabled()) {
+        this.setLoginAfterReloadEnabled(false);
+        setTimeout(() => this.login(), 0);
+        return;
+      }
+
       if (this.getPersistentIsEnabled()) {
         setTimeout(() => this.enableSync(), 0);
         return;
@@ -244,6 +273,16 @@ export class Online implements IOnline, ILoginProvider {
     this.localStore.write(persistentSyncKeyName, state);
   }
 
+  // getLoginAfterReloadEnabled returns true if a login should be done once after a reload
+  private getLoginAfterReloadEnabled() {
+    return orDefault(this.localStore.tryRead(loginAfterReloadKeyName), false);
+  }
+
+  // setLoginAfterReloadEnabled stores if  login should be done once after a reload
+  private setLoginAfterReloadEnabled(state: boolean) {
+    this.localStore.write(loginAfterReloadKeyName, state);
+  }
+
   // showProgress notifies ui to show progress icon while trying to enable sync ot not active
   private showProgress(): void {
     showSyncState(SyncState.Progress);
@@ -258,6 +297,16 @@ export class Online implements IOnline, ILoginProvider {
     } else {
       showSyncState(SyncState.Enabled);
     }
+  }
+
+  private showReloadPageAlert() {
+    showAlert(
+      "Reload Page",
+      `Please manually reload this page to show the authentication dialog.
+
+      This browser requires a recently manually loaded page before allowing access to authentication.`,
+      { showOk: false, showCancel: false }
+    );
   }
 
   // toErrorMessage translate network and sync errors to ui messages

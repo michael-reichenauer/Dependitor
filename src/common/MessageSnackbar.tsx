@@ -38,6 +38,7 @@ const Enable = () => {
   useEffect(() => {
     // Initialize canvas
     setErrorFunc = (errorMsg: string) => {
+      console.log("Error message:", errorMsg);
       const sb = enqueueSnackbar(errorMsg, {
         variant: "error",
         onClick: () => {
@@ -49,12 +50,14 @@ const Enable = () => {
       errorSnackBars.push(sb);
     };
     setInfoFunc = (msg: string) => {
+      console.log("Info message:", msg);
       const sb = enqueueSnackbar(msg, {
         variant: "info",
         onClick: () => closeSnackbar(sb),
       });
     };
     setSuccessFunc = (msg) => {
+      console.log("Success message:", msg);
       clearErrorMessages();
       const sb = enqueueSnackbar(msg, {
         variant: "success",

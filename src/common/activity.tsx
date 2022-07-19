@@ -1,10 +1,10 @@
 import { Backdrop, makeStyles } from "@material-ui/core";
 import React from "react";
 import { useEffect, useState } from "react";
-import { durationString } from "./utils";
+import { durationString, minutes, seconds } from "./utils";
 
-const activityTimeout = 60 * 1000;
-const activityMargin = 1000;
+const activityTimeout = 3 * minutes; // Timeout before user is considered inactive
+const activityMargin = 1 * seconds;
 
 let activityTime = 0;
 let activityStartTime = 0;

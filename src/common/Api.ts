@@ -4,6 +4,29 @@ import timing from "./timing";
 import Result, { isError } from "./Result";
 import { diKey, singleton } from "./di";
 import { CustomError } from "./CustomError";
+import {
+  AuthenticationCredentialJSON,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationCredentialJSON,
+} from "@simplewebauthn/typescript-types";
+import { withProgress } from "./Progress";
+
+export interface GetWebAuthnRegistrationOptionsRsp {
+  options: PublicKeyCredentialCreationOptionsJSON;
+  username: string;
+}
+
+export interface LoginDeviceSetReq {
+  channelId: string;
+  isAccept: boolean;
+  username: string;
+  authData: string;
+}
+
+export interface LoginDeviceReq {
+  channelId: string;
+}
 
 export interface User {
   username: string;
@@ -18,6 +41,14 @@ export interface CreateUserReq {
 export interface LoginRsp {
   token: string;
   wDek: string;
+}
+
+export interface RegistrationOptionsRsp {
+  options: PublicKeyCredentialCreationOptionsJSON;
+}
+
+export interface AuthenticationOptionsRsp {
+  options: PublicKeyCredentialRequestOptionsJSON;
 }
 
 export type ApiEntityStatus = "value" | "noValue" | "notModified" | "error";
@@ -42,6 +73,7 @@ export interface Query {
 }
 
 export class NetworkError extends CustomError {}
+export class ServerError extends NetworkError {}
 export class AuthenticateError extends NetworkError {}
 export class CredentialError extends AuthenticateError {}
 export class TokenError extends AuthenticateError {}
@@ -52,14 +84,32 @@ export class LocalEmulatorError extends NoContactError {}
 
 export const IApiKey = diKey<IApi>();
 export interface IApi {
-  config(onOK: () => void, onError: (error: Error) => void): void;
-  login(user: User): Promise<Result<LoginRsp>>;
-  logoff(): Promise<Result<void>>;
-  createAccount(createUser: CreateUserReq): Promise<Result<void>>;
   check(): Promise<Result<void>>;
+
+  loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void>>;
+  loginDevice(req: LoginDeviceReq): Promise<Result<string>>;
+  logoff(): Promise<Result<void>>;
+
   tryReadBatch(queries: Query[]): Promise<Result<ApiEntity[]>>;
   writeBatch(entities: ApiEntity[]): Promise<Result<ApiEntityRsp[]>>;
   removeBatch(keys: string[]): Promise<Result<void>>;
+
+  getWebAuthnRegistrationOptions(
+    username: string
+  ): Promise<Result<GetWebAuthnRegistrationOptionsRsp>>;
+  verifyWebAuthnRegistration(
+    username: string,
+    registration: RegistrationCredentialJSON
+  ): Promise<Result<boolean>>;
+  getWebAuthnAuthenticationOptions(
+    username: string
+  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON>>;
+  verifyWebAuthnAuthentication(
+    username: string,
+    authentication: AuthenticationCredentialJSON
+  ): Promise<Result<boolean>>;
+
+  withNoProgress<T>(callback: () => Promise<T>): Promise<T>;
 }
 
 @singleton(IApiKey)
@@ -67,12 +117,75 @@ export class Api implements IApi {
   private apiKey = "0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade"; // Must be same as in server side api
 
   private requestCount = 0;
-  private onOK: () => void = () => {};
-  private onError: (error: Error) => void = () => {};
+  private isNoProgress = false;
 
-  config(onOK: () => void, onError: (error: Error) => void): void {
-    this.onOK = onOK;
-    this.onError = onError;
+  public async withNoProgress<T>(callback: () => Promise<T>): Promise<T> {
+    try {
+      this.isNoProgress = true;
+      return await callback();
+    } finally {
+      this.isNoProgress = false;
+    }
+  }
+
+  public async loginDeviceSet(req: LoginDeviceSetReq): Promise<Result<void>> {
+    return await this.post("/api/LoginDeviceSet", req);
+  }
+
+  public async loginDevice(req: LoginDeviceReq): Promise<Result<string>> {
+    return await this.post("/api/LoginDevice", req);
+  }
+
+  public async getWebAuthnRegistrationOptions(
+    username: string
+  ): Promise<Result<GetWebAuthnRegistrationOptionsRsp>> {
+    const rsp = await this.post("/api/GetWebAuthnRegistrationOptions", {
+      username: username,
+    });
+    if (isError(rsp)) {
+      return rsp;
+    }
+    return rsp;
+  }
+
+  public async verifyWebAuthnRegistration(
+    username: string,
+    registration: RegistrationCredentialJSON
+  ): Promise<Result<boolean>> {
+    const rsp = await this.post("/api/VerifyWebAuthnRegistration", {
+      username: username,
+      registration: registration,
+    });
+    if (isError(rsp)) {
+      return rsp;
+    }
+    return (rsp as any).verified;
+  }
+
+  public async getWebAuthnAuthenticationOptions(
+    username: string
+  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON>> {
+    const rsp = await this.post("/api/GetWebAuthnAuthenticationOptions", {
+      username: username,
+    });
+    if (isError(rsp)) {
+      return rsp;
+    }
+    return (rsp as any).options;
+  }
+
+  public async verifyWebAuthnAuthentication(
+    username: string,
+    authentication: AuthenticationCredentialJSON
+  ): Promise<Result<boolean>> {
+    const rsp = await this.post("/api/VerifyWebAuthnAuthentication", {
+      username: username,
+      authentication: authentication,
+    });
+    if (isError(rsp)) {
+      return rsp;
+    }
+    return (rsp as any).verified;
   }
 
   public async login(user: User): Promise<Result<LoginRsp>> {
@@ -122,31 +235,32 @@ export class Api implements IApi {
     // console.log(`Request #${this.requestCount}: GET ${uri} ...`);
     const t = timing();
     try {
-      const rsp = await axios.get(uri, {
-        headers: { "x-api-key": this.apiKey },
-      });
+      const rsp = await this.withProgress(() =>
+        axios.get(uri, {
+          headers: { "x-api-key": this.apiKey },
+        })
+      );
 
       const rspData = rsp.data;
       const rspBytes = ("" + rsp.request?.responseText).length;
-      console.groupCollapsed(
-        `Request #${this.requestCount}: GET ${uri}: OK: (0->${rspBytes} bytes)`,
-        t()
-      );
+      const text = `Request #${
+        this.requestCount
+      }: GET ${uri}: OK: (0->${rspBytes} bytes) ${t()}`;
+      console.groupCollapsed(text);
+      console.log(text);
       console.log("Response", rspData);
       console.log("#rsp", rsp);
       console.groupEnd();
-      this.onOK();
       return rspData;
     } catch (e) {
       const error = this.toError(e);
-      console.groupCollapsed(
-        `%cRequest #${this.requestCount}: GET ${uri}: ERROR: ${error.name}: ${error.message}`,
-        "color: #CD5C5C",
-        t()
-      );
+      const text = `%cRequest #${this.requestCount}: GET ${uri}: ERROR: ${
+        error.name
+      }: ${error.message} ${t()}`;
+      console.groupCollapsed(text, "color: #CD5C5C");
+      console.log(text, "color: #CD5C5C");
       console.log("%cError:", "color: #CD5C5C", error);
       console.groupEnd();
-      this.onError(error);
       return error;
     }
   }
@@ -156,55 +270,64 @@ export class Api implements IApi {
     // console.log(`Request #${this.requestCount}: POST ${uri} ...`);
     const t = timing();
     try {
-      const rsp = await axios.post(uri, requestData, {
-        headers: { "x-api-key": this.apiKey },
-      });
+      const rsp = await this.withProgress(() =>
+        axios.post(uri, requestData, {
+          headers: { "x-api-key": this.apiKey },
+        })
+      );
       const rspData = rsp.data;
       const reqBytes = ("" + rsp.config.data).length;
       const rspBytes = ("" + rsp.request?.responseText).length;
-      console.groupCollapsed(
-        `Request #${this.requestCount}: POST ${uri}: OK: (${reqBytes}->${rspBytes} bytes)`,
-        t()
-      );
+      const text = `Request #${
+        this.requestCount
+      }: POST ${uri}: OK: (${reqBytes}->${rspBytes} bytes) ${t()}`;
+      console.groupCollapsed(text);
+      console.log(text);
       console.log("Request:", requestData);
       console.log("Response:", rspData);
       console.groupEnd();
-      this.onOK();
       return rspData;
     } catch (e) {
       const error = this.toError(e);
-      console.groupCollapsed(
-        `%cRequest #${this.requestCount}: POST ${uri}: ERROR: ${error.name}: ${error.message}`,
-        "color: #CD5C5C",
-        t()
-      );
+      const text = `%cRequest #${this.requestCount}: POST ${uri}: ERROR: ${
+        error.name
+      }: ${error.message} ${t()}`;
+      console.groupCollapsed(text, "color: #CD5C5C");
+      console.log(text, "color: #CD5C5C");
       console.log("Request:", requestData);
       console.log("%cError:", "color: #CD5C5C", error);
       console.groupEnd();
-      this.onError(error);
       return error;
     }
   }
 
-  toError(rspError: any) {
+  private withProgress<T>(callback: () => Promise<T>): Promise<T> {
+    if (this.isNoProgress) {
+      return callback();
+    }
+
+    return withProgress(callback);
+  }
+
+  private toError(rspError: any) {
     if (rspError.response) {
       // Request made and server responded
       //console.log("Failed:", rspError.response);
       const rsp = rspError.response;
-      const axiosError = new NetworkError(
+      const serverError = new ServerError(
         `Status: ${rsp.status} '${rsp.statusText}': ${rsp.data}`
       );
 
       if (rsp.status === 500 && rsp.data?.includes("(ECONNREFUSED)")) {
         return new LocalApiServerError(
           "Local api server not started, Start local Azure functions server",
-          axiosError
+          serverError
         );
       } else if (rsp.status === 400) {
         if (rsp.data?.includes("ECONNREFUSED 127.0.0.1:10002")) {
           return new LocalEmulatorError(
             "Local storage emulator not started. Call 'AzureStorageEmulator.exe start'",
-            axiosError
+            serverError
           );
         }
         if (
@@ -213,11 +336,11 @@ export class Api implements IApi {
           rsp.data?.includes("Invalid user") ||
           rsp.data?.includes("AuthenticateError")
         ) {
-          return new AuthenticateError(axiosError);
+          return new AuthenticateError(serverError);
         }
       }
 
-      return new RequestError("Invalid or unsupported request", axiosError);
+      return new RequestError("Invalid or unsupported request", serverError);
     } else if (rspError.request) {
       // The request was made but no response was received
       return new NoContactError(rspError);

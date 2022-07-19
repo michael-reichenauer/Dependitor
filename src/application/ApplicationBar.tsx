@@ -25,6 +25,7 @@ import { useCanRedo, useCanUndo, useTitle } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { showPrompt } from "./../common/PromptDialog";
 import { di } from "../common/di";
+//import { bufferToBase64, sha256Hash } from "../common/utils";
 
 type ApplicationBarProps = {
   height: number;
@@ -86,7 +87,7 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
         )}
         {syncMode === SyncState.Disabled && (
           <Button
-            tooltip="Device sync disabled, click to enable"
+            tooltip="Click to login and enable device sync"
             icon={<SyncDisabledIcon style={{ color: "#FFFF66" }} />}
             onClick={() => onlineRef.current.enableSync()}
           />
