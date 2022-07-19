@@ -68,9 +68,9 @@ export default function Nodes() {
   const classes = useStyles();
   const [show, setShow] = useNodes();
   const [filter, setFilter] = useState("");
-  const [mruNodes, setMruNodes] = useLocalStorage("nodesMru", []);
-  const [mruGroups, setMruGroups] = useLocalStorage("groupsMru", []);
-  const [iconSets, setIconSets] = useLocalStorage("iconSets", [
+  const [mruNodes, setMruNodes] = useLocalStorage("nodes.nodesMru", []);
+  const [mruGroups, setMruGroups] = useLocalStorage("nodes.groupsMru", []);
+  const [iconSets, setIconSets] = useLocalStorage("nodes.iconSets", [
     "Azure",
     "Aws",
     "OSA",

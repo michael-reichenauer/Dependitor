@@ -1,11 +1,28 @@
 import { User } from "./Api";
 import { IDataCrypt } from "./DataCrypt";
 import assert from "assert";
+import Result from "./Result";
 
 const prefix = "encrypted:";
 
 // Mocking DataCrypt with simple encryption since jest testing does not support crypt functions yet
 export class DataCryptMock implements IDataCrypt {
+  deriveDataEncryptionKey(user: User): Promise<CryptoKey> {
+    throw new Error("Method not implemented.");
+  }
+  wrapDataEncryptionKey(dek: CryptoKey, user: User): Promise<string> {
+    throw new Error("Method not implemented.");
+  }
+  generateRandomString(length: number): string {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    for (var i = 0; i < length; i++)
+      text += possible.charAt(Math.floor(i * possible.length));
+
+    return text;
+  }
+
   public async expandPassword(user: User): Promise<string> {
     return user.username + user.password;
   }
@@ -17,7 +34,7 @@ export class DataCryptMock implements IDataCrypt {
   public async unwrapDataEncryptionKey(
     wrappedDek: string,
     user: User
-  ): Promise<CryptoKey> {
+  ): Promise<Result<CryptoKey>> {
     assert(
       wrappedDek.length > 0 &&
         wrappedDek === prefix + user.username + user.password

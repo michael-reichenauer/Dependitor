@@ -7,12 +7,17 @@ import { AppMenu, menuItem, menuParentItem } from "../common/Menus";
 import { IStoreKey } from "./diagram/Store";
 import Printer from "../common/Printer";
 import { useAbout } from "./About";
-import { showConfirmAlert } from "../common/AlertDialog";
 import { showPrompt } from "../common/PromptDialog";
 import { di } from "../common/di";
 import { useTitle } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
+import { QuestionAlert, showAlert } from "../common/AlertDialog";
+import { isMobileDevice } from "../common/utils";
+import {
+  enableVirtualConsole,
+  isVirtualConsoleEnabled,
+} from "../common/virtualConsole";
 
 const getDiagramsMenuItems = (recentDiagrams: DiagramInfoDto[]) => {
   const diagrams = recentDiagrams.slice(1);
@@ -38,11 +43,11 @@ export function ApplicationMenu() {
   });
 
   const deleteDiagram = () => {
-    showConfirmAlert(
-      "Delete",
-      "Do you really want to delete the current diagram?",
-      () => PubSub.publish("canvas.DeleteDiagram")
-    );
+    showAlert("Delete", "Do you really want to delete the current diagram?", {
+      onOk: () => PubSub.publish("canvas.DeleteDiagram"),
+      showCancel: true,
+      icon: QuestionAlert,
+    });
   };
 
   const renameDiagram = () => {
@@ -82,13 +87,13 @@ export function ApplicationMenu() {
     ]),
     menuItem("Delete", deleteDiagram),
     menuItem(
-      "Enable device sync",
+      "Login and enable device sync",
       () => onlineRef.current.enableSync(),
       syncMode !== SyncState.Progress,
       syncMode === SyncState.Disabled
     ),
     menuItem(
-      "Disable device sync",
+      "Logoff and disable device sync",
       () => onlineRef.current.disableSync(),
       syncMode !== SyncState.Progress,
       syncMode !== SyncState.Disabled
@@ -112,6 +117,20 @@ export function ApplicationMenu() {
       true,
       isInStandaloneMode()
     ),
+
+    menuItem(
+      "Enable Debug Console",
+      () => enableVirtualConsole(true),
+      true,
+      isMobileDevice && !isVirtualConsoleEnabled()
+    ),
+    menuItem(
+      "Disable Debug Console",
+      () => enableVirtualConsole(false),
+      true,
+      isMobileDevice && isVirtualConsoleEnabled()
+    ),
+
     menuItem("About", () => setShowAbout(true)),
     // menuParentItem('Advanced', [
     //     menuItem('Clear all local data', () => clearLocalData()),

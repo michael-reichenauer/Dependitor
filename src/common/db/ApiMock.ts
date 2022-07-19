@@ -1,4 +1,9 @@
 import {
+  RegistrationCredentialJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  AuthenticationCredentialJSON,
+} from "@simplewebauthn/typescript-types";
+import {
   ApiEntity,
   IApi,
   User,
@@ -6,6 +11,9 @@ import {
   ApiEntityRsp,
   LoginRsp,
   CreateUserReq,
+  LoginDeviceSetReq,
+  LoginDeviceReq,
+  GetWebAuthnRegistrationOptionsRsp,
 } from "../Api";
 import { di } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
@@ -15,12 +23,42 @@ const prefix = "ApiMock-";
 
 export class ApiMock implements IApi {
   constructor(private local: ILocalStore = di(ILocalStoreKey)) {}
+  public async withNoProgress<T>(callback: () => Promise<T>): Promise<T> {
+    return await callback();
+  }
+  loginDevice(req: LoginDeviceReq): Promise<Result<string, Error>> {
+    throw new Error("Method not implemented.");
+  }
+  loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void, Error>> {
+    throw new Error("Method not implemented.");
+  }
+  getWebAuthnRegistrationOptions(
+    username: string
+  ): Promise<Result<GetWebAuthnRegistrationOptionsRsp>> {
+    throw new Error("Method not implemented.");
+  }
+  verifyWebAuthnRegistration(
+    username: string,
+    registration: RegistrationCredentialJSON
+  ): Promise<Result<boolean, Error>> {
+    throw new Error("Method not implemented.");
+  }
+  getWebAuthnAuthenticationOptions(
+    username: string
+  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON>> {
+    throw new Error("Method not implemented.");
+  }
+  verifyWebAuthnAuthentication(
+    username: string,
+    authentication: AuthenticationCredentialJSON
+  ): Promise<Result<boolean>> {
+    throw new Error("Method not implemented.");
+  }
+
   logoff(): Promise<Result<void>> {
     throw new Error("Method not implemented.");
   }
-  config(onOK: () => void, onError: (error: Error) => void): void {
-    throw new Error("Method not implemented.");
-  }
+
   login(user: User): Promise<Result<LoginRsp>> {
     throw new Error("Method not implemented.");
   }

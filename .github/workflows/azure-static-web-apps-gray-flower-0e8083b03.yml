@@ -28,6 +28,7 @@ jobs:
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" public/manifest.json
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" .env
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" public/manifest.json
+          git log -3 --format=full
 
       # Build Azure Static Web App and deploy to Azure
       - name: Build And Deploy

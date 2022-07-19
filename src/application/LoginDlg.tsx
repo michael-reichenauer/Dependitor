@@ -1,42 +1,80 @@
-import React, { FC } from "react";
-import { useState } from "react";
+import React, { FC, useEffect } from "react";
 import { atom, useAtom } from "jotai";
 import {
   Box,
   Button,
   Dialog,
-  FormControlLabel,
   LinearProgress,
-  Switch,
+  Link,
+  Tooltip,
   Typography,
 } from "@material-ui/core";
-import { Formik, Form, Field } from "formik";
-import { TextField } from "formik-material-ui";
-import { User } from "../common/Api";
-import Result, { isError } from "../common/Result";
+import { Formik, Form } from "formik";
+import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
-import { AuthenticateError } from "../common/Api";
+import { QRCode } from "react-qrcode-logo";
+import { setErrorMessage } from "../common/MessageSnackbar";
+import { showAlert, QuestionAlert } from "../common/AlertDialog";
+import { isMobileDevice } from "../common/utils";
+import {
+  AuthenticatorCanceledError,
+  AuthenticatorNotAcceptedError,
+} from "../authenticator/AuthenticatorClient";
+import { ILoginProvider } from "./LoginProvider";
 
-const usernameKey = "credential.userName";
+const dialogWidth = 290;
+const dialogHeight = 410;
 
-export interface ILoginProvider {
-  createAccount(user: User): Promise<Result<void>>;
-  login(user: User): Promise<Result<void>>;
+// const deviceSyncCanceledMsg = "Authentication canceled";
+const deviceSyncFailedMsg = "Failed to enable device sync";
+const authenticationNotAcceptedMsg =
+  "Authentication was denied by the authenticator";
+const initialQrGuideText =
+  "Scan QR code on your mobile to enable sync with all your devices.";
+const localQrGuideText = "Or scan QR code on your mobile device.";
+
+export function showLoginDlg(provider: ILoginProvider) {
+  setLoginFunc(provider);
 }
 
-export let showLoginDlg: SetAtom<ILoginProvider> = () => {};
-
+let setLoginFunc: SetAtom<ILoginProvider> = () => {};
 type loginProvider = ILoginProvider | null;
 const loginAtom = atom(null as loginProvider);
-export const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
+const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
   const [login, setLogin] = useAtom(loginAtom);
-  showLoginDlg = setLogin;
+  setLoginFunc = setLogin;
   return [login, setLogin];
 };
 
 export const LoginDlg: FC = () => {
   const [login, setLogin] = useLogin();
-  const [createAccount, setCreateAccount] = useState(false);
+
+  useEffect(() => {
+    if (login) {
+      login.tryLoginViaAuthenticator().then((rsp) => {
+        setLogin(null);
+        if (isError(rsp)) {
+          if (isError(rsp, AuthenticatorCanceledError)) {
+            // Ignore user canceled
+          } else if (isError(rsp, AuthenticatorNotAcceptedError)) {
+            // The authenticator did not accept this device authenticate request
+            setErrorMessage(authenticationNotAcceptedMsg);
+          } else {
+            // Some other error
+            setErrorMessage(deviceSyncFailedMsg);
+          }
+
+          return;
+        }
+
+        login.supportLocalLogin().then((isSupported) => {
+          if (isSupported && !login.hasLocalLogin()) {
+            showEnableLocalLoginPrompt(login);
+          }
+        });
+      });
+    }
+  }, [login, setLogin]);
 
   const handleEnter = (event: any): void => {
     if (event.code === "Enter") {
@@ -45,151 +83,98 @@ export const LoginDlg: FC = () => {
     }
   };
 
+  const cancel = (): void => {
+    login?.loginViaAuthenticator();
+    login?.cancelLogin();
+    setLogin(null);
+  };
+
+  const qrGuideText = login?.hasLocalLogin()
+    ? localQrGuideText
+    : initialQrGuideText;
+  const qrCodeUrl = login?.getAuthenticateUrl() ?? "";
+
   return (
-    <Dialog
-      open={login !== null}
-      onClose={() => {
-        setLogin(null);
-      }}
-    >
-      <Box style={{ width: 320, height: 330, padding: 20 }}>
-        {!createAccount && (
-          <Typography variant="h5" style={{ paddingBottom: 10 }}>
-            Login
-          </Typography>
-        )}
-        {createAccount && (
-          <Typography variant="h5" style={{ paddingBottom: 10 }}>
-            Create a new Account
-          </Typography>
-        )}
+    <Dialog open={login !== null} onClose={() => {}}>
+      <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
+        <LinearProgress style={{ marginBottom: 5 }} />
+        <Typography variant="h5" style={{ paddingBottom: 0 }}>
+          Login
+        </Typography>
 
         <Formik
-          initialValues={{
-            username: getDefaultUserName(),
-            password: "",
-            confirm: "",
-            create: false,
-          }}
-          validate={async (values) => {
-            const errors: any = {};
-            if (!values.username) {
-              errors.username = "Required";
-            }
-            if (!values.password) {
-              errors.password = "Required";
-            }
-            if (createAccount && values.password !== values.confirm) {
-              errors.confirm = "Does not match password";
-            }
-            return errors;
-          }}
+          initialValues={{ deviceName: "" }}
           onSubmit={async (values, { setErrors, setFieldValue }) => {
-            if (createAccount) {
-              const createResult = await login?.createAccount({
-                username: values.username,
-                password: values.password,
-              });
+            console.log("onSubmit");
 
-              if (isError(createResult)) {
-                setFieldValue("password", "", false);
-                setFieldValue("confirm", "", false);
-                setErrors({ username: "User already exist" });
-                return;
-              }
+            // Cancel login via authenticator, since we are logging in locally
+            login?.loginViaAuthenticator();
+            login?.login();
 
-              setDefaultUserName(values.username);
-              setCreateAccount(false);
-              setFieldValue("confirm", "", false);
-            }
-
-            const loginResult = await login?.login({
-              username: values.username,
-              password: values.password,
-            });
-            if (isError(loginResult)) {
-              setFieldValue("password", "", false);
-              if (isError(loginResult, AuthenticateError)) {
-                setErrors({ username: "Invalid username or password" });
-              } else {
-                setErrors({ username: "Failed to enable device sync" });
-              }
-
-              return;
-            }
-
-            setDefaultUserName(values.username);
+            // Closing the login dialog
             setLogin(null);
           }}
         >
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
-              {isSubmitting && <LinearProgress style={{ marginBottom: 10 }} />}
-              <Field
-                label="Username"
-                component={TextField}
-                name="username"
-                type="text"
-                fullWidth={true}
-              />
-              <br />
-              <Field
-                label="Password"
-                component={TextField}
-                type="password"
-                name="password"
-                fullWidth={true}
-              />
-              <br />
-              {createAccount && (
-                <Field
-                  label="Confirm"
-                  component={TextField}
-                  type="password"
-                  name="confirm"
-                  fullWidth={true}
-                />
+              {login?.hasLocalLogin() && (
+                <>
+                  <Typography
+                    style={{
+                      fontSize: "14px",
+                      paddingTop: 10,
+                      lineHeight: 1,
+                    }}
+                  >
+                    Local login:
+                  </Typography>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Button
+                      id="OKButton"
+                      variant="contained"
+                      color="primary"
+                      disabled={isSubmitting}
+                      onClick={submitForm}
+                      style={{
+                        marginTop: 15,
+                        marginBottom: 30,
+                      }}
+                    >
+                      Login on this Device
+                    </Button>
+                  </div>
+                </>
               )}
 
-              <br />
-              <FormControlLabel
-                style={{ position: "absolute", top: 260 }}
-                label="Create a new account"
-                control={
-                  <Field
-                    component={Switch}
-                    type="checkbox"
-                    name="create"
-                    color="primary"
-                    onChange={(e: any) => setCreateAccount(e.target.checked)}
-                  />
-                }
-              />
+              <QRCodeGuideText text={qrGuideText} />
+              <QRCodeElement url={qrCodeUrl} />
+              {isMobileDevice && <ClickHint />}
 
-              <Box style={{ position: "absolute", top: 300, left: 80 }}>
-                <Button
-                  id="OKButton"
-                  variant="contained"
-                  color="primary"
-                  disabled={isSubmitting}
-                  onClick={submitForm}
-                  style={{ margin: 5, width: 80 }}
-                >
-                  OK
-                </Button>
-
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 15,
+                  width: dialogWidth,
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
                 <Button
                   variant="contained"
                   color="primary"
                   disabled={isSubmitting}
-                  onClick={() => {
-                    setLogin(null);
-                  }}
-                  style={{ margin: 5, width: 85 }}
+                  onClick={cancel}
+                  style={{ width: 85 }}
                 >
                   Cancel
                 </Button>
-              </Box>
+              </div>
             </Form>
           )}
         </Formik>
@@ -198,7 +183,77 @@ export const LoginDlg: FC = () => {
   );
 };
 
-const getDefaultUserName = () => localStorage.getItem(usernameKey) ?? "";
+type QRCodeGuideTextProps = {
+  text: string;
+};
 
-const setDefaultUserName = (name: string) =>
-  localStorage.setItem(usernameKey, name);
+const QRCodeGuideText: FC<QRCodeGuideTextProps> = ({ text }) => {
+  return (
+    <Typography
+      style={{
+        fontSize: "14px",
+        paddingTop: 5,
+        lineHeight: 1,
+      }}
+    >
+      {text}
+    </Typography>
+  );
+};
+
+type QRCodeProps = {
+  url: string;
+};
+
+const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: 10,
+        }}
+      >
+        <Tooltip title={url}>
+          <Link href={url} target="_blank">
+            <QRCode value={url} />
+          </Link>
+        </Tooltip>
+      </div>
+    </>
+  );
+};
+
+const ClickHint: FC = () => {
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginTop: -5,
+        }}
+      >
+        <Typography style={{ fontSize: "12px" }}>
+          (Click on QR code if this is your mobile)
+        </Typography>
+      </div>
+    </>
+  );
+};
+
+function showEnableLocalLoginPrompt(login: ILoginProvider) {
+  showAlert(
+    "Enable Device Login",
+    `Would you like to setup local login on this device?
+  
+    Recommended, since you do not need your mobile every time you login.`,
+    {
+      onOk: () => login?.login(),
+      cancelText: "Skip",
+      showCancel: true,
+      icon: QuestionAlert,
+    }
+  );
+}

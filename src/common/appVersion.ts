@@ -1,9 +1,10 @@
 import axios from "axios";
 import { useEffect, useRef } from "react";
 import { useActivity } from "./activity";
+import { minutes } from "./utils";
 
-const checkRemoteInterval = 30 * 60 * 1000;
-const retryFailedRemoteInterval = 5 * 60 * 1000;
+const checkRemoteInterval = 30 * minutes;
+const retryFailedRemoteInterval = 5 * minutes;
 
 export const startTime = dateToLocalISO(new Date().toISOString());
 export const localSha =
@@ -20,10 +21,6 @@ export const localBuildTime =
     : // @ts-ignore
       dateToLocalISO(process.env.REACT_APP_BUILD_TIME);
 
-console.info(
-  `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
-);
-
 // Monitors server version of the web site and if newer, triggers a force reload to ensure latest web is shown,
 export const useAppVersionMonitor = () => {
   const [isActive] = useActivity();
@@ -39,7 +36,11 @@ export const useAppVersionMonitor = () => {
         return;
       }
 
+      const remoteUrl = window.location.href;
       try {
+        console.info(
+          `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
+        );
         // console.log(`Checking remote, active=${isActive} ...`)
         const manifest = (await axios.get("/manifest.json")).data;
 
@@ -51,13 +52,13 @@ export const useAppVersionMonitor = () => {
             : dateToLocalISO(manifest.buildTime);
 
         console.info(
-          `Remote version: '${remoteSha.substring(0, 6)}' '${remoteBuildTime}'`
+          `Remote version: '${remoteSha.substring(
+            0,
+            6
+          )}' '${remoteBuildTime}' at ${remoteUrl}`
         );
 
         if (localSha !== remoteSha) {
-          console.info(
-            `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
-          );
           console.info("Remote version differs, reloading ...");
           window.location.reload();
         }
@@ -65,7 +66,7 @@ export const useAppVersionMonitor = () => {
           timerRef.current = setTimeout(getRemoteVersion, checkRemoteInterval);
         }
       } catch (err) {
-        console.error("Failed get remote manifest:", err);
+        console.error("Failed get remote manifest:", err, remoteUrl);
         if (!isRunning.current) {
           timerRef.current = setTimeout(
             getRemoteVersion,
@@ -89,7 +90,7 @@ function dateToLocalISO(dateText: string) {
   const off = date.getTimezoneOffset();
   const absOffset = Math.abs(off);
   return (
-    new Date(date.getTime() - off * 60 * 1000).toISOString().substr(0, 23) +
+    new Date(date.getTime() - off * minutes).toISOString().substr(0, 23) +
     (off > 0 ? "-" : "+") +
     (absOffset / 60).toFixed(0).padStart(2, "0") +
     ":" +

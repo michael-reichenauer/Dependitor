@@ -8,7 +8,7 @@ module.exports = async function (context, req) {
 
         context.res = { status: 200, body: '' };
     } catch (err) {
-        context.log.error('error:', err);
+        context.log.error('error:', err.message);
         context.res = { status: 400, body: `error: '${err.message}'` };
     }
 }

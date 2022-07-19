@@ -1,4 +1,4 @@
-import Result from "./Result";
+import Result, { orDefault } from "./Result";
 import { diKey, singleton } from "./di";
 
 export interface KeyValue {
@@ -9,6 +9,7 @@ export interface KeyValue {
 export const ILocalStoreKey = diKey<ILocalStore>();
 export interface ILocalStore {
   tryRead<T>(key: string): Result<T>;
+  readOrDefault<T>(key: string, defaultValue: T): T;
   tryReadBatch(keys: string[]): Result<any>[];
   write(key: string, value: any): void;
   writeBatch(keyValues: KeyValue[]): void;
@@ -25,6 +26,10 @@ const noValueError = new RangeError("No value for specified key");
 export default class LocalStore implements ILocalStore {
   public tryRead<T>(key: string): Result<T> {
     return this.tryReadBatch([key])[0] as T;
+  }
+
+  public readOrDefault<T>(key: string, defaultValue: T): T {
+    return orDefault(this.tryRead(key), defaultValue);
   }
 
   public tryReadBatch(keys: string[]): Result<any>[] {

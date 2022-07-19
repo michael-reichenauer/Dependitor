@@ -5,12 +5,12 @@ import {
   NotModifiedError,
   RemoteEntity,
 } from "./RemoteDB";
-import Result, { isError } from "../Result";
+import Result, { expectValue, isError } from "../Result";
 import { IApiKey, Query } from "../Api";
 import { ApiMock } from "./ApiMock";
 import { IDataCryptKey } from "./../DataCrypt";
 import { DataCryptMock } from "./../DataCryptMock";
-import { IKeyVaultKey, IKeyVaultConfigureKey } from "./../keyVault";
+import { IKeyVaultConfigureKey } from "./../keyVault";
 
 beforeAll(async () => {
   // Mock Api and DataCrypt for tests
@@ -20,13 +20,15 @@ beforeAll(async () => {
   // Simulate logging in to create mock DEK used for encryption
   const user = { username: "test", password: "testPass" };
   const wDek = await di(IDataCryptKey).generateWrappedDataEncryptionKey(user);
-  const dek = await di(IDataCryptKey).unwrapDataEncryptionKey(wDek, user);
-  di(IKeyVaultConfigureKey).setDek(dek);
+  const dek = expectValue(
+    await di(IDataCryptKey).unwrapDataEncryptionKey(wDek, user)
+  );
+  di(IKeyVaultConfigureKey).setDataEncryptionKey(dek);
 });
 
 afterAll(() => {
   // Simulate logout and reset DEK
-  di(IKeyVaultConfigureKey).setDek(null);
+  di(IKeyVaultConfigureKey).clearDataEncryptionKey();
 });
 
 describe("Test IRemoteData", () => {
