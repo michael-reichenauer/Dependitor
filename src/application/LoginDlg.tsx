@@ -246,9 +246,9 @@ const ClickHint: FC = () => {
 function showEnableLocalLoginPrompt(login: ILoginProvider) {
   showAlert(
     "Enable Device Login",
-    `Would you like to setup login on this device?
+    `Would you like to setup local login on this device?
   
-                Recommended, since you do not need your mobile every time you login.`,
+    Recommended, since you do not need your mobile every time you login.`,
     {
       onOk: () => login?.login(),
       cancelText: "Skip",
