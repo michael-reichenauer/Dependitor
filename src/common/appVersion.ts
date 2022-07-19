@@ -36,6 +36,7 @@ export const useAppVersionMonitor = () => {
         return;
       }
 
+      const remoteUrl = window.location.href;
       try {
         console.info(
           `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
@@ -51,7 +52,10 @@ export const useAppVersionMonitor = () => {
             : dateToLocalISO(manifest.buildTime);
 
         console.info(
-          `Remote version: '${remoteSha.substring(0, 6)}' '${remoteBuildTime}'`
+          `Remote version: '${remoteSha.substring(
+            0,
+            6
+          )}' '${remoteBuildTime}' at ${remoteUrl}`
         );
 
         if (localSha !== remoteSha) {
@@ -62,7 +66,7 @@ export const useAppVersionMonitor = () => {
           timerRef.current = setTimeout(getRemoteVersion, checkRemoteInterval);
         }
       } catch (err) {
-        console.error("Failed get remote manifest:", err);
+        console.error("Failed get remote manifest:", err, remoteUrl);
         if (!isRunning.current) {
           timerRef.current = setTimeout(
             getRemoteVersion,

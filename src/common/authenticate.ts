@@ -268,7 +268,7 @@ export class Authenticate implements IAuthenticate {
     credentialId: string
   ): Promise<Result<string>> {
     // GET authentication options from the endpoint that calls
-    console.log("authenticate", username);
+    console.log("authenticate");
     const options = await this.api.getWebAuthnAuthenticationOptions(username);
     if (isError(options)) {
       return options;

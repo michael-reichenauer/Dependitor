@@ -70,11 +70,11 @@ export class WebAuthn implements IWebAuthn {
     const msg = `WebAuthn Error: ${error.name}: ${error.message} (${duration})`;
 
     if (this.isReloadError(error, duration)) {
-      console.log("Reload is needed, ", msg);
+      console.log("Reload is needed:", msg);
       return new WebAuthnNeedReloadError(error);
     }
     if (error.name === "NotAllowedError") {
-      console.log("Authentication canceled,", msg);
+      console.log("Authentication canceled:", msg);
       return new WebAuthnCanceledError(error);
     }
 

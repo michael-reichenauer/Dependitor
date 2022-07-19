@@ -223,7 +223,7 @@ export class Online implements IOnline {
   // onActivityEvent called whenever user activity changes, e.g. not active or activated page
   private onActivityEvent(activity: CustomEvent) {
     const isActive = activity.detail;
-    console.log(`onActivity: ${isActive}`);
+    // console.log(`onActivity: ${isActive}`);
 
     if (!isActive) {
       // User no longer active, inactivate database sync if enabled
