@@ -100,10 +100,8 @@ exports.loginDevice = async (context, body) => {
                 return { response: entity.authData, cookies: cookies };
             }
         } catch (error) {
-            if (error.code === 'ResourceNotFound') {
-                return { response: '', cookies: null };
-            }
-            throw error
+            // Ignore errors, just return empty response
+            return { response: '', cookies: null };
         }
     } catch (error) {
         throwIfEmulatorError(error)
