@@ -526,10 +526,11 @@ function getClientId(context) {
 }
 
 async function clearClientSessions(clientId) {
-    // Get all existing sessions for the client
+    // Get all existing sessions for the client or very old sessions
+    let dateVal = new Date(new Date().getTime() - (2 * 24 * 60 * 60 * 1000));
     let tableQuery = new azure.TableQuery()
-        .where('PartitionKey == ?string? && clientId == ?string?',
-            sessionsPartitionKey, clientId);
+        .where('PartitionKey == ?string? && (clientId == ?string? || Timestamp <= ?date?)',
+            sessionsPartitionKey, clientId, dateVal);
     const items = await table.queryEntities(sessionsTableName, tableQuery, null)
     const keys = items.map(item => item.RowKey)
     if (keys.length === 0) {

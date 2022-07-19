@@ -258,7 +258,7 @@ export class Api implements IApi {
         error.name
       }: ${error.message} ${t()}`;
       console.groupCollapsed(text, "color: #CD5C5C");
-      console.log(text);
+      console.log(text, "color: #CD5C5C");
       console.log("%cError:", "color: #CD5C5C", error);
       console.groupEnd();
       return error;
@@ -292,8 +292,8 @@ export class Api implements IApi {
       const text = `%cRequest #${this.requestCount}: POST ${uri}: ERROR: ${
         error.name
       }: ${error.message} ${t()}`;
-      console.groupCollapsed("color: #CD5C5C");
-      console.log(text);
+      console.groupCollapsed(text, "color: #CD5C5C");
+      console.log(text, "color: #CD5C5C");
       console.log("Request:", requestData);
       console.log("%cError:", "color: #CD5C5C", error);
       console.groupEnd();
