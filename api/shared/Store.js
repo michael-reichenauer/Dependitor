@@ -29,7 +29,10 @@ const authenticateError = 'AuthenticateError'
 const emulatorErrorText = "ECONNREFUSED 127.0.0.1:10002"
 const clientIdExpires = new Date(2040, 12, 31) // Persistent for a long time
 const deleteCookieExpires = new Date(1970, 1, 1) // past date to delete cookie
-
+const seconds = 1000
+const minutes = 60 * seconds
+const hours = 60 * minutes
+const days = 24 * hours
 
 const isIncludeExceptionsDetails = true
 
@@ -63,6 +66,7 @@ exports.loginDeviceSet = async (context, body) => {
     try {
         const { channelId, username, authData } = body
         await table.createTableIfNotExists(authenticatorTableName)
+        await clearAuthenticatorChannels()
 
         const userId = toUserId(username)
 
@@ -527,22 +531,44 @@ function getClientId(context) {
 
 async function clearClientSessions(clientId) {
     // Get all existing sessions for the client or very old sessions
-    let dateVal = new Date(new Date().getTime() - (2 * 24 * 60 * 60 * 1000));
+    let dateVal = new Date(new Date().getTime() - (2 * days));
     let tableQuery = new azure.TableQuery()
         .where('PartitionKey == ?string? && (clientId == ?string? || Timestamp <= ?date?)',
             sessionsPartitionKey, clientId, dateVal);
+
     const items = await table.queryEntities(sessionsTableName, tableQuery, null)
     const keys = items.map(item => item.RowKey)
     if (keys.length === 0) {
         return
     }
 
-    // Remove these sessions
-    const entityItems = keys.map(key => toSessionEntityItem(key))
+    // Remove these entities
+    const entityItems = keys.map(key => toRemoveEntityItem(key, sessionsPartitionKey))
     const batch = new azure.TableBatch()
     entityItems.forEach(entity => batch.deleteEntity(entity))
     await table.executeBatch(sessionsTableName, batch)
 }
+
+async function clearAuthenticatorChannels() {
+    // Get all old channels
+    let dateVal = new Date(new Date().getTime() - (5 * minutes));
+    let tableQuery = new azure.TableQuery()
+        .where('PartitionKey == ?string? && Timestamp <= ?date?',
+            authenticatorPartitionKey, dateVal);
+
+    const items = await table.queryEntities(authenticatorTableName, tableQuery, null)
+    const keys = items.map(item => item.RowKey)
+    if (keys.length === 0) {
+        return
+    }
+
+    // Remove these entities
+    const entityItems = keys.map(key => toRemoveEntityItem(key, authenticatorPartitionKey))
+    const batch = new azure.TableBatch()
+    entityItems.forEach(entity => batch.deleteEntity(entity))
+    await table.executeBatch(authenticatorTableName, batch)
+}
+
 
 
 async function getUserId(context) {
@@ -741,14 +767,23 @@ function toDeleteEntityItem(key) {
     return item
 }
 
-function toSessionEntityItem(key) {
+function toRemoveEntityItem(key, partitionKey) {
     const item = {
         RowKey: entGen.String(key),
-        PartitionKey: entGen.String(sessionsPartitionKey),
+        PartitionKey: entGen.String(partitionKey),
     }
 
     return item
 }
+
+// function toSessionEntityItem(key) {
+//     const item = {
+//         RowKey: entGen.String(key),
+//         PartitionKey: entGen.String(sessionsPartitionKey),
+//     }
+
+//     return item
+// }
 
 function toDataEntity(item) {
     let valueText = '{}'
