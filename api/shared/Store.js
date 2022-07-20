@@ -45,7 +45,6 @@ function toError(errorMsg, error) {
 }
 
 exports.verifyApiKey = context => {
-    context.log('api key', commonApiKey)
     const req = context.req
     const apiKey = req.headers['x-api-key']
     if (apiKey !== commonApiKey) {

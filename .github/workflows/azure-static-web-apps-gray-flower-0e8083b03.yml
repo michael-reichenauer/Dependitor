@@ -24,7 +24,6 @@ jobs:
         run: |
           BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00"
           APIKEY="$(uuidgen)"
-          echo api key $APIKEY
           echo Build $BUILD_TIME ${{github.sha}}
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" .env
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" public/manifest.json
