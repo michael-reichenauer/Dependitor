@@ -22,7 +22,7 @@ const dataPartitionKey = 'data'
 const sessionsPartitionKey = 'sessions'
 const authenticatorPartitionKey = 'authenticator'
 
-const standardApiKey = '0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade'
+const commonApiKey = '0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade'
 
 const invalidRequestError = 'InvalidRequestError'
 const authenticateError = 'AuthenticateError'
@@ -45,9 +45,10 @@ function toError(errorMsg, error) {
 }
 
 exports.verifyApiKey = context => {
+    context.log('api key', commonApiKey)
     const req = context.req
     const apiKey = req.headers['x-api-key']
-    if (apiKey !== standardApiKey) {
+    if (apiKey !== commonApiKey) {
         throw new Error(invalidRequestError)
     }
 }
