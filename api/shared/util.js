@@ -22,3 +22,9 @@ exports.toError = (errorMsg, error) => {
     return new Error(`${errorMsg}${exceptionDetails}`)
 }
 
+
+exports.delay = (time) => {
+    return new Promise((res) => {
+        setTimeout(res, time);
+    });
+}
