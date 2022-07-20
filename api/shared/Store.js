@@ -29,10 +29,10 @@ const authenticateError = 'AuthenticateError'
 const emulatorErrorText = "ECONNREFUSED 127.0.0.1:10002"
 const clientIdExpires = new Date(2040, 12, 31) // Persistent for a long time
 const deleteCookieExpires = new Date(1970, 1, 1) // past date to delete cookie
-const seconds = 1000
-const minutes = 60 * seconds
-const hours = 60 * minutes
-const days = 24 * hours
+const second = 1000
+const minute = 60 * second
+const hour = 60 * minute
+const day = 24 * hour
 
 const isIncludeExceptionsDetails = true
 
@@ -529,7 +529,7 @@ function getClientId(context) {
 
 async function clearClientSessions(clientId) {
     // Get all existing sessions for the client or very old sessions
-    let dateVal = new Date(new Date().getTime() - (2 * days));
+    let dateVal = new Date(new Date().getTime() - (2 * day));
     let tableQuery = new azure.TableQuery()
         .where('PartitionKey == ?string? && (clientId == ?string? || Timestamp <= ?date?)',
             sessionsPartitionKey, clientId, dateVal);
@@ -549,7 +549,7 @@ async function clearClientSessions(clientId) {
 
 async function clearAuthenticatorChannels() {
     // Get all old channels
-    let dateVal = new Date(new Date().getTime() - (5 * minutes));
+    let dateVal = new Date(new Date().getTime() - (5 * minute));
     let tableQuery = new azure.TableQuery()
         .where('PartitionKey == ?string? && Timestamp <= ?date?',
             authenticatorPartitionKey, dateVal);
