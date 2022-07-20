@@ -1,14 +1,11 @@
 const azure = require('azure-storage');
 const crypto = require("crypto")
-const bcrypt = require("bcryptjs")
 const base64url = require("base64url")
 const SimpleWebAuthnServer = require('@simplewebauthn/server');
 const table = require('../shared/table.js');
 const util = require('../shared/util.js');
 const config = require('../config.js');
 
-
-const entGen = azure.TableUtilities.entityGenerator;
 
 const ServiceName = 'Dependitor';
 const defaultTransports = ['internal', 'usb', 'ble', 'nfc'] // possible: ['internal', 'usb', 'ble', 'nfc']
@@ -22,7 +19,6 @@ const sessionsTableName = 'sessions'
 const userPartitionKey = 'users'
 const sessionsPartitionKey = 'sessions'
 const authenticatorPartitionKey = 'authenticator'
-
 
 const clientIdExpires = new Date(2040, 12, 31) // Persistent for a long time
 const deleteCookieExpires = new Date(1970, 1, 1) // past date to delete cookie
@@ -38,35 +34,29 @@ exports.verifyApiKey = context => {
 }
 
 
-exports.check = async (context, body) => {
+exports.check = async (context, body, userId) => {
     // Verify authentication
-    await getUserId(context)
+    if (!userId) {
+        throw new Error(util.authenticateError)
+    }
 }
 
 
-exports.loginDeviceSet = async (context, body) => {
-    // Ensure user is logged in
-    await getUserId(context)
-
+exports.loginDeviceSet = async (context, body, userId) => {
     try {
-        const { channelId, username, authData } = body
+        const { channelId, authData } = body
         await table.createTableIfNotExists(authenticatorTableName)
-        await clearAuthenticatorChannels()
+        await clearOldAuthenticatorChannels()
 
-        const userId = toUserId(username)
 
-        // Creating a new client id for the other device 
+        // Creating a new client id adn session for the other device 
         const clientId = makeRandomId()
         const sessionId = await createSession(clientId, userId)
 
-
-        // if (!authData) {
-        //     const entity = toAuthenticatorAuthTableEntity(id, '')
-        //     await table.deleteEntity(authenticatorTableName, entity)
-        //     return
-        // }
+        // Store data for other device to retrieve using the loginDevice() call
         const entity = toAuthenticatorAuthTableEntity(channelId, authData, clientId, sessionId)
         await table.insertEntity(authenticatorTableName, entity)
+
         return {}
     } catch (error) {
         throw util.toError(util.invalidRequestError, error)
@@ -105,7 +95,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         } else {
             // client has specified a proposed username, lets verify it is same as logged in user
             const proposedUserId = toUserId(username)
-            const contextUserId = await getUserId(context)
+            const contextUserId = await getLoginUserId(context)
             if (proposedUserId !== contextUserId) {
                 throw new Error(util.authenticateError)
             }
@@ -292,9 +282,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 }
 
 
-exports.logoff = async (context, data) => {
-    await getUserId(context)
-
+exports.logoff = async (context, data, userId) => {
     try {
         const clientId = getClientId(context)
         await clearClientSessions(clientId)
@@ -325,7 +313,7 @@ exports.logoff = async (context, data) => {
     }
 }
 
-const getUserId = async (context) => {
+const getLoginUserId = async (context) => {
     try {
         const sessionId = getCookie('sessionId', context)
         if (!sessionId) {
@@ -338,7 +326,7 @@ const getUserId = async (context) => {
         throw util.toError(util.authenticateError, err)
     }
 }
-exports.getUserId = getUserId
+exports.getLoginUserId = getLoginUserId
 
 const getClientId = (context) => {
     let clientId = getCookie('clientId', context)
@@ -424,9 +412,6 @@ function createCookies(clientId, sessionId) {
 
 
 
-
-
-
 // // // -----------------------------------------------------------------
 
 
@@ -444,13 +429,13 @@ async function clearClientSessions(clientId) {
     }
 
     // Remove these entities
-    const entityItems = keys.map(key => toRemoveEntityItem(key, sessionsPartitionKey))
+    const entityItems = keys.map(key => table.toDeleteEntity(key, sessionsPartitionKey))
     const batch = new azure.TableBatch()
     entityItems.forEach(entity => batch.deleteEntity(entity))
     await table.executeBatch(sessionsTableName, batch)
 }
 
-async function clearAuthenticatorChannels() {
+async function clearOldAuthenticatorChannels() {
     // Get all old channels
     let dateVal = new Date(new Date().getTime() - (5 * util.minute));
     let tableQuery = new azure.TableQuery()
@@ -464,13 +449,11 @@ async function clearAuthenticatorChannels() {
     }
 
     // Remove these entities
-    const entityItems = keys.map(key => toRemoveEntityItem(key, authenticatorPartitionKey))
+    const entityItems = keys.map(key => table.toDeleteEntity(key, authenticatorPartitionKey))
     const batch = new azure.TableBatch()
     entityItems.forEach(entity => batch.deleteEntity(entity))
     await table.executeBatch(authenticatorTableName, batch)
 }
-
-
 
 
 
@@ -499,52 +482,8 @@ function getCookie(name, context) {
 }
 
 
-const bcryptGenSalt = (saltRounds) => {
-    return new Promise(function (resolve, reject) {
-        bcrypt.genSalt(saltRounds, function (err, salt) {
-            if (err) {
-                reject(err)
-            } else {
-                resolve(salt)
-            }
-        })
-    })
-}
-
-
-const bcryptHash = (password, salt) => {
-    return new Promise(function (resolve, reject) {
-        bcrypt.hash(password, salt, function (err, hash) {
-            if (err) {
-                reject(err)
-            } else {
-                resolve(hash)
-            }
-        })
-    })
-}
-
-const bcryptCompare = (password, hash) => {
-    return new Promise(function (resolve, reject) {
-        bcrypt.compare(password, hash, function (err, isMatch) {
-            if (err) {
-                reject(err)
-            } else {
-                resolve(isMatch)
-            }
-        })
-    })
-}
-
-
 function makeRandomId() {
     return randomString(12)
-    //     let ID = "";
-    //     let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    //     for (var i = 0; i < 12; i++) {
-    //         ID += characters.charAt(Math.floor(Math.random() * 36));
-    //     }
-    //     return ID;
 }
 
 
@@ -574,45 +513,35 @@ function toUserTableEntity2(userId, user, wDek) {
     const userJson = JSON.stringify(user)
 
     return {
-        RowKey: entGen.String(userId),
-        PartitionKey: entGen.String(userPartitionKey),
+        RowKey: table.String(userId),
+        PartitionKey: table.String(userPartitionKey),
 
-        user: entGen.String(userJson),
-        wDek: entGen.String(wDek),
+        user: table.String(userJson),
+        wDek: table.String(wDek),
     }
 }
 
 
 function toAuthenticatorAuthTableEntity(id, authData, clientId, sessionId) {
     return {
-        RowKey: entGen.String(id),
-        PartitionKey: entGen.String(authenticatorPartitionKey),
+        RowKey: table.String(id),
+        PartitionKey: table.String(authenticatorPartitionKey),
 
-        authData: entGen.String(authData),
-        clientId: entGen.String(clientId),
-        sessionId: entGen.String(sessionId),
+        authData: table.String(authData),
+        clientId: table.String(clientId),
+        sessionId: table.String(sessionId),
     }
 }
 
 
 function toSessionTableEntity(sessionId, userId, clientId) {
     return {
-        RowKey: entGen.String(sessionId),
-        PartitionKey: entGen.String(sessionsPartitionKey),
+        RowKey: table.String(sessionId),
+        PartitionKey: table.String(sessionsPartitionKey),
 
-        userId: entGen.String(userId),
-        clientId: entGen.String(clientId),
+        userId: table.String(userId),
+        clientId: table.String(clientId),
     }
-}
-
-
-function toRemoveEntityItem(key, partitionKey) {
-    const item = {
-        RowKey: entGen.String(key),
-        PartitionKey: entGen.String(partitionKey),
-    }
-
-    return item
 }
 
 

@@ -4,7 +4,7 @@ const auth = require('../shared/auth.js');
 module.exports = async function (context, req) {
     try {
         auth.verifyApiKey(context)
-        const userId = await auth.getUserId(context)
+        const userId = await auth.getLoginUserId(context)
 
         const entities = await store.writeBatch(context, req.body, userId)
 

@@ -81,7 +81,7 @@ exports.removeBatch = async (context, body, userId) => {
         const tableName = dataBaseTableName + userId
         // context.log('keys:', keys, tableName)
 
-        const entityItems = keys.map(key => toDeleteEntityItem(key, dataPartitionKey))
+        const entityItems = keys.map(key => table.toDeleteEntity(key, dataPartitionKey))
         const batch = new azure.TableBatch()
         entityItems.forEach(entity => batch.deleteEntity(entity))
 
@@ -110,14 +110,6 @@ function toDataTableEntity(entity) {
     return item
 }
 
-function toDeleteEntityItem(key, dataPartitionKey) {
-    const item = {
-        RowKey: entGen.String(key),
-        PartitionKey: entGen.String(dataPartitionKey),
-    }
-
-    return item
-}
 
 function toDataEntity(item) {
     let valueText = '{}'

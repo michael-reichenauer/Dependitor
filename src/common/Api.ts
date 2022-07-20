@@ -21,7 +21,6 @@ export interface GetWebAuthnRegistrationOptionsRsp {
 export interface LoginDeviceSetReq {
   channelId: string;
   isAccept: boolean;
-  username: string;
   authData: string;
 }
 

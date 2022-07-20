@@ -3,8 +3,9 @@ const auth = require('../shared/auth.js');
 module.exports = async function (context, req) {
     try {
         auth.verifyApiKey(context)
+        const userId = await auth.getLoginUserId(context)
 
-        await auth.check(context, req.body)
+        await auth.check(context, req.body, userId)
 
         context.res = { status: 200, body: '' };
     } catch (err) {
