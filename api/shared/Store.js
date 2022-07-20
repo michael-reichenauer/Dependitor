@@ -3,7 +3,8 @@ const crypto = require("crypto")
 const bcrypt = require("bcryptjs")
 const base64url = require("base64url")
 const SimpleWebAuthnServer = require('@simplewebauthn/server');
-var table = require('../shared/table.js');
+const table = require('../shared/table.js');
+const util = require('../shared/util.js');
 
 
 const entGen = azure.TableUtilities.entityGenerator;
@@ -24,31 +25,17 @@ const authenticatorPartitionKey = 'authenticator'
 
 const commonApiKey = '0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade'
 
-const invalidRequestError = 'InvalidRequestError'
-const authenticateError = 'AuthenticateError'
-const emulatorErrorText = "ECONNREFUSED 127.0.0.1:10002"
+
 const clientIdExpires = new Date(2040, 12, 31) // Persistent for a long time
 const deleteCookieExpires = new Date(1970, 1, 1) // past date to delete cookie
-const second = 1000
-const minute = 60 * second
-const hour = 60 * minute
-const day = 24 * hour
-
-const isIncludeExceptionsDetails = true
 
 
-function toError(errorMsg, error) {
-    const exceptionDetails = isIncludeExceptionsDetails ?
-        `\ncaused by server error:\n${error.stack}\n---- end of server error ----` :
-        ''
-    return new Error(`${errorMsg}${exceptionDetails}`)
-}
 
 exports.verifyApiKey = context => {
     const req = context.req
     const apiKey = req.headers['x-api-key']
     if (apiKey !== commonApiKey) {
-        throw new Error(invalidRequestError)
+        throw new Error(util.invalidRequestError)
     }
 }
 
@@ -84,8 +71,7 @@ exports.loginDeviceSet = async (context, body) => {
         await table.insertEntity(authenticatorTableName, entity)
         return {}
     } catch (error) {
-        throwIfEmulatorError(error)
-        throw toError(invalidRequestError, error)
+        throw util.toError(util.invalidRequestError, error)
     }
 }
 
@@ -104,8 +90,7 @@ exports.loginDevice = async (context, body) => {
             return { response: '', cookies: null };
         }
     } catch (error) {
-        throwIfEmulatorError(error)
-        throw toError(authenticateError, error)
+        throw util.toError(util.authenticateError, error)
     }
 }
 
@@ -124,7 +109,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
             const proposedUserId = toUserId(username)
             const contextUserId = await getUserId(context)
             if (proposedUserId !== contextUserId) {
-                throw new Error(authenticateError)
+                throw new Error(util.authenticateError)
             }
         }
 
@@ -158,8 +143,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 
         return { options: options, username: username };
     } catch (error) {
-        throwIfEmulatorError(error)
-        throw toError(authenticateError, error)
+        throw util.toError(util.authenticateError, error)
     }
 }
 
@@ -214,8 +198,7 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
 
         return { response: { verified: verified }, cookies: cookies }
     } catch (error) {
-        throwIfEmulatorError(error)
-        throw toError(authenticateError, error)
+        throw util.toError(util.authenticateError, error)
     }
 }
 
@@ -254,8 +237,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         return { options: options };
     } catch (error) {
-        throwIfEmulatorError(error)
-        throw toError(authenticateError, error)
+        throw util.toError(util.authenticateError, error)
     }
 }
 
@@ -307,8 +289,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
         return { response: { verified }, cookies: cookies };
     } catch (error) {
-        throwIfEmulatorError(error)
-        throw toError(authenticateError, error)
+        throw util.toError(util.authenticateError, error)
     }
 }
 
@@ -415,8 +396,7 @@ exports.logoff = async (context, data) => {
 
         return { cookies: cookies }
     } catch (error) {
-        throwIfEmulatorError(error)
-        throw toError(authenticateError, error)
+        throw util.toError(util.authenticateError, error)
     }
 }
 
@@ -452,8 +432,7 @@ exports.tryReadBatch = async (context, body) => {
 
         return responses
     } catch (err) {
-        throwIfEmulatorError(err)
-        throw toError(invalidRequestError, err)
+        throw util.toError(util.invalidRequestError, err)
     }
 }
 
@@ -489,8 +468,7 @@ exports.writeBatch = async (context, body) => {
 
         return responses
     } catch (err) {
-        throwIfEmulatorError(err)
-        throw toError(invalidRequestError, err)
+        throw util.toError(util.invalidRequestError, err)
     }
 }
 
@@ -510,8 +488,7 @@ exports.removeBatch = async (context, body) => {
 
         return ''
     } catch (err) {
-        throwIfEmulatorError(err)
-        throw toError(invalidRequestError, err)
+        throw util.toError(util.invalidRequestError, err)
     }
 }
 
@@ -529,7 +506,7 @@ function getClientId(context) {
 
 async function clearClientSessions(clientId) {
     // Get all existing sessions for the client or very old sessions
-    let dateVal = new Date(new Date().getTime() - (2 * day));
+    let dateVal = new Date(new Date().getTime() - (2 * util.day));
     let tableQuery = new azure.TableQuery()
         .where('PartitionKey == ?string? && (clientId == ?string? || Timestamp <= ?date?)',
             sessionsPartitionKey, clientId, dateVal);
@@ -549,7 +526,7 @@ async function clearClientSessions(clientId) {
 
 async function clearAuthenticatorChannels() {
     // Get all old channels
-    let dateVal = new Date(new Date().getTime() - (5 * minute));
+    let dateVal = new Date(new Date().getTime() - (5 * util.minute));
     let tableQuery = new azure.TableQuery()
         .where('PartitionKey == ?string? && Timestamp <= ?date?',
             authenticatorPartitionKey, dateVal);
@@ -573,14 +550,13 @@ async function getUserId(context) {
     try {
         const sessionId = getCookie('sessionId', context)
         if (!sessionId) {
-            throw new Error(authenticateError)
+            throw new Error(util.authenticateError)
         }
 
         const sessionTableEntity = await table.retrieveEntity(sessionsTableName, sessionsPartitionKey, sessionId)
         return sessionTableEntity.userId
     } catch (err) {
-        throwIfEmulatorError(err)
-        throw toError(authenticateError, err)
+        throw util.toError(util.authenticateError, err)
     }
 }
 
@@ -598,7 +574,7 @@ function getCookie(name, context) {
 
         // Removing whitespace at the beginning of the cookie name
         /// and compare it with the given string 
-        if (name == cookiePair[0].trim()) {
+        if (name === cookiePair[0].trim()) {
             // Decode the cookie value and return
             return decodeURIComponent(cookiePair[1]);
         }
@@ -676,11 +652,7 @@ function randomString(count) {
     return randomText;
 };
 
-function throwIfEmulatorError(error) {
-    if (error.message.includes(emulatorErrorText)) {
-        throw new Error(invalidRequestError + ': ' + emulatorErrorText)
-    }
-}
+
 
 
 // async function delay(time) {
