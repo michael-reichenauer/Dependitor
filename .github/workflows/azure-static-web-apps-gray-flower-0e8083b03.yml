@@ -22,6 +22,8 @@ jobs:
       - name: Update git sha and build time
         shell: bash
         run: |
+          APIKEY="$(uuidgen)"
+          echo uuid $APIKEY
           BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00"
           echo $BUILD_TIME ${{github.sha}}
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" .env
