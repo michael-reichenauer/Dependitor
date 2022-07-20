@@ -11,7 +11,7 @@ import { di, diKey, singleton } from "../common/di";
 import Result, { isError } from "../common/Result";
 
 import now from "../common/stopwatch";
-import { delay, minutes, seconds } from "../common/utils";
+import { delay, minute, second } from "../common/utils";
 import {
   AuthenticateReq,
   AuthenticatorRsp,
@@ -40,8 +40,8 @@ export interface AuthenticateOperation {
 }
 
 const randomIdLength = 12; // The length of random user id and names
-const tryLoginTimeout = 3 * minutes; // Wait for authenticator to allow/deny login
-const tryLoginPreWait = 4 * seconds; // Time before starting to poll server for result
+const tryLoginTimeout = 3 * minute; // Wait for authenticator to allow/deny login
+const tryLoginPreWait = 4 * second; // Time before starting to poll server for result
 
 @singleton(IAuthenticatorClientKey)
 export class AuthenticatorClient implements IAuthenticatorClient {
@@ -150,7 +150,7 @@ export class AuthenticatorClient implements IAuthenticatorClient {
 
       if (!authData) {
         // No auth data yet, lets wait a little before retrying again
-        for (let t = now(); t.time() < 1 * seconds; ) {
+        for (let t = now(); t.time() < 1 * second; ) {
           if (operation.isCanceled) {
             return new AuthenticatorCanceledError();
           }

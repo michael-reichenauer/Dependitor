@@ -3,9 +3,10 @@ import Result, { isError } from "./Result";
 
 const humanizeDuration = require("humanize-duration");
 
-export const seconds = 1000;
-export const minutes = 60 * seconds;
-export const hours = 60 * minutes;
+export const second = 1000;
+export const minute = 60 * second;
+export const hour = 60 * minute;
+export const day = 24 * hour;
 
 export const isMobileDevice = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
