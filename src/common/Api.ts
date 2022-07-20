@@ -117,7 +117,7 @@ console.log("api key", commonApiKey);
 
 @singleton(IApiKey)
 export class Api implements IApi {
-  private apiKey = commonApiKey; // Must be same as in server side api
+  private apiKey = commonApiKey + "xd"; // Must be same as in server side api
 
   private requestCount = 0;
   private isNoProgress = false;
