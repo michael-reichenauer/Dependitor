@@ -349,8 +349,6 @@ const getClientId = (context) => {
     return clientId
 }
 
-
-
 async function getUser(userId) {
     const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
 
@@ -540,12 +538,13 @@ const bcryptCompare = (password, hash) => {
 
 
 function makeRandomId() {
-    let ID = "";
-    let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    for (var i = 0; i < 12; i++) {
-        ID += characters.charAt(Math.floor(Math.random() * 36));
-    }
-    return ID;
+    return randomString(12)
+    //     let ID = "";
+    //     let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    //     for (var i = 0; i < 12; i++) {
+    //         ID += characters.charAt(Math.floor(Math.random() * 36));
+    //     }
+    //     return ID;
 }
 
 
