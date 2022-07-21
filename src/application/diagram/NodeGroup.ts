@@ -55,7 +55,7 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
       bgColor: color,
     });
 
-    if (!o.name) {
+    if (o.name === undefined || o.name === null) {
       const ic = icons.getIcon(o.icon);
       o.name = ic.key !== noImageIconKey ? ic.name : "Name";
     }
