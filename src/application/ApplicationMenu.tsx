@@ -44,15 +44,11 @@ export function ApplicationMenu() {
       menuItem("Rename", () => renameDiagram(diagramName)),
       menuItem("Delete", deleteDiagram),
       menuItem("Print ...", () => PubSub.publish("canvas.Print"), true),
-      menuItem(
-        "Export png",
-        () => PubSub.publish("canvas.Export", { type: "png", target: "file" }),
-        false
+      menuItem("Export png", () =>
+        PubSub.publish("canvas.Export", { type: "png", target: "file" })
       ),
-      menuItem(
-        "Export svg",
-        () => PubSub.publish("canvas.Export", { type: "svg", target: "file" }),
-        false
+      menuItem("Export svg", () =>
+        PubSub.publish("canvas.Export", { type: "svg", target: "file" })
       ),
     ]),
 
