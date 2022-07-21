@@ -22,6 +22,10 @@ export const random = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min) + min);
 };
 
+export function isProduction(): boolean {
+  return window.location.hostname === "dependitor.com";
+}
+
 export const isInStandaloneMode = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   // @ts-ignore
