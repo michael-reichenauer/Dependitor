@@ -8,7 +8,7 @@ import { IStoreKey } from "./diagram/Store";
 import { useAbout } from "./About";
 import { showPrompt } from "../common/PromptDialog";
 import { di } from "../common/di";
-import { useTitle } from "./Diagram";
+import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
 import { QuestionAlert, showAlert } from "../common/AlertDialog";
@@ -25,7 +25,7 @@ export function ApplicationMenu() {
   const syncMode = useSyncMode();
   const [menu, setMenu] = useState(null);
   const [, setShowAbout] = useAbout();
-  const [diagramName] = useTitle();
+  const [diagramName] = useDiagramName();
 
   const diagrams =
     menu == null ? [] : getDiagramsMenuItems(di(IStoreKey).getRecentDiagrams());
@@ -33,6 +33,12 @@ export function ApplicationMenu() {
   const menuItems = [
     menuItem("New Diagram", () => PubSub.publish("canvas.NewDiagram")),
     menuParentItem("Open Recent", diagrams, diagrams.length > 0),
+    menuParentItem("Insert", [
+      menuItem("Icon", () => PubSub.publish("nodes.showDialog", { add: true })),
+      menuItem("Container", () =>
+        PubSub.publish("nodes.showDialog", { add: true, group: true })
+      ),
+    ]),
 
     menuParentItem("Diagrams", [
       menuItem("Rename", () => renameDiagram(diagramName)),
@@ -117,7 +123,7 @@ export function ApplicationMenu() {
   );
 }
 
-const renameDiagram = (titleText: string) => {
+function renameDiagram(titleText: string) {
   var name = titleText;
   const index = titleText.lastIndexOf(" - ");
   if (index > -1) {
@@ -127,7 +133,7 @@ const renameDiagram = (titleText: string) => {
   showPrompt("Rename Diagram", "", name, (name: string) =>
     PubSub.publish("canvas.RenameDiagram", name)
   );
-};
+}
 
 function getDiagramsMenuItems(recentDiagrams: DiagramInfoDto[]) {
   const diagrams = recentDiagrams.slice(1);

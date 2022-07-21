@@ -19,15 +19,15 @@ export const editModeAtom = atom(false);
 const selectModeAtom = atom(false);
 export const useSelectMode = () => useAtom(selectModeAtom);
 
-const titleAtom = atom("System");
-export const useTitle = () => useAtom(titleAtom);
+const diagramNameAtom = atom("System");
+export const useDiagramName = () => useAtom(diagramNameAtom);
 
 // @ts-ignore
 export default function Diagram({ width, height }) {
   // The ref to the canvas handler for all canvas operations
   const canvasRef = useRef(null);
   const [contextMenu, setContextMenu] = useState<any>();
-  const [, setTitle] = useAtom(titleAtom);
+  const [, setTitle] = useAtom(diagramNameAtom);
   const [, setCanUndo] = useAtom(canUndoAtom);
   const [, setCanRedo] = useAtom(canRedoAtom);
   const [, setCanPopDiagram] = useAtom(canPopDiagramAtom);

@@ -11,8 +11,6 @@ import {
   Typography,
   Menu,
   MenuItem,
-  Switch,
-  FormControlLabel,
 } from "@material-ui/core";
 import SearchBar from "material-ui-search-bar";
 import {
@@ -98,7 +96,7 @@ export default function Nodes() {
   const onChangeSearch = (value: string) => setFilter(value.toLowerCase());
   const cancelSearch = () => setFilter("");
 
-  const titleType = groupType ? "Group" : "Node";
+  const titleType = groupType ? "Container" : "Icon";
   // @ts-ignore
   const title = !!show && show.add ? `Add ${titleType}` : `Change Icon`;
 
@@ -152,7 +150,6 @@ export default function Nodes() {
 
   const boxWidth = window.innerWidth > 600 ? 400 : 270;
   const menuX = boxWidth - 63;
-  const switchX = boxWidth - 140;
 
   return (
     <Dialog
@@ -168,19 +165,7 @@ export default function Nodes() {
     >
       <Box style={{ width: boxWidth, height: 515, padding: 20 }}>
         <Typography variant="h6">{title}</Typography>
-        <FormControlLabel
-          style={{ position: "absolute", top: 24, left: switchX }}
-          control={
-            <Switch
-              size="small"
-              checked={groupType}
-              onChange={() => setGroupType(!groupType)}
-              name="group"
-              color="primary"
-            />
-          }
-          label="Group"
-        />
+
         <Button
           style={{
             position: "absolute",

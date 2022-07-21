@@ -2,7 +2,7 @@ import draw2d from "draw2d";
 import cuid from "cuid";
 import { menuItem } from "../../common/Menus";
 import Colors from "./Colors";
-import { icons } from "../../common/icons";
+import { icons, noImageIconKey } from "../../common/icons";
 import CommandChangeIcon from "./CommandChangeIcon";
 import PubSub from "pubsub-js";
 import { LabelEditor } from "./LabelEditor";
@@ -57,7 +57,7 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
 
     if (!o.name) {
       const ic = icons.getIcon(o.icon);
-      o.name = ic.name;
+      o.name = ic.key !== noImageIconKey ? ic.name : "Name";
     }
 
     this.colorName = o.colorName;
@@ -135,7 +135,7 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     } else {
       this.getAboardFigures = this.getAboardFiguresOrg;
     }
-    this.canvas.save();
+    PubSub.publish("canvas.Save");
   }
 
   changeIcon(iconKey: string) {
@@ -145,8 +145,8 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
   getConfigMenuItems() {
     const groupText =
       this.getAboardFigures === this.getAboardFiguresOrg
-        ? "Ungroup contained items"
-        : "Group contained items";
+        ? "Don't move items with container"
+        : "Move items with container";
 
     return [
       menuItem("To front", () => this.moveToFront()),
