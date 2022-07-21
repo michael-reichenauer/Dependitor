@@ -112,6 +112,7 @@ export default function Nodes() {
     setShow(false);
     setGroupType(false);
     setMru(addToMru(mru, item.key));
+    setFilter("");
 
     // @ts-ignore
     if (show.action) {
@@ -157,6 +158,7 @@ export default function Nodes() {
       onClose={() => {
         setShow(false);
         setGroupType(false);
+        setFilter("");
       }}
       classes={{
         scrollPaper: classes.topScrollPaper,
