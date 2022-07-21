@@ -47,6 +47,16 @@ export function jsonParse<T>(jsonText: string): Result<T> {
   }
 }
 
+// currentTimeAdd returns a time in the future (or past), e.g. currentTimeAdd(10*minute)
+export function currentTimeAdd(timeToAdd: number): Date {
+  return timeAdd(new Date(), timeToAdd);
+}
+
+// timeAdd returns a time relative to the specified date timeAdd(someDate, 15 *second)
+export function timeAdd(time: Date, timeToAdd: number): Date {
+  return new Date(time.getTime() + timeToAdd);
+}
+
 // Returns the distance between 2 points
 export const distance = (
   x1: number,
