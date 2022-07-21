@@ -256,7 +256,7 @@ const ClickHint: FC = () => {
 
 function showEnableLocalLoginPrompt(login: ILoginProvider) {
   showAlert(
-    "Enable Device Login",
+    "Enable Local Device Login",
     `Would you like to setup local login on this device?
   
     Recommended, since you do not need your mobile every time you login.`,
@@ -272,7 +272,7 @@ function showEnableLocalLoginPrompt(login: ILoginProvider) {
 
 function showFirstTimeSyncPrompt() {
   showAlert(
-    "Enable Device Sync",
+    "Enable Sync",
     `Would you like to login and enable device sync with all your devices?
   
     You can, of course, enable sync at a later time.`,
