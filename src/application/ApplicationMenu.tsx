@@ -65,19 +65,19 @@ export function ApplicationMenu() {
       syncMode !== SyncState.Disabled
     ),
 
-    menuParentItem(
-      "Files",
-      [
-        menuItem("Open file ...", () => PubSub.publish("canvas.OpenFile")),
-        menuItem("Save diagram to file", () =>
-          PubSub.publish("canvas.SaveDiagramToFile")
-        ),
-        menuItem("Save/Archive all to file", () =>
-          PubSub.publish("canvas.ArchiveToFile")
-        ),
-      ],
-      false
-    ),
+    // menuParentItem(
+    //   "Files",
+    //   [
+    //     menuItem("Open file ...", () => PubSub.publish("canvas.OpenFile")),
+    //     menuItem("Save diagram to file", () =>
+    //       PubSub.publish("canvas.SaveDiagramToFile")
+    //     ),
+    //     menuItem("Save/Archive all to file", () =>
+    //       PubSub.publish("canvas.ArchiveToFile")
+    //     ),
+    //   ],
+    //   false
+    // ),
 
     menuItem(
       "Reload web page",
