@@ -5,6 +5,7 @@ import { getCommonEvent } from "../common/events";
 import { atom, useAtom } from "jotai";
 import { ContextMenu } from "../common/Menus";
 import Progress from "../common/Progress";
+import Printer from "../common/Printer";
 
 const canUndoAtom = atom(false);
 export const useCanUndo = () => useAtom(canUndoAtom);
@@ -32,6 +33,14 @@ export default function Diagram({ width, height }) {
   const [, setCanPopDiagram] = useAtom(canPopDiagramAtom);
   const [, setEditMode] = useAtom(editModeAtom);
   const [, setSelectMode] = useAtom(selectModeAtom);
+
+  // Enable print key
+  useEffect(() => {
+    const handler = Printer.registerPrintKey(() =>
+      PubSub.publish("canvas.Print")
+    );
+    return () => Printer.deregisterPrintKey(handler);
+  });
 
   useEffect(() => {
     const callbacks = {

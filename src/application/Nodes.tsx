@@ -33,6 +33,7 @@ const iconsSize = 30;
 const selectIconSize = 20;
 const subItemsHeight = iconsSize + 6;
 const allIcons = icons.getAllIcons();
+const defaultIconSets = ["Azure", "Aws", "OSA"];
 
 const nodesAtom = atom(false);
 const useNodes = () => useAtom(nodesAtom);
@@ -70,11 +71,10 @@ export default function Nodes() {
   const [filter, setFilter] = useState("");
   const [mruNodes, setMruNodes] = useLocalStorage("nodes.nodesMru", []);
   const [mruGroups, setMruGroups] = useLocalStorage("nodes.groupsMru", []);
-  const [iconSets, setIconSets] = useLocalStorage("nodes.iconSets", [
-    "Azure",
-    "Aws",
-    "OSA",
-  ]);
+  const [iconSets, setIconSets] = useLocalStorage(
+    "nodes.iconSets",
+    defaultIconSets
+  );
   const [groupType, setGroupType] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);

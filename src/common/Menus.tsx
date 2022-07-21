@@ -91,6 +91,7 @@ const getMenuItems = (items: any[], onClick: any) => {
       if (item instanceof Item) {
         return (
           <MenuItem
+            style={{ paddingTop: 0, paddingBottom: 0 }}
             key={`item-${i}`}
             onClick={() => onClick(item)}
             disabled={!item.isEnabled}
@@ -107,6 +108,7 @@ const getMenuItems = (items: any[], onClick: any) => {
       } else if (item instanceof NestedItem) {
         return (
           <NestedMenuItem
+            style={{ paddingTop: 0, paddingBottom: 0 }}
             key={`item-${i}`}
             label={item.text}
             parentMenuOpen={!!item.isEnabled}

@@ -22,6 +22,12 @@ export const random = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min) + min);
 };
 
+export const isInStandaloneMode = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  // @ts-ignore
+  window.navigator.standalone ||
+  document.referrer.includes("android-app://");
+
 export const randomString = (count: number): string => {
   let randomText = "";
   const randomBytes = crypto.getRandomValues(new Uint8Array(count));

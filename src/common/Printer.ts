@@ -1,8 +1,12 @@
 // Inspired of https://levelup.gitconnected.com/pretty-print-your-site-with-javascript-d69f63956529
 export default class Printer {
+  static isPrintKeyRegistered = false;
   static registerPrintKey(action: () => void) {
+    if (this.isPrintKeyRegistered) {
+      return;
+    }
+    this.isPrintKeyRegistered = true;
     // override Ctrl/Cmd + P
-
     // @ts-ignore
     const handler = (event: any) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "p") {
