@@ -12,10 +12,7 @@ import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
 import { QuestionAlert, showAlert } from "../common/AlertDialog";
-import {
-  isInStandaloneMode as isStandaloneApp,
-  isMobileDevice,
-} from "../common/utils";
+import { isStandaloneApp, isMobileDevice } from "../common/utils";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,

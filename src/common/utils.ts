@@ -26,7 +26,7 @@ export function isProduction(): boolean {
   return window.location.hostname === "dependitor.com";
 }
 
-export const isInStandaloneMode = () =>
+export const isStandaloneApp = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   // @ts-ignore
   window.navigator.standalone ||

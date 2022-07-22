@@ -32,6 +32,7 @@ type ApplicationBarProps = {
 };
 
 export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
+  const online = di(IOnlineKey);
   const classes = useAppBarStyles();
   const [diagramName] = useDiagramName();
   const syncMode = useSyncMode();
@@ -62,21 +63,21 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
           <Button
             tooltip={`Device sync enabled and OK, click to sync now`}
             icon={<SyncIcon style={{ color: "Lime" }} />}
-            onClick={() => di(IOnlineKey).enableSync()}
+            onClick={() => online.enableSync()}
           />
         )}
         {syncMode === SyncState.Error && (
           <Button
             tooltip="Device sync error, click to retry sync now"
             icon={<SyncProblemIcon style={{ color: "#FF3366" }} />}
-            onClick={() => di(IOnlineKey).enableSync()}
+            onClick={() => online.enableSync()}
           />
         )}
         {syncMode === SyncState.Disabled && (
           <Button
             tooltip="Click to login and enable device sync"
             icon={<SyncDisabledIcon style={{ color: "#FFFF66" }} />}
-            onClick={() => di(IOnlineKey).enableSync()}
+            onClick={() => online.enableSync()}
           />
         )}
 
