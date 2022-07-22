@@ -129,7 +129,7 @@ function toErrorMessage(error?: Error): string {
     return "Local Azure storage emulator not started.";
   }
   if (isError(error, AuthenticateError)) {
-    return "Invalid credentials. Please try again with different credentials.";
+    return "Authentication error. Please retry again.";
   }
   if (isError(error, NoContactError)) {
     return "No network contact with server. Please retry again in a while.";

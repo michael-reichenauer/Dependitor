@@ -91,12 +91,15 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 
         let { username } = data
         if (!username) {
+            // The authenticator does not specify a user, i.e. a new random user name is generated
             username = makeRandomId()
         } else {
-            // client has specified a proposed username, lets verify it is same as logged in user
+            // A dependitor has proposed a username, lets verify it is same as logged in user
+            // Which was authenticated by the authenticator.
             const proposedUserId = toUserId(username)
             const contextUserId = await getLoginUserId(context)
             if (proposedUserId !== contextUserId) {
+                // Does no match, the dependitor was not authenticated by an authenticator
                 throw new Error(util.authenticateError)
             }
         }
@@ -104,6 +107,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         const userId = toUserId(username)
 
         // Try get the user, if it is the first time for this user, we create a default user
+        // otherwise the device will be added to the user
         let user
         try {
             user = await getUser(userId)
@@ -346,6 +350,7 @@ const getClientId = (context) => {
 async function getUser(userId) {
     const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
 
+    // The user struct is a json string
     const user = JSON.parse(userTableEntity.user)
 
     // Since user.devices contain binary buffers, they need to be decoded manually
@@ -369,17 +374,18 @@ async function updateUser(userId, user) {
         transports: device.transports
     }))
 
-    const wDek = ""
-    const userItem = toUserTableEntity2(userId, user, wDek)
+    // Convert the user struct to json
+    const userJson = JSON.stringify(user)
+
+    const userItem = toUserTableEntity(userId, userJson)
     await table.insertOrReplaceEntity(usersTableName, userItem)
 }
 
 
 async function createSession(clientId, userId) {
-
     // Create user data table if it does not already exist
-    const tableName = dataBaseTableName + userId
-    await table.createTableIfNotExists(tableName)
+    const dataTableName = dataBaseTableName + userId
+    await table.createTableIfNotExists(dataTableName)
     await table.createTableIfNotExists(sessionsTableName)
 
     // Clear previous sessions from this client
@@ -507,23 +513,12 @@ function randomString(count) {
 
 
 
-function toUserTableEntity2(userId, user, wDek) {
-    // Since user.devices contain binary buffers, they need to be encoded manually
-    user.devices = user.devices.map(device => ({
-        credentialID: device.credentialID.toString('base64'),
-        credentialPublicKey: device.credentialPublicKey.toString('base64'),
-        counter: device.counter,
-        transports: device.transports
-    }))
-
-    const userJson = JSON.stringify(user)
-
+function toUserTableEntity(userId, user) {
     return {
         RowKey: table.String(userId),
         PartitionKey: table.String(userPartitionKey),
 
-        user: table.String(userJson),
-        wDek: table.String(wDek),
+        user: table.String(user),
     }
 }
 

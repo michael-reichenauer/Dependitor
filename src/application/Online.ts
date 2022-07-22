@@ -329,7 +329,7 @@ export class Online implements IOnline {
       return "Invalid session. Please retry to enable sync again";
     }
     if (isError(error, AuthenticateError)) {
-      return "Invalid credentials. Please try again with different credentials or create a new account";
+      return "Authentication error. Please retry again.";
     }
     if (isError(error, NoContactError)) {
       return "No network contact with server. Please retry again in a while.";

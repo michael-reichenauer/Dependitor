@@ -186,6 +186,16 @@ export class Authenticate implements IAuthenticate {
     // Authenticate the existing registered username
     const { username, credentialId, wDek } = userInfo;
     const password = await this.authenticate(username, credentialId);
+    if (password instanceof AuthenticateError) {
+      // Failed to authenticate, need to re-register device, lets clear
+      this.writeUserInfo({
+        username: "",
+        clientId: "",
+        credentialId: "",
+        wDek: "",
+      });
+      return password;
+    }
     if (isError(password)) {
       return password;
     }
@@ -202,7 +212,7 @@ export class Authenticate implements IAuthenticate {
         credentialId: "",
         wDek: "",
       });
-      return dek;
+      return new AuthenticateError(dek);
     }
 
     // Make the DEK available to be used when encrypting/decrypting data when accessing server
