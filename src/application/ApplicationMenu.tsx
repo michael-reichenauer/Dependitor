@@ -65,7 +65,7 @@ export function ApplicationMenu() {
       syncMode !== SyncState.Disabled
     ),
 
-    // menuParentItem(
+    // menuParentItem( //
     //   "Files",
     //   [
     //     menuItem("Open file ...", () => PubSub.publish("canvas.OpenFile")),
