@@ -7,6 +7,7 @@ import {
   NoContactError,
   LocalApiServerError,
   LocalEmulatorError,
+  SessionError,
 } from "../common/Api";
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "./../common/Api";
@@ -14,6 +15,7 @@ import {
   clearErrorMessages,
   setErrorMessage,
   setInfoMessage,
+  setWarnMessage,
 } from "../common/MessageSnackbar";
 import { setSuccessMessage } from "./../common/MessageSnackbar";
 import { IStoreKey } from "./diagram/Store";
@@ -209,6 +211,12 @@ export class Online implements IOnline {
     if (!ok) {
       // StoreDB failed syncing, showing error
       this.isError = true;
+      if (error instanceof SessionError) {
+        setWarnMessage(this.toErrorMessage(error));
+        showSyncState(SyncState.Error);
+        setTimeout(() => this.enableSync(), 0);
+        return;
+      }
       setErrorMessage(this.toErrorMessage(error));
       showSyncState(SyncState.Error);
       return;
@@ -316,6 +324,9 @@ export class Online implements IOnline {
     }
     if (isError(error, LocalEmulatorError)) {
       return "Local Azure storage emulator not started.";
+    }
+    if (isError(error, SessionError)) {
+      return "Invalid session. Please retry to enable sync again";
     }
     if (isError(error, AuthenticateError)) {
       return "Invalid credentials. Please try again with different credentials or create a new account";

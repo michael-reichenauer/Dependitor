@@ -76,7 +76,7 @@ export class NetworkError extends CustomError {}
 export class ServerError extends NetworkError {}
 export class AuthenticateError extends NetworkError {}
 export class CredentialError extends AuthenticateError {}
-export class TokenError extends AuthenticateError {}
+export class SessionError extends AuthenticateError {}
 export class NoContactError extends NetworkError {}
 export class RequestError extends NetworkError {}
 export class LocalApiServerError extends NoContactError {}
@@ -329,6 +329,9 @@ export class Api implements IApi {
             "Local storage emulator not started. Call 'AzureStorageEmulator.exe start'",
             serverError
           );
+        }
+        if (rsp.data?.includes("SessionError")) {
+          return new SessionError(serverError);
         }
         if (
           rsp.data?.includes("The table specified does not exist") ||

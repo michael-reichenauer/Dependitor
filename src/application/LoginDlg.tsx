@@ -95,7 +95,7 @@ export const LoginDlg: FC = () => {
   };
 
   const cancel = (): void => {
-    login?.loginViaAuthenticator();
+    login?.cancelLoginViaAuthenticator();
     login?.cancelLogin();
     setLogin(null);
   };
@@ -116,10 +116,8 @@ export const LoginDlg: FC = () => {
         <Formik
           initialValues={{ deviceName: "" }}
           onSubmit={async (values, { setErrors, setFieldValue }) => {
-            console.log("onSubmit");
-
             // Cancel login via authenticator, since we are logging in locally
-            login?.loginViaAuthenticator();
+            login?.cancelLoginViaAuthenticator();
             login?.login();
 
             // Closing the login dialog
