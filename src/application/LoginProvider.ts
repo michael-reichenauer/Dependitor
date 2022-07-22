@@ -10,7 +10,7 @@ import {
 export interface ILoginProvider {
   login(): Promise<Result<void>>;
   cancelLogin(): void;
-  loginViaAuthenticator(): void;
+  cancelLoginViaAuthenticator(): void;
   getAuthenticateUrl(): string;
   tryLoginViaAuthenticator(): Promise<Result<void>>;
   hasLocalLogin(): boolean;
@@ -59,7 +59,7 @@ export class LoginProvider implements ILoginProvider {
     return await this.online.login();
   }
 
-  public loginViaAuthenticator(): void {
+  public cancelLoginViaAuthenticator(): void {
     this.operation.isCanceled = true;
   }
 

@@ -22,7 +22,7 @@ const authenticatorPartitionKey = 'authenticator'
 
 const clientIdExpires = new Date(2040, 12, 31) // Persistent for a long time
 const deleteCookieExpires = new Date(1970, 1, 1) // past date to delete cookie
-
+const sessionDuration = 10 * util.hour
 
 
 exports.verifyApiKey = context => {
@@ -320,10 +320,16 @@ const getLoginUserId = async (context) => {
             throw new Error(util.authenticateError)
         }
 
-        const sessionTableEntity = await table.retrieveEntity(sessionsTableName, sessionsPartitionKey, sessionId)
-        return sessionTableEntity.userId
+        const entity = await table.retrieveEntity(sessionsTableName, sessionsPartitionKey, sessionId)
+        const expireDate = new Date(new Date().getTime() - sessionDuration);
+        const sessionDate = Date.parse(entity.Timestamp)
+        if (sessionDate < expireDate) {
+            throw new Error(util.authenticateError)
+        }
+
+        return entity.userId
     } catch (err) {
-        throw util.toError(util.authenticateError, err)
+        throw util.toError(util.sessionError, err)
     }
 }
 exports.getLoginUserId = getLoginUserId
@@ -417,7 +423,7 @@ function createCookies(clientId, sessionId) {
 
 async function clearClientSessions(clientId) {
     // Get all existing sessions for the client or very old sessions
-    let dateVal = new Date(new Date().getTime() - (2 * util.day));
+    let dateVal = new Date(new Date().getTime() - sessionDuration);
     let tableQuery = new azure.TableQuery()
         .where('PartitionKey == ?string? && (clientId == ?string? || Timestamp <= ?date?)',
             sessionsPartitionKey, clientId, dateVal);

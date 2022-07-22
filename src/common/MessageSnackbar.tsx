@@ -2,10 +2,12 @@ import React, { useEffect } from "react";
 import { SnackbarKey, SnackbarProvider, useSnackbar } from "notistack";
 
 let setErrorFunc: (msg: string) => void | null;
+let setWarnFunc: (msg: string) => void | null;
 let setInfoFunc: (msg: string) => void | null;
 let setSuccessFunc: (msg: string) => void | null;
 
 export const setErrorMessage = (message: string) => setErrorFunc?.(message);
+export const setWarnMessage = (message: string) => setWarnFunc?.(message);
 export const setInfoMessage = (message: string) => setInfoFunc?.(message);
 export const setSuccessMessage = (message: string) => setSuccessFunc?.(message);
 export const clearErrorMessages = () =>
@@ -41,6 +43,18 @@ const Enable = () => {
       console.log("Error message:", errorMsg);
       const sb = enqueueSnackbar(errorMsg, {
         variant: "error",
+        onClick: () => {
+          closeSnackbar(sb);
+          removeSnackbar(errorSnackBars, sb);
+        },
+        persist: true,
+      });
+      errorSnackBars.push(sb);
+    };
+    setWarnFunc = (msg: string) => {
+      console.log("Warn message:", msg);
+      const sb = enqueueSnackbar(msg, {
+        variant: "warning",
         onClick: () => {
           closeSnackbar(sb);
           removeSnackbar(errorSnackBars, sb);

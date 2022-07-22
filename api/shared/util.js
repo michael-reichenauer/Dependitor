@@ -4,6 +4,7 @@ const hour = 60 * minute
 const day = 24 * hour
 const invalidRequestError = 'InvalidRequestError'
 const authenticateError = 'AuthenticateError'
+const sessionError = 'SessionError'
 
 exports.second = second
 exports.minute = minute
@@ -11,6 +12,7 @@ exports.hour = hour
 exports.day = day
 exports.invalidRequestError = invalidRequestError
 exports.authenticateError = authenticateError
+exports.sessionError = sessionError
 
 const isIncludeExceptionsDetails = true
 
