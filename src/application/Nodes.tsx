@@ -11,8 +11,6 @@ import {
   Typography,
   Menu,
   MenuItem,
-  Switch,
-  FormControlLabel,
 } from "@material-ui/core";
 import SearchBar from "material-ui-search-bar";
 import {
@@ -33,6 +31,7 @@ const iconsSize = 30;
 const selectIconSize = 20;
 const subItemsHeight = iconsSize + 6;
 const allIcons = icons.getAllIcons();
+const defaultIconSets = ["Azure", "Aws", "OSA"];
 
 const nodesAtom = atom(false);
 const useNodes = () => useAtom(nodesAtom);
@@ -70,11 +69,10 @@ export default function Nodes() {
   const [filter, setFilter] = useState("");
   const [mruNodes, setMruNodes] = useLocalStorage("nodes.nodesMru", []);
   const [mruGroups, setMruGroups] = useLocalStorage("nodes.groupsMru", []);
-  const [iconSets, setIconSets] = useLocalStorage("nodes.iconSets", [
-    "Azure",
-    "Aws",
-    "OSA",
-  ]);
+  const [iconSets, setIconSets] = useLocalStorage(
+    "nodes.iconSets",
+    defaultIconSets
+  );
   const [groupType, setGroupType] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -98,7 +96,7 @@ export default function Nodes() {
   const onChangeSearch = (value: string) => setFilter(value.toLowerCase());
   const cancelSearch = () => setFilter("");
 
-  const titleType = groupType ? "Group" : "Node";
+  const titleType = groupType ? "Container" : "Icon";
   // @ts-ignore
   const title = !!show && show.add ? `Add ${titleType}` : `Change Icon`;
 
@@ -114,6 +112,7 @@ export default function Nodes() {
     setShow(false);
     setGroupType(false);
     setMru(addToMru(mru, item.key));
+    setFilter("");
 
     // @ts-ignore
     if (show.action) {
@@ -152,7 +151,6 @@ export default function Nodes() {
 
   const boxWidth = window.innerWidth > 600 ? 400 : 270;
   const menuX = boxWidth - 63;
-  const switchX = boxWidth - 140;
 
   return (
     <Dialog
@@ -160,6 +158,7 @@ export default function Nodes() {
       onClose={() => {
         setShow(false);
         setGroupType(false);
+        setFilter("");
       }}
       classes={{
         scrollPaper: classes.topScrollPaper,
@@ -168,19 +167,7 @@ export default function Nodes() {
     >
       <Box style={{ width: boxWidth, height: 515, padding: 20 }}>
         <Typography variant="h6">{title}</Typography>
-        <FormControlLabel
-          style={{ position: "absolute", top: 24, left: switchX }}
-          control={
-            <Switch
-              size="small"
-              checked={groupType}
-              onChange={() => setGroupType(!groupType)}
-              name="group"
-              color="primary"
-            />
-          }
-          label="Group"
-        />
+
         <Button
           style={{
             position: "absolute",

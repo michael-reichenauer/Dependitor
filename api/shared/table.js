@@ -2,6 +2,21 @@ const azure = require('azure-storage');
 
 const tableService = azure.createTableService();
 
+const entGen = azure.TableUtilities.entityGenerator;
+
+exports.String = (value) => {
+    return entGen.String(value)
+}
+
+exports.toDeleteEntity = (key, partitionKey) => {
+    const item = {
+        RowKey: entGen.String(key),
+        PartitionKey: entGen.String(partitionKey),
+    }
+
+    return item
+}
+
 
 exports.createTableIfNotExists = (tableName) => {
     const err = new Error('server stack:')

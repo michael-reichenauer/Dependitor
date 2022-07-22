@@ -4,7 +4,7 @@ import Result, { isError } from "../Result";
 import { di, diKey, singleton } from "../di";
 import { Query } from "../Api";
 import assert from "assert";
-import { seconds } from "../utils";
+import { second } from "../utils";
 
 // Key-value database, that syncs locally stored entities with a remote server
 export const IStoreDBKey = diKey<IStoreDB>();
@@ -42,7 +42,7 @@ export interface Configuration {
   isSyncEnabled: boolean;
 }
 
-const autoSyncInterval = 15 * seconds; // The interval between checking server for db updates
+const autoSyncInterval = 15 * second; // The interval between checking server for db updates
 
 @singleton(IStoreDBKey)
 export class StoreDB implements IStoreDB {

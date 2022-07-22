@@ -2,6 +2,8 @@ import React from "react";
 import { ListItemIcon, ListItemText, Menu, MenuItem } from "@material-ui/core";
 import NestedMenuItem from "material-ui-nested-menu-item";
 
+const padding = 3;
+
 // Normal menu item.
 export const menuItem = (
   text: string,
@@ -91,6 +93,7 @@ const getMenuItems = (items: any[], onClick: any) => {
       if (item instanceof Item) {
         return (
           <MenuItem
+            style={{ paddingTop: padding, paddingBottom: padding }}
             key={`item-${i}`}
             onClick={() => onClick(item)}
             disabled={!item.isEnabled}
@@ -107,6 +110,7 @@ const getMenuItems = (items: any[], onClick: any) => {
       } else if (item instanceof NestedItem) {
         return (
           <NestedMenuItem
+            style={{ paddingTop: padding, paddingBottom: padding }}
             key={`item-${i}`}
             label={item.text}
             parentMenuOpen={!!item.isEnabled}

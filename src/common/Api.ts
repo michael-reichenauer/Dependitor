@@ -11,6 +11,7 @@ import {
   RegistrationCredentialJSON,
 } from "@simplewebauthn/typescript-types";
 import { withProgress } from "./Progress";
+import { commonApiKey } from "../config";
 
 export interface GetWebAuthnRegistrationOptionsRsp {
   options: PublicKeyCredentialCreationOptionsJSON;
@@ -20,7 +21,6 @@ export interface GetWebAuthnRegistrationOptionsRsp {
 export interface LoginDeviceSetReq {
   channelId: string;
   isAccept: boolean;
-  username: string;
   authData: string;
 }
 
@@ -114,7 +114,7 @@ export interface IApi {
 
 @singleton(IApiKey)
 export class Api implements IApi {
-  private apiKey = "0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade"; // Must be same as in server side api
+  private apiKey = commonApiKey; // Must be same as in server side api
 
   private requestCount = 0;
   private isNoProgress = false;

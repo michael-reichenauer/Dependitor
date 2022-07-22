@@ -1,10 +1,10 @@
 import axios from "axios";
 import { useEffect, useRef } from "react";
 import { useActivity } from "./activity";
-import { minutes } from "./utils";
+import { minute } from "./utils";
 
-const checkRemoteInterval = 30 * minutes;
-const retryFailedRemoteInterval = 5 * minutes;
+const checkRemoteInterval = 30 * minute;
+const retryFailedRemoteInterval = 5 * minute;
 
 export const startTime = dateToLocalISO(new Date().toISOString());
 export const localSha =
@@ -90,7 +90,7 @@ function dateToLocalISO(dateText: string) {
   const off = date.getTimezoneOffset();
   const absOffset = Math.abs(off);
   return (
-    new Date(date.getTime() - off * minutes).toISOString().substr(0, 23) +
+    new Date(date.getTime() - off * minute).toISOString().substr(0, 23) +
     (off > 0 ? "-" : "+") +
     (absOffset / 60).toFixed(0).padStart(2, "0") +
     ":" +

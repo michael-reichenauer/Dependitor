@@ -86,7 +86,7 @@ export default class Node extends draw2d.shape.node.Between {
     });
 
     const o = { ...defaultOptions(type), ...options };
-    if (!o.name) {
+    if (o.name === undefined || o.name === null) {
       const ic = icons.getIcon(o.icon);
       o.name = ic.name;
     }
