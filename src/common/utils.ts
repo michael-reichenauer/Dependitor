@@ -3,9 +3,10 @@ import Result, { isError } from "./Result";
 
 const humanizeDuration = require("humanize-duration");
 
-export const seconds = 1000;
-export const minutes = 60 * seconds;
-export const hours = 60 * minutes;
+export const second = 1000;
+export const minute = 60 * second;
+export const hour = 60 * minute;
+export const day = 24 * hour;
 
 export const isMobileDevice = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
@@ -20,6 +21,16 @@ export const random = (min: number, max: number): number => {
   max = Math.floor(max) + 1;
   return Math.floor(Math.random() * (max - min) + min);
 };
+
+export function isProduction(): boolean {
+  return window.location.hostname === "dependitor.com";
+}
+
+export const isStandaloneApp = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  // @ts-ignore
+  window.navigator.standalone ||
+  document.referrer.includes("android-app://");
 
 export const randomString = (count: number): string => {
   let randomText = "";
@@ -44,6 +55,16 @@ export function jsonParse<T>(jsonText: string): Result<T> {
   } catch (error) {
     return error as Error;
   }
+}
+
+// currentTimeAdd returns a time in the future (or past), e.g. currentTimeAdd(10*minute)
+export function currentTimeAdd(timeToAdd: number): Date {
+  return timeAdd(new Date(), timeToAdd);
+}
+
+// timeAdd returns a time relative to the specified date timeAdd(someDate, 15 *second)
+export function timeAdd(time: Date, timeToAdd: number): Date {
+  return new Date(time.getTime() + timeToAdd);
 }
 
 // Returns the distance between 2 points

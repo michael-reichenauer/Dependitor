@@ -21,6 +21,9 @@ import {
   AuthenticatorNotAcceptedError,
 } from "../authenticator/AuthenticatorClient";
 import { ILoginProvider } from "./LoginProvider";
+import { IOnlineKey } from "./Online";
+import { di } from "../common/di";
+import { useLocalStorage } from "../common/useLocalStorage";
 
 const dialogWidth = 290;
 const dialogHeight = 410;
@@ -48,6 +51,14 @@ const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
 
 export const LoginDlg: FC = () => {
   const [login, setLogin] = useLogin();
+  const [isFirst, setIsFirst] = useLocalStorage("loginDlg.isFirstTime", true);
+
+  useEffect(() => {
+    if (!login && isFirst) {
+      showFirstTimeSyncPrompt();
+      setIsFirst(false);
+    }
+  }, [login, isFirst, setIsFirst]);
 
   useEffect(() => {
     if (login) {
@@ -245,14 +256,30 @@ const ClickHint: FC = () => {
 
 function showEnableLocalLoginPrompt(login: ILoginProvider) {
   showAlert(
-    "Enable Device Login",
+    "Enable Local Device Login",
     `Would you like to setup local login on this device?
   
     Recommended, since you do not need your mobile every time you login.`,
     {
       onOk: () => login?.login(),
-      cancelText: "Skip",
+      okText: "Yes",
+      cancelText: "Later",
       showCancel: true,
+      icon: QuestionAlert,
+    }
+  );
+}
+
+function showFirstTimeSyncPrompt() {
+  showAlert(
+    "Enable Sync",
+    `Would you like to login and enable device sync with all your devices?
+  
+    You can, of course, enable sync at a later time.`,
+    {
+      onOk: () => di(IOnlineKey).enableSync(),
+      okText: "Yes",
+      cancelText: "Later",
       icon: QuestionAlert,
     }
   );

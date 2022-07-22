@@ -3,6 +3,7 @@ import { atom, useAtom } from "jotai";
 import { Box, Button, Dialog, Tooltip, Typography } from "@material-ui/core";
 import { localBuildTime, localSha } from "../common/appVersion";
 import { SetAtom } from "jotai/core/types";
+import { isProduction } from "../common/utils";
 //import { useLogin } from "./Login";
 
 // Test
@@ -44,20 +45,12 @@ const About: React.FC = () => {
           <Typography variant="h5">About Dependitor</Typography>
         </Tooltip>
         <Typography>A tool for modeling cloud architecture.</Typography>
-        <Typography style={{ fontSize: "10px", marginTop: 40 }}>
-          Version: {`${localSha.substring(0, 6)}, ${localBuildTime} `}
-        </Typography>
 
-        {/* <Typography style={{ paddingTop: 10 }} >
-                    Checkout the  "<Link href="https://c4model.com" target="_blank">C4 Model</Link>"
-                    by Simon Brown  to better understand on how to use the tool.
-                </Typography>
-                <Typography style={{ paddingTop: 10 }} >
-                    You can sync diagrams between different devices if you login to <Link onClick={enableCloudSync}>enable cloud sync</Link>
-                </Typography> */}
-        {/* <Typography style={{ paddingTop: 30 }} variant="body2">
-                    Hint: Use context menus to access functionality.
-                </Typography> */}
+        {!isProduction() && (
+          <Typography style={{ fontSize: "10px", marginTop: 40 }}>
+            Version: {`${localSha.substring(0, 6)}, ${localBuildTime} `}
+          </Typography>
+        )}
 
         <Box
           style={{ position: "absolute", bottom: 20, left: "40%" }}

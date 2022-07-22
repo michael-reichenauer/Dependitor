@@ -124,7 +124,6 @@ export class Authenticator implements IAuthenticator {
     channelId: string,
     isAccept: boolean
   ): Promise<Result<void>> {
-    console.log("post auth rsp", authenticateRsp);
     // Serialize the response
     const rspJson = JSON.stringify(authenticateRsp);
 
@@ -135,7 +134,6 @@ export class Authenticator implements IAuthenticator {
     // Post the response
     const loginDeviceSetReq: LoginDeviceSetReq = {
       channelId: channelId,
-      username: authenticateRsp.username,
       isAccept: isAccept,
       authData: authData,
     };

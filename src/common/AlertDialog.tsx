@@ -45,11 +45,11 @@ const defaultProperties: AlertProperties = {
   icon: InfoAlert,
 };
 
-export const showAlert = (
+export function showAlert(
   title: string,
   message: string,
   properties?: AlertProperties
-) => {
+) {
   const showCancel =
     properties?.showCancel || properties?.cancelText || properties?.onCancel;
   setAlertFunc?.({
@@ -59,7 +59,7 @@ export const showAlert = (
     ...properties,
     showCancel: showCancel,
   });
-};
+}
 
 // Use alert for OK/cancel or just OK
 export const useAlert = (): [any, any] => {

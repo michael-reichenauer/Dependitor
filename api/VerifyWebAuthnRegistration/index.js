@@ -1,9 +1,9 @@
-var store = require('../shared/Store.js');
+const auth = require('../shared/auth.js');
 
 module.exports = async function (context, req) {
     try {
-        store.verifyApiKey(context)
-        const { response, cookies } = await store.verifyWebAuthnRegistration(context, req.body)
+        auth.verifyApiKey(context)
+        const { response, cookies } = await auth.verifyWebAuthnRegistration(context, req.body)
 
         context.res = { status: 200, body: response, cookies: cookies };
     } catch (err) {

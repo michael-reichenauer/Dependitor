@@ -1,4 +1,4 @@
-import React, { FC, useRef } from "react";
+import React, { FC } from "react";
 import PubSub from "pubsub-js";
 import {
   Typography,
@@ -12,6 +12,7 @@ import {
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import { ApplicationMenu } from "./ApplicationMenu";
 import AddBoxOutlinedIcon from "@material-ui/icons/AddBoxOutlined";
+import QueueOutlinedIcon from "@material-ui/icons/QueueOutlined";
 
 import SyncIcon from "@material-ui/icons/Sync";
 import SyncProblemIcon from "@material-ui/icons/SyncProblem";
@@ -21,24 +22,22 @@ import UndoIcon from "@material-ui/icons/Undo";
 import RedoIcon from "@material-ui/icons/Redo";
 import FilterCenterFocusIcon from "@material-ui/icons/FilterCenterFocus";
 
-import { useCanRedo, useCanUndo, useTitle } from "./Diagram";
+import { useCanRedo, useCanUndo, useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { showPrompt } from "./../common/PromptDialog";
 import { di } from "../common/di";
-//import { bufferToBase64, sha256Hash } from "../common/utils";
 
 type ApplicationBarProps = {
   height: number;
 };
 
 export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
-  const onlineRef = useRef(di(IOnlineKey));
+  const online = di(IOnlineKey);
   const classes = useAppBarStyles();
-  const [titleText] = useTitle();
+  const [diagramName] = useDiagramName();
   const syncMode = useSyncMode();
   const [canUndo] = useCanUndo();
   const [canRedo] = useCanRedo();
-  // const [canPopDiagram] = useAtom(canPopDiagramAtom)
 
   const style = (disabled?: any) => {
     return !disabled ? classes.icons : classes.iconsDisabled;
@@ -48,22 +47,11 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
     return !disabled ? classes.iconsAlways : classes.iconsAlwaysDisabled;
   };
 
-  const renameDiagram = () => {
-    var name = titleText;
-    const index = titleText.lastIndexOf(" - ");
-    if (index > -1) {
-      name = name.substring(0, index);
-    }
-
-    showPrompt("Rename Diagram", "", name, (name) =>
-      PubSub.publish("canvas.RenameDiagram", name)
-    );
-  };
-
   return (
     <AppBar position="static" style={{ height: height }}>
       <Toolbar>
         <ApplicationMenu />
+
         {syncMode === SyncState.Progress && (
           <Button
             tooltip={`Trying to connect, please wait`}
@@ -75,21 +63,21 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
           <Button
             tooltip={`Device sync enabled and OK, click to sync now`}
             icon={<SyncIcon style={{ color: "Lime" }} />}
-            onClick={() => onlineRef.current.enableSync()}
+            onClick={() => online.enableSync()}
           />
         )}
         {syncMode === SyncState.Error && (
           <Button
             tooltip="Device sync error, click to retry sync now"
             icon={<SyncProblemIcon style={{ color: "#FF3366" }} />}
-            onClick={() => onlineRef.current.enableSync()}
+            onClick={() => online.enableSync()}
           />
         )}
         {syncMode === SyncState.Disabled && (
           <Button
             tooltip="Click to login and enable device sync"
             icon={<SyncDisabledIcon style={{ color: "#FFFF66" }} />}
-            onClick={() => onlineRef.current.enableSync()}
+            onClick={() => online.enableSync()}
           />
         )}
 
@@ -107,11 +95,16 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
         />
 
         <Button
-          tooltip="Add node"
+          tooltip="Insert Icon"
           icon={<AddBoxOutlinedIcon className={styleAlways()} />}
-          onClick={(e) => {
-            PubSub.publish("nodes.showDialog", { add: true });
-          }}
+          onClick={() => PubSub.publish("nodes.showDialog", { add: true })}
+        />
+        <Button
+          tooltip="Insert Container"
+          icon={<QueueOutlinedIcon className={styleAlways()} />}
+          onClick={() =>
+            PubSub.publish("nodes.showDialog", { add: true, group: true })
+          }
         />
 
         <Button
@@ -119,26 +112,15 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
           icon={<FilterCenterFocusIcon className={styleAlways()} />}
           onClick={() => PubSub.publish("canvas.ShowTotalDiagram")}
         />
-        {/* <Button tooltip="Pop to surrounding diagram" disabled={!canPopDiagram} icon={<SaveAltIcon className={styleAlways(!canPopDiagram)} style={{ transform: 'rotate(180deg)' }} />}
-                    onClick={() => PubSub.publish('canvas.PopInnerDiagram')} /> */}
-
-        {/* <ToggleButtonGroup
-                    size="small"
-                    value={editToggle}
-                    onChange={handleEditToggleChange}
-                >
-                    <ToggleButton value="pan" ><Tooltip title="Enable pan mode"><ControlCameraIcon className={editStyleAlways(editMode)} /></Tooltip></ToggleButton>
-                    <ToggleButton value="edit" ><Tooltip title="Enable edit mode"><EditIcon className={editStyleAlways(!editMode)} /></Tooltip></ToggleButton>
-                </ToggleButtonGroup> */}
 
         <Box m={1} className={style()} />
         <Typography
           className={classes.title}
           variant="h6"
           noWrap
-          onClick={renameDiagram}
+          onClick={() => renameDiagram(diagramName)}
         >
-          {titleText}
+          {diagramName}
         </Typography>
       </Toolbar>
     </AppBar>
@@ -217,3 +199,15 @@ const useAppBarStyles = makeStyles((theme) => ({
     color: "green",
   },
 }));
+
+function renameDiagram(titleText: string) {
+  var name = titleText;
+  const index = titleText.lastIndexOf(" - ");
+  if (index > -1) {
+    name = name.substring(0, index);
+  }
+
+  showPrompt("Rename Diagram", "", name, (name: string) =>
+    PubSub.publish("canvas.RenameDiagram", name)
+  );
+}
