@@ -169,7 +169,7 @@ export default class NodeNumber extends draw2d.shape.basic.Circle {
     this.colorName = colorName;
     const color = Colors.getNodeColor(colorName);
     const borderColor = Colors.getNodeBorderColor(colorName);
-    const fontColor = Colors.getNodeFontColor(colorName);
+    const fontColor = new draw2d.util.Color("#ffffff");
 
     this.setBackgroundColor(color);
     this.setColor(borderColor);
@@ -189,7 +189,7 @@ export default class NodeNumber extends draw2d.shape.basic.Circle {
   }
 
   addLabels = (name: string, description: string): void => {
-    const nameFontColor = Colors.getNodeFontColor(this.colorName);
+    const nameFontColor = new draw2d.util.Color("#ffffff");
 
     this.nameLabel = new Label(this.width + 40, {
       text: name,
