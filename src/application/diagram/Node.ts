@@ -403,7 +403,7 @@ export default class Node extends draw2d.shape.node.Between {
     // Make ports larger to support touch
     this.getPorts().each((_i: number, p: Figure2d) => {
       p.setCoronaWidth(15);
-      p.setDimension(10);
+      p.setDiameter(10);
     });
   }
 }
