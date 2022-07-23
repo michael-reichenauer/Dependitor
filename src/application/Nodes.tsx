@@ -108,7 +108,7 @@ export default function Nodes() {
     return newList;
   };
 
-  const clickedItem = (item: any) => {
+  const clickedIconItem = (item: any) => {
     setShow(false);
     setGroupType(false);
     setMru(addToMru(mru, item.key));
@@ -138,15 +138,14 @@ export default function Nodes() {
     });
   };
 
-  const handleMenuSelect = (iconSet: string) => {
+  const handleIconSetsSelect = (iconSet: string) => {
     if (iconSets.includes(iconSet)) {
-      setIconSets(iconSets.filter((i: string) => i !== iconSet));
+      const sets = iconSets.filter((i: string) => i !== iconSet);
+      setIconSets(sets);
     } else {
-      iconSets.push(iconSet);
-      setIconSets(iconSets);
+      const sets = iconSets.concat([iconSet]);
+      setIconSets(sets);
     }
-
-    setAnchorEl(null);
   };
 
   const boxWidth = window.innerWidth > 600 ? 400 : 270;
@@ -196,7 +195,7 @@ export default function Nodes() {
             horizontal: "right",
           }}
         >
-          <MenuItem onClick={() => handleMenuSelect("Azure")}>
+          <MenuItem onClick={() => handleIconSetsSelect("Azure")}>
             <ListItemIcon>
               {iconSets.includes("Azure") && <CheckIcon fontSize="small" />}
               {!iconSets.includes("Azure") && (
@@ -211,7 +210,7 @@ export default function Nodes() {
             </ListItemIcon>
             Azure
           </MenuItem>
-          <MenuItem onClick={() => handleMenuSelect("Aws")}>
+          <MenuItem onClick={() => handleIconSetsSelect("Aws")}>
             <ListItemIcon>
               {iconSets.includes("Aws") && <CheckIcon fontSize="small" />}
               {!iconSets.includes("Aws") && (
@@ -226,7 +225,7 @@ export default function Nodes() {
             </ListItemIcon>
             Aws
           </MenuItem>
-          <MenuItem onClick={() => handleMenuSelect("Google")}>
+          <MenuItem onClick={() => handleIconSetsSelect("Google")}>
             <ListItemIcon>
               {iconSets.includes("Google") && <CheckIcon fontSize="small" />}
               {!iconSets.includes("Google") && (
@@ -241,7 +240,7 @@ export default function Nodes() {
             </ListItemIcon>
             Google
           </MenuItem>
-          <MenuItem onClick={() => handleMenuSelect("OSA")}>
+          <MenuItem onClick={() => handleIconSetsSelect("OSA")}>
             <ListItemIcon>
               {iconSets.includes("OSA") && <CheckIcon fontSize="small" />}
               {!iconSets.includes("OSA") && (
@@ -264,7 +263,7 @@ export default function Nodes() {
           onCancelSearch={() => cancelSearch()}
         />
 
-        {NodesList(iconSets, mru, filter, groupType, clickedItem)}
+        {NodesList(iconSets, mru, filter, groupType, clickedIconItem)}
       </Box>
     </Dialog>
   );
