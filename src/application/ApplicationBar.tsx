@@ -143,7 +143,7 @@ const Button: FC<ButtonProps> = ({
   className,
 }) => {
   return (
-    <Tooltip title={tooltip} className={className}>
+    <Tooltip title={tooltip} className={className} arrow>
       <span>
         <IconButton
           disabled={disabled}

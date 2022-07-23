@@ -1,3 +1,4 @@
+import Colors from "./diagram/Colors";
 import React, { useState, useEffect } from "react";
 import { atom, useAtom } from "jotai";
 import PubSub from "pubsub-js";
@@ -11,6 +12,7 @@ import {
   Typography,
   Menu,
   MenuItem,
+  Tooltip,
 } from "@material-ui/core";
 import SearchBar from "material-ui-search-bar";
 import {
@@ -28,6 +30,7 @@ import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
 const subItemsSize = 12;
 const mruSize = 8;
 const iconsSize = 30;
+const tooltipIconSize = 140;
 const selectIconSize = 20;
 const subItemsHeight = iconsSize + 6;
 const allIcons = icons.getAllIcons();
@@ -302,9 +305,21 @@ const NodesList = (
         onClick={() => clickedItem(item)}
         disableGutters
       >
-        <ListItemIcon>
-          <img src={item.src} alt="" width={iconsSize} height={iconsSize} />
-        </ListItemIcon>
+        <Tooltip
+          title={
+            <img
+              src={item.src}
+              alt=""
+              width={tooltipIconSize}
+              height={tooltipIconSize}
+              style={{ background: Colors.canvasDivBackground, padding: 10 }}
+            />
+          }
+        >
+          <ListItemIcon>
+            <img src={item.src} alt="" width={iconsSize} height={iconsSize} />
+          </ListItemIcon>
+        </Tooltip>
         <Typography variant="body2" style={{ lineHeight: "95%" }}>
           {item.name}
         </Typography>
