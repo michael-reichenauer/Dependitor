@@ -60,7 +60,7 @@ export class LoginProvider implements ILoginProvider {
   }
 
   public cancelLoginViaAuthenticator(): void {
-    this.operation.isCanceled = true;
+    this.operation.ac.abort();
   }
 
   public cancelLogin(): void {

@@ -36,7 +36,7 @@ export class AuthenticatorCanceledError extends AuthenticatorError {}
 export interface AuthenticateOperation {
   request: AuthenticateReq;
   isStarted: boolean;
-  isCanceled: boolean;
+  ac: AbortController;
 }
 
 const randomIdLength = 12; // The length of random user id and names
@@ -60,7 +60,11 @@ export class AuthenticatorClient implements IAuthenticatorClient {
       c: this.dataCrypt.generateRandomString(randomIdLength),
     };
 
-    return { request: authenticateReq, isStarted: false, isCanceled: false };
+    return {
+      request: authenticateReq,
+      isStarted: false,
+      ac: new AbortController(),
+    };
   }
 
   public getAuthenticateUrl(operation: AuthenticateOperation): string {
@@ -131,17 +135,14 @@ export class AuthenticatorClient implements IAuthenticatorClient {
     const startTime = now();
 
     // Wait a little before starting to poll since authenticator needs some time anyway
-    while (startTime.time() < tryLoginPreWait) {
-      if (operation.isCanceled) {
-        return new AuthenticatorCanceledError();
-      }
-      await delay(100);
+    if (!(await delay(tryLoginPreWait, operation.ac))) {
+      return new AuthenticatorCanceledError();
     }
 
     // Poll authentication response from the server, it might take several attempts
     while (startTime.time() < tryLoginTimeout) {
       const authData = await this.api.loginDevice(req);
-      if (operation.isCanceled) {
+      if (operation.ac.signal.aborted) {
         return new AuthenticatorCanceledError();
       }
       if (isError(authData)) {
@@ -150,11 +151,8 @@ export class AuthenticatorClient implements IAuthenticatorClient {
 
       if (!authData) {
         // No auth data yet, lets wait a little before retrying again
-        for (let t = now(); t.time() < 1 * second; ) {
-          if (operation.isCanceled) {
-            return new AuthenticatorCanceledError();
-          }
-          await delay(100);
+        if (!(await delay(1 * second, operation.ac))) {
+          return new AuthenticatorCanceledError();
         }
         continue;
       }

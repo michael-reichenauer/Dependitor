@@ -78,9 +78,13 @@ export const distance = (
 };
 
 // Async sleep/delay
-export async function delay(time: number): Promise<void> {
-  return new Promise((res) => {
-    setTimeout(res, time);
+export async function delay(
+  time: number,
+  ac?: AbortController
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), time);
+    ac?.signal.addEventListener("abort", () => resolve(false));
   });
 }
 
