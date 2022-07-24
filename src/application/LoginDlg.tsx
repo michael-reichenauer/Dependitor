@@ -78,8 +78,8 @@ export const LoginDlg: FC = () => {
           return;
         }
 
-        login.supportLocalLogin().then((isSupported) => {
-          if (isSupported && !login.hasLocalLogin()) {
+        login.isLocalLoginSupported().then((isSupported) => {
+          if (isSupported && !login.hasEnabledLocalLoginDevice()) {
             showEnableLocalLoginPrompt(login);
           }
         });
@@ -96,14 +96,14 @@ export const LoginDlg: FC = () => {
 
   const cancel = (): void => {
     login?.cancelLoginViaAuthenticator();
-    login?.cancelLogin();
+    login?.cancelLoginLocalDevice();
     setLogin(null);
   };
 
-  const qrGuideText = login?.hasLocalLogin()
+  const qrGuideText = login?.hasEnabledLocalLoginDevice()
     ? localQrGuideText
     : initialQrGuideText;
-  const qrCodeUrl = login?.getAuthenticateUrl() ?? "";
+  const qrCodeUrl = login?.getAuthenticatorUrl() ?? "";
 
   return (
     <Dialog open={login !== null} onClose={() => {}}>
@@ -118,7 +118,7 @@ export const LoginDlg: FC = () => {
           onSubmit={async (values, { setErrors, setFieldValue }) => {
             // Cancel login via authenticator, since we are logging in locally
             login?.cancelLoginViaAuthenticator();
-            login?.login();
+            login?.loginLocalDevice();
 
             // Closing the login dialog
             setLogin(null);
@@ -126,7 +126,7 @@ export const LoginDlg: FC = () => {
         >
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
-              {login?.hasLocalLogin() && (
+              {login?.hasEnabledLocalLoginDevice() && (
                 <>
                   <Typography
                     style={{
@@ -259,7 +259,7 @@ function showEnableLocalLoginPrompt(login: ILoginProvider) {
   
     Recommended, since you do not need your mobile every time you login.`,
     {
-      onOk: () => login?.login(),
+      onOk: () => login?.loginLocalDevice(),
       okText: "Yes",
       cancelText: "Later",
       showCancel: true,
@@ -275,7 +275,7 @@ function showFirstTimeSyncPrompt() {
   
     You can, of course, enable sync at a later time.`,
     {
-      onOk: () => di(IOnlineKey).enableSync(),
+      onOk: () => di(IOnlineKey).enableDeviceSync(),
       okText: "Yes",
       cancelText: "Later",
       icon: QuestionAlert,

@@ -12,7 +12,7 @@ export const IAuthenticateKey = diKey<IAuthenticate>();
 export interface IAuthenticate {
   check(): Promise<Result<void>>;
   login(): Promise<Result<void>>;
-  isLocalLogin(): boolean;
+  isLocalLoginEnabled(): boolean;
   setLoggedIn(username: string, clientId: string, dek: CryptoKey): void;
   resetLogin(): void;
   readUserInfo(): Result<UserInfo>;
@@ -77,10 +77,10 @@ export class Authenticate implements IAuthenticate {
       return new AuthenticateError();
     }
 
-    return await this.api.withNoProgress(() => this.api.check());
+    return await this.api.check();
   }
 
-  public isLocalLogin(): boolean {
+  public isLocalLoginEnabled(): boolean {
     const userInfo = this.readUserInfo();
     if (isError(userInfo)) {
       return false;

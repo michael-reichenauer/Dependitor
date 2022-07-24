@@ -11,13 +11,18 @@ const progressAtom = atom(false);
 let setProgressFunc: any = null;
 
 const setProgress = (flag: boolean) => setProgressFunc?.(flag);
+let progressLevel = 0;
 
 export async function withProgress<T>(callback: () => Promise<T>): Promise<T> {
   try {
+    progressLevel++;
     setProgress(true);
     return await callback();
   } finally {
-    setProgress(false);
+    progressLevel--;
+    if (progressLevel === 0) {
+      setProgress(false);
+    }
   }
 }
 
