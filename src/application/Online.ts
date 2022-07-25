@@ -27,6 +27,8 @@ import {
 } from "../common/webauthn";
 import { withProgress } from "../common/Progress";
 import { showInfoAlert } from "../common/AlertDialog";
+import { LoginProvider } from "./LoginProvider";
+import { showLoginDlg } from "./LoginDlg";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
@@ -87,36 +89,38 @@ export class Online implements IOnline {
 
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
   public async loginOnLocalDevice(): Promise<Result<void>> {
-    console.log("login");
-    try {
-      this.showProgress();
+    return await withProgress(async () => {
+      console.log("login");
+      try {
+        this.showProgress();
 
-      const loginRsp = await this.authenticate.login();
-      if (loginRsp instanceof WebAuthnNeedReloadError) {
-        // On IOS, access to WebAuthn only works on recently manually loaded web page,
-        // so user must must manually reload and after reload we try again.
-        this.setTriggerLoginAfterReload(true);
-        this.showReloadPageAlert();
-        return;
-      }
-      if (loginRsp instanceof WebAuthnCanceledError) {
-        // User canceled login
-        setInfoMessage(deviceSyncCanceledMsg);
-        this.cancelLoginOnLocalDevice();
-        return;
-      }
-      if (isError(loginRsp)) {
-        // Some other unexpected error
-        console.error("Failed to login:", loginRsp);
-        setErrorMessage(this.toErrorMessage(loginRsp));
-        return loginRsp;
-      }
+        const loginRsp = await this.authenticate.login();
+        if (loginRsp instanceof WebAuthnNeedReloadError) {
+          // On IOS, access to WebAuthn only works on recently manually loaded web page,
+          // so user must must manually reload and after reload we try again.
+          this.setTriggerLoginAfterReload(true);
+          this.showReloadPageAlert();
+          return;
+        }
+        if (loginRsp instanceof WebAuthnCanceledError) {
+          // User canceled login
+          setInfoMessage(deviceSyncCanceledMsg);
+          this.cancelLoginOnLocalDevice();
+          return;
+        }
+        if (isError(loginRsp)) {
+          // Some other unexpected error
+          console.error("Failed to login:", loginRsp);
+          setErrorMessage(this.toErrorMessage(loginRsp));
+          return loginRsp;
+        }
 
-      // Login was successful, enable device sync
-      return await this.enableSync();
-    } finally {
-      this.hideProgress();
-    }
+        // Login was successful, enable device sync
+        return await this.enableSync();
+      } finally {
+        this.hideProgress();
+      }
+    });
   }
 
   // cancelLogin called by LoginDlg if user cancels/closes the dialog
@@ -129,7 +133,6 @@ export class Online implements IOnline {
     console.log("enable");
 
     const enableResult = await this.enableSync();
-
     return enableResult;
   }
 
@@ -159,7 +162,15 @@ export class Online implements IOnline {
       const checkRsp = await this.authenticate.check();
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the authentication dialog
-        return await withProgress(() => this.loginOnLocalDevice());
+        // return await withProgress(() => this.loginOnLocalDevice());
+        if (
+          this.getPersistentIsSyncEnabled() &&
+          this.authenticate.isLocalLoginEnabled()
+        ) {
+          return this.loginOnLocalDevice();
+        }
+        showLoginDlg(new LoginProvider(this));
+        return checkRsp;
       }
       if (isError(checkRsp)) {
         this.setError(checkRsp);

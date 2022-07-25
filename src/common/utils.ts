@@ -8,7 +8,7 @@ export const minute = 60 * second;
 export const hour = 60 * minute;
 export const day = 24 * hour;
 
-export const isMobileDevice = /Android|iPhone|iPad/i.test(navigator.userAgent);
+export const isMobileDevice = /Android|iPhone/i.test(navigator.userAgent);
 
 // Returns a duration as a nice human readable string
 export const durationString = (duration: number): string => {
@@ -43,6 +43,17 @@ export const randomString = (count: number): string => {
   }
   return randomText;
 };
+
+export function stackTrace(): string {
+  const error = new Error();
+  if (!error.stack) {
+    return "";
+  }
+
+  // Skip first line to ensure the caller line is the first line
+  const lines = error.stack.split("\n");
+  return lines.slice(2).join("\n");
+}
 
 export function jsonStringify<T>(obj: T): string {
   return JSON.stringify(obj);

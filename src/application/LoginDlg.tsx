@@ -34,7 +34,6 @@ const authenticationNotAcceptedMsg =
   "Authentication was denied by the authenticator";
 const initialQrGuideText =
   "Scan QR code on your mobile to enable sync with all your devices.";
-const localQrGuideText = "Or scan QR code on your mobile device.";
 
 export function showLoginDlg(provider: ILoginProvider) {
   setLoginFunc(provider);
@@ -100,9 +99,7 @@ export const LoginDlg: FC = () => {
     setLogin(null);
   };
 
-  const qrGuideText = login?.hasEnabledLocalLoginDevice()
-    ? localQrGuideText
-    : initialQrGuideText;
+  const qrGuideText = initialQrGuideText;
   const qrCodeUrl = login?.getAuthenticatorUrl() ?? "";
 
   return (
@@ -126,16 +123,18 @@ export const LoginDlg: FC = () => {
         >
           {({ submitForm, isSubmitting }) => (
             <Form onKeyUp={handleEnter}>
-              {login?.hasEnabledLocalLoginDevice() && (
+              <QRCodeGuideText text={qrGuideText} />
+              <QRCodeElement url={qrCodeUrl} />
+              {isMobileDevice || (
                 <>
                   <Typography
                     style={{
                       fontSize: "14px",
-                      paddingTop: 10,
+                      paddingTop: 20,
                       lineHeight: 1,
                     }}
                   >
-                    Local login:
+                    Or if this device is your main mobile:
                   </Typography>
                   <div
                     style={{
@@ -151,19 +150,14 @@ export const LoginDlg: FC = () => {
                       disabled={isSubmitting}
                       onClick={submitForm}
                       style={{
-                        marginTop: 15,
-                        marginBottom: 30,
+                        marginTop: 5,
                       }}
                     >
-                      Login on this Device
+                      Login on this Mobile
                     </Button>
                   </div>
                 </>
               )}
-
-              <QRCodeGuideText text={qrGuideText} />
-              <QRCodeElement url={qrCodeUrl} />
-              {isMobileDevice && <ClickHint />}
 
               <div
                 style={{
@@ -179,7 +173,7 @@ export const LoginDlg: FC = () => {
                   color="primary"
                   disabled={isSubmitting}
                   onClick={cancel}
-                  style={{ width: 85 }}
+                  style={{}}
                 >
                   Cancel
                 </Button>
@@ -229,24 +223,6 @@ const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
             <QRCode value={url} />
           </Link>
         </Tooltip>
-      </div>
-    </>
-  );
-};
-
-const ClickHint: FC = () => {
-  return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginTop: -5,
-        }}
-      >
-        <Typography style={{ fontSize: "12px" }}>
-          (Click on QR code if this is your mobile)
-        </Typography>
       </div>
     </>
   );

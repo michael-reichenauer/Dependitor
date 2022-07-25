@@ -16,15 +16,11 @@ export interface IAuthenticate {
   setLoggedIn(username: string, clientId: string, dek: CryptoKey): void;
   resetLogin(): void;
   readUserInfo(): Result<UserInfo>;
-  setIsAuthenticator(): void;
   supportLocalLogin(): Promise<boolean>;
 }
 
 const userInfoKeyDefault = "authenticate.userInfo";
-const authenticatorUserInfoKeyDefault = "/a/authenticate.userInfo";
-
 const userDisplayNameDefault = "Dependitor";
-const authenticatorUserDisplayNameDefault = "Authenticator";
 
 const randomUsernameLength = 12;
 const randomKekPasswordLength = 12;
@@ -64,11 +60,6 @@ export class Authenticate implements IAuthenticate {
 
   public async supportLocalLogin(): Promise<boolean> {
     return await this.webAuthn.platformAuthenticatorIsAvailable();
-  }
-
-  public setIsAuthenticator(): void {
-    this.userInfoKey = authenticatorUserInfoKeyDefault;
-    this.deviceUsername = authenticatorUserDisplayNameDefault;
   }
 
   public async check(): Promise<Result<void>> {

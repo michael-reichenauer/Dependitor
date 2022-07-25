@@ -9,9 +9,9 @@ import {
   AuthenticateReq,
   AuthenticatorRsp,
   IAuthenticatorProtocolKey,
-  isAuthenticatorApp,
 } from "./AuthenticatorProtocol";
 import { CustomError } from "../common/CustomError";
+import { withProgress } from "../common/Progress";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IAuthenticatorKey = diKey<IAuthenticator>();
@@ -34,12 +34,7 @@ export class Authenticator implements IAuthenticator {
     private dataCrypt = di(IDataCryptKey),
     private keyVault = di(IKeyVaultKey),
     private protocol = di(IAuthenticatorProtocolKey)
-  ) {
-    if (isAuthenticatorApp()) {
-      // Since authenticate stores some local values, which needs to be separated from main app
-      this.authenticate.setIsAuthenticator();
-    }
-  }
+  ) {}
 
   public async handleAuthenticateRequest(): Promise<Result<string>> {
     if (this.isHandled) {
@@ -57,7 +52,7 @@ export class Authenticator implements IAuthenticator {
     }
 
     // login if needed
-    const login = await this.login();
+    const login = await withProgress(() => this.login());
     if (isError(login)) {
       return login;
     }
