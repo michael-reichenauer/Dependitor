@@ -11,12 +11,12 @@ import { di } from "../common/di";
 import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
-import { QuestionAlert, showAlert } from "../common/AlertDialog";
 import { isStandaloneApp, isMobileDevice } from "../common/utils";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,
 } from "../common/virtualConsole";
+import { showQuestionAlert } from "../common/AlertDialog";
 
 export function ApplicationMenu() {
   const syncMode = useSyncMode();
@@ -135,10 +135,13 @@ function getDiagramsMenuItems(recentDiagrams: DiagramInfoDto[]) {
   );
 }
 
-function deleteDiagram() {
-  showAlert("Delete", "Do you really want to delete the current diagram?", {
-    onOk: () => PubSub.publish("canvas.DeleteDiagram"),
-    showCancel: true,
-    icon: QuestionAlert,
-  });
+async function deleteDiagram() {
+  if (
+    await showQuestionAlert(
+      "Delete",
+      "Do you really want to delete the current diagram?"
+    )
+  ) {
+    PubSub.publish("canvas.DeleteDiagram");
+  }
 }

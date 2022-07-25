@@ -25,8 +25,8 @@ import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
-import { showAlert } from "../common/AlertDialog";
 import { withProgress } from "../common/Progress";
+import { showInfoAlert } from "../common/AlertDialog";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
@@ -127,8 +127,8 @@ export class Online implements IOnline {
   // enableDeviceSync called when device sync should be enabled
   public async enableDeviceSync(): Promise<Result<void>> {
     console.log("enable");
+
     const enableResult = await this.enableSync();
-    console.log("enable result", enableResult);
 
     return enableResult;
   }
@@ -308,12 +308,12 @@ export class Online implements IOnline {
   }
 
   private showReloadPageAlert() {
-    showAlert(
+    showInfoAlert(
       "Reload Page",
       `Please manually reload this page to show the authentication dialog.
 
       This browser requires a recently manually loaded page before allowing access to authentication.`,
-      { showOk: false, showCancel: false }
+      { showOk: false }
     );
   }
 

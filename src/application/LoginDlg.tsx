@@ -14,7 +14,6 @@ import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
 import { setErrorMessage } from "../common/MessageSnackbar";
-import { showAlert, QuestionAlert } from "../common/AlertDialog";
 import { isMobileDevice } from "../common/utils";
 import {
   AuthenticatorCanceledError,
@@ -24,6 +23,7 @@ import { ILoginProvider } from "./LoginProvider";
 import { IOnlineKey } from "./Online";
 import { di } from "../common/di";
 import { useLocalStorage } from "../common/useLocalStorage";
+import { showQuestionAlert } from "../common/AlertDialog";
 
 const dialogWidth = 290;
 const dialogHeight = 410;
@@ -252,33 +252,36 @@ const ClickHint: FC = () => {
   );
 };
 
-function showEnableLocalLoginPrompt(login: ILoginProvider) {
-  showAlert(
-    "Enable Local Device Login",
-    `Would you like to setup local login on this device?
+async function showEnableLocalLoginPrompt(login: ILoginProvider) {
+  if (
+    await showQuestionAlert(
+      "Enable Local Device Login",
+      `Would you like to setup local login on this device?
   
-    Recommended, since you do not need your mobile every time you login.`,
-    {
-      onOk: () => login?.loginLocalDevice(),
-      okText: "Yes",
-      cancelText: "Later",
-      showCancel: true,
-      icon: QuestionAlert,
-    }
-  );
+      Recommended, since you do not need your mobile every time you login.`,
+      {
+        okText: "Yes",
+        cancelText: "Later",
+      }
+    )
+  ) {
+    login?.loginLocalDevice();
+  }
 }
 
-function showFirstTimeSyncPrompt() {
-  showAlert(
-    "Enable Sync",
-    `Would you like to login and enable device sync with all your devices?
+async function showFirstTimeSyncPrompt() {
+  if (
+    await showQuestionAlert(
+      "Enable Sync",
+      `Would you like to login and enable device sync with all your devices?
   
-    You can, of course, enable sync at a later time.`,
-    {
-      onOk: () => di(IOnlineKey).enableDeviceSync(),
-      okText: "Yes",
-      cancelText: "Later",
-      icon: QuestionAlert,
-    }
-  );
+      You can, of course, enable sync at a later time.`,
+      {
+        okText: "Yes",
+        cancelText: "Later",
+      }
+    )
+  ) {
+    di(IOnlineKey).enableDeviceSync();
+  }
 }
