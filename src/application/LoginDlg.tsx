@@ -125,7 +125,7 @@ export const LoginDlg: FC = () => {
             <Form onKeyUp={handleEnter}>
               <QRCodeGuideText text={qrGuideText} />
               <QRCodeElement url={qrCodeUrl} />
-              {isMobileDevice || (
+              {isMobileDevice && (
                 <>
                   <Typography
                     style={{
