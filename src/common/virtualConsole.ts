@@ -12,6 +12,7 @@ export function isVirtualConsoleEnabled() {
 export function enableVirtualConsole(flag: boolean): void {
   if (flag) {
     vConsole = new VConsole({ theme: "dark", log: { showTimestamps: true } });
+    vConsole.show();
   } else {
     vConsole?.destroy();
     vConsole = undefined;
