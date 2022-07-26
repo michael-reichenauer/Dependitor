@@ -13,11 +13,12 @@ import Result, { isError } from "../common/Result";
 import now from "../common/stopwatch";
 import { delay, minute, second } from "../common/utils";
 import {
+  AuthenticateCode,
   AuthenticateReq,
   AuthenticatorRsp,
   IAuthenticatorProtocolKey,
 } from "./AuthenticatorProtocol";
-const uaParser = require("ua-parser-js");
+// const uaParser = require("ua-parser-js");
 
 // IAuthenticatorClient is the client  the Dependitor app uses when authenticating
 export const IAuthenticatorClientKey = diKey<IAuthenticatorClient>();
@@ -34,7 +35,7 @@ export class AuthenticatorNotAcceptedError extends AuthenticatorError {}
 export class AuthenticatorCanceledError extends AuthenticatorError {}
 
 export interface AuthenticateOperation {
-  request: AuthenticateReq;
+  code: AuthenticateCode;
   isStarted: boolean;
   ac: AbortController;
 }
@@ -53,23 +54,15 @@ export class AuthenticatorClient implements IAuthenticatorClient {
   ) {}
 
   public getAuthenticateOperation(): AuthenticateOperation {
-    const authenticateReq: AuthenticateReq = {
-      n: this.getClientId(),
-      d: this.getDeviceDescription(),
-      k: this.dataCrypt.generateRandomString(randomIdLength),
-      c: this.dataCrypt.generateRandomString(randomIdLength),
-    };
-
     return {
-      request: authenticateReq,
+      code: this.protocol.generateAuthenticateCode(),
       isStarted: false,
       ac: new AbortController(),
     };
   }
 
   public getAuthenticateUrl(operation: AuthenticateOperation): string {
-    const request = operation.request;
-    return this.protocol.getAuthenticateUrl(request);
+    return this.protocol.getAuthenticateUrl(operation.code);
   }
 
   public async tryLoginViaAuthenticator(
@@ -81,14 +74,20 @@ export class AuthenticatorClient implements IAuthenticatorClient {
 
     operation.isStarted = true;
 
-    const clientId = operation.request.n;
+    const request = await this.protocol.parseAuthenticateReq(operation.code);
+    if (isError(request)) {
+      return request;
+    }
+
+    const clientId = request.clientName;
     const user: User = {
-      username: operation.request.n,
-      password: operation.request.k,
+      username: request.clientName,
+      password: request.passkey,
     };
 
     const authenticateRsp = await this.retrieveAuthenticateResponse(
       operation,
+      request,
       user
     );
     if (isError(authenticateRsp)) {
@@ -111,9 +110,10 @@ export class AuthenticatorClient implements IAuthenticatorClient {
 
   private async retrieveAuthenticateResponse(
     operation: AuthenticateOperation,
+    request: AuthenticateReq,
     user: User
   ): Promise<Result<AuthenticatorRsp>> {
-    const authData = await this.loginDevice(operation);
+    const authData = await this.loginDevice(operation, request);
     if (isError(authData)) {
       return authData;
     }
@@ -128,9 +128,10 @@ export class AuthenticatorClient implements IAuthenticatorClient {
   }
 
   private async loginDevice(
-    operation: AuthenticateOperation
+    operation: AuthenticateOperation,
+    request: AuthenticateReq
   ): Promise<Result<string>> {
-    const req: LoginDeviceReq = { channelId: operation.request.c };
+    const req: LoginDeviceReq = { channelId: request.channelId };
 
     const startTime = now();
 
@@ -164,12 +165,12 @@ export class AuthenticatorClient implements IAuthenticatorClient {
     return new AuthenticateError();
   }
 
-  private getDeviceDescription(): string {
-    const ua = uaParser();
+  // private getDeviceDescription(): string {
+  //   const ua = uaParser();
 
-    const model = !!ua.device.model ? ua.device.model : ua.os.name;
-    return `${ua.browser.name} on ${model}`;
-  }
+  //   const model = !!ua.device.model ? ua.device.model : ua.os.name;
+  //   return `${ua.browser.name} on ${model}`;
+  // }
 
   private getClientId() {
     let clientId: string;

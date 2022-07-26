@@ -25,7 +25,6 @@ export class LoginProvider implements ILoginProvider {
     private authenticatorClient = di(IAuthenticatorClientKey),
     private authenticate = di(IAuthenticateKey)
   ) {
-    console.log("creating loginprovider");
     this.operation = authenticatorClient.getAuthenticateOperation();
   }
   public async isLocalLoginSupported(): Promise<boolean> {
@@ -41,7 +40,6 @@ export class LoginProvider implements ILoginProvider {
   }
 
   public async tryLoginViaAuthenticator(): Promise<Result<void>> {
-    console.log("operation ", this.operation);
     try {
       const rsp = await this.authenticatorClient.tryLoginViaAuthenticator(
         this.operation
@@ -52,7 +50,6 @@ export class LoginProvider implements ILoginProvider {
 
       return this.online.enableDeviceSync();
     } catch (error) {
-      console.log("error", error);
       return error as Error;
     }
   }

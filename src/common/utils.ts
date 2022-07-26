@@ -148,6 +148,14 @@ export const fetchFiles = (
     });
 };
 
+export function arrayToString(array: Uint8Array, charactersSet: string) {
+  let text = "";
+  for (var i = 0; i < array.length; i++) {
+    text += charactersSet.charAt(array[i] % charactersSet.length);
+  }
+  return text;
+}
+
 export const svgToSvgDataUrl = (svg: string): string => {
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 };

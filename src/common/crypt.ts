@@ -20,7 +20,11 @@ export interface ICrypt {
     salt: ArrayBuffer,
     keyUsage: KeyUsage[]
   ): Promise<CryptoKey>;
-  deriveBits(password: string, salt: ArrayBuffer): Promise<ArrayBuffer>;
+  deriveBits(
+    password: string,
+    salt: ArrayBuffer,
+    length?: number
+  ): Promise<ArrayBuffer>;
   encryptData(
     data: ArrayBuffer,
     key: CryptoKey
@@ -86,7 +90,8 @@ export class Crypt {
 
   public async deriveBits(
     password: string,
-    salt: ArrayBuffer
+    salt: ArrayBuffer,
+    length: number = 256
   ): Promise<ArrayBuffer> {
     const passwordBytes = new TextEncoder().encode(password);
     const passwordKey = await crypto.subtle.importKey(
@@ -105,7 +110,7 @@ export class Crypt {
         hash: "SHA-256",
       },
       passwordKey,
-      256
+      length
     );
 
     return bits;

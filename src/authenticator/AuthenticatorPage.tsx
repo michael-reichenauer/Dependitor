@@ -42,7 +42,7 @@ export const AuthenticatorPage: FC = () => {
     } else if (isError(rsp)) {
       showErrorDlg(rsp);
     } else if (rsp) {
-      showDeviceAuthenticatedMessage(rsp);
+      showDeviceAuthenticatedMessage();
     }
   };
 
@@ -66,11 +66,11 @@ export const AuthenticatorPage: FC = () => {
   );
 };
 
-async function showDeviceAuthenticatedMessage(description: string) {
+async function showDeviceAuthenticatedMessage() {
   if (
     await showSuccessAlert(
       "Device Authenticated",
-      `'${description}' device is now authenticated
+      `The device is now authenticated
      and allowed to sync with all your devices.`
     )
   ) {
