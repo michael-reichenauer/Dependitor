@@ -17,7 +17,11 @@ export function enableVirtualConsole(flag: boolean): void {
     vConsole = undefined;
   }
 
-  di(ILocalStoreKey).write(vConsoleKey, flag);
+  if (flag) {
+    di(ILocalStoreKey).write(vConsoleKey, flag);
+  } else {
+    di(ILocalStoreKey).remove(vConsoleKey);
+  }
 }
 
 export function restoreVirtualConsoleState(): void {
