@@ -116,7 +116,7 @@ export class Online implements IOnline {
         }
 
         // Login was successful, enable device sync
-        return await this.enableSync();
+        return await this.enableDeviceSync();
       } finally {
         this.hideProgress();
       }
@@ -126,14 +126,6 @@ export class Online implements IOnline {
   // cancelLogin called by LoginDlg if user cancels/closes the dialog
   public cancelLoginOnLocalDevice(): void {
     this.disableDeviceSync();
-  }
-
-  // enableDeviceSync called when device sync should be enabled
-  public async enableDeviceSync(): Promise<Result<void>> {
-    console.log("enable");
-
-    const enableResult = await this.enableSync();
-    return enableResult;
   }
 
   // disableSync called when disabling device sync
@@ -153,20 +145,15 @@ export class Online implements IOnline {
   }
 
   // enableSync called when device sync should be enabled
-  private async enableSync(): Promise<Result<void>> {
-    console.log("enable");
+  public async enableDeviceSync(): Promise<Result<void>> {
     try {
       this.showProgress();
 
       // Check connection and authentication with server
       const checkRsp = await this.authenticate.check();
       if (checkRsp instanceof AuthenticateError) {
-        // Authentication is needed, showing the authentication dialog
-        // return await withProgress(() => this.loginOnLocalDevice());
-        if (
-          this.getPersistentIsSyncEnabled() &&
-          this.authenticate.isLocalLoginEnabled()
-        ) {
+        // Authentication is needed, showing the authentication dialog or sync enable dlg
+        if (this.authenticate.isLocalLoginEnabled()) {
           return this.loginOnLocalDevice();
         }
         showLoginDlg(new LoginProvider(this));
@@ -225,7 +212,7 @@ export class Online implements IOnline {
       if (error instanceof SessionError) {
         setWarnMessage(this.toErrorMessage(error));
         showSyncState(SyncState.Error);
-        setTimeout(() => this.enableSync(), 0);
+        setTimeout(() => this.enableDeviceSync(), 0);
         return;
       }
       setErrorMessage(this.toErrorMessage(error));
@@ -266,7 +253,7 @@ export class Online implements IOnline {
       }
 
       if (this.getPersistentIsSyncEnabled()) {
-        setTimeout(() => this.enableSync(), 0);
+        setTimeout(() => this.enableDeviceSync(), 0);
         return;
       }
     }

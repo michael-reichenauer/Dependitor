@@ -9,7 +9,6 @@ import {
   Tooltip,
   Typography,
 } from "@material-ui/core";
-import { Formik, Form } from "formik";
 import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
@@ -54,6 +53,7 @@ export const LoginDlg: FC = () => {
 
   useEffect(() => {
     if (!login && isFirst) {
+      // At first time, encourage user to enable sync
       showFirstTimeSyncPrompt();
       setIsFirst(false);
     }
@@ -61,37 +61,10 @@ export const LoginDlg: FC = () => {
 
   useEffect(() => {
     if (login) {
-      login.tryLoginViaAuthenticator().then((rsp) => {
-        setLogin(null);
-        if (isError(rsp)) {
-          if (isError(rsp, AuthenticatorCanceledError)) {
-            // Ignore user canceled
-          } else if (isError(rsp, AuthenticatorNotAcceptedError)) {
-            // The authenticator did not accept this device authenticate request
-            setErrorMessage(authenticationNotAcceptedMsg);
-          } else {
-            // Some other error
-            setErrorMessage(deviceSyncFailedMsg);
-          }
-
-          return;
-        }
-
-        login.isLocalLoginSupported().then((isSupported) => {
-          if (isSupported && !login.hasEnabledLocalLoginDevice()) {
-            showEnableLocalLoginPrompt(login);
-          }
-        });
-      });
+      // When dialog with QR cose is shown, try login via authenticator on a mobile (await response)
+      tryLoginViaAuthenticator(login, setLogin);
     }
   }, [login, setLogin]);
-
-  const handleEnter = (event: any): void => {
-    if (event.code === "Enter") {
-      const okButton = document.getElementById("OKButton");
-      okButton?.click();
-    }
-  };
 
   const cancel = (): void => {
     login?.cancelLoginViaAuthenticator();
@@ -99,7 +72,15 @@ export const LoginDlg: FC = () => {
     setLogin(null);
   };
 
-  const qrGuideText = initialQrGuideText;
+  const loginLocal = () => {
+    // Cancel login via authenticator, since we are logging in locally
+    login?.cancelLoginViaAuthenticator();
+    login?.loginLocalDevice();
+
+    // Closing the login dialog
+    setLogin(null);
+  };
+
   const qrCodeUrl = login?.getAuthenticatorUrl() ?? "";
 
   return (
@@ -110,79 +91,95 @@ export const LoginDlg: FC = () => {
           Login
         </Typography>
 
-        <Formik
-          initialValues={{ deviceName: "" }}
-          onSubmit={async (values, { setErrors, setFieldValue }) => {
-            // Cancel login via authenticator, since we are logging in locally
-            login?.cancelLoginViaAuthenticator();
-            login?.loginLocalDevice();
+        <QRCodeGuideText text={initialQrGuideText} />
+        <QRCodeElement url={qrCodeUrl} />
 
-            // Closing the login dialog
-            setLogin(null);
-          }}
-        >
-          {({ submitForm, isSubmitting }) => (
-            <Form onKeyUp={handleEnter}>
-              <QRCodeGuideText text={qrGuideText} />
-              <QRCodeElement url={qrCodeUrl} />
-              {isMobileDevice && (
-                <>
-                  <Typography
-                    style={{
-                      fontSize: "14px",
-                      paddingTop: 20,
-                      lineHeight: 1,
-                    }}
-                  >
-                    Or if this device is your main mobile:
-                  </Typography>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Button
-                      id="OKButton"
-                      variant="contained"
-                      color="primary"
-                      disabled={isSubmitting}
-                      onClick={submitForm}
-                      style={{
-                        marginTop: 5,
-                      }}
-                    >
-                      Login on this Mobile
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 15,
-                  width: dialogWidth,
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
-                <Button
-                  variant="contained"
-                  color="primary"
-                  disabled={isSubmitting}
-                  onClick={cancel}
-                  style={{}}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </Form>
-          )}
-        </Formik>
+        {isMobileDevice && <MobileLoginButton onClick={loginLocal} />}
+        <CancelButton onClick={cancel} />
       </Box>
     </Dialog>
+  );
+};
+
+const tryLoginViaAuthenticator = async (
+  login: ILoginProvider,
+  setLogin: any
+) => {
+  const rsp = await login.tryLoginViaAuthenticator();
+  setLogin(null);
+  if (isError(rsp)) {
+    if (isError(rsp, AuthenticatorCanceledError)) {
+      // Ignore user canceled
+    } else if (isError(rsp, AuthenticatorNotAcceptedError)) {
+      // The authenticator did not accept this device authenticate request
+      setErrorMessage(authenticationNotAcceptedMsg);
+    } else {
+      // Some other error
+      setErrorMessage(deviceSyncFailedMsg);
+    }
+
+    return;
+  }
+
+  const isSupported = await login.isLocalLoginSupported();
+  if (isSupported && !login.hasEnabledLocalLoginDevice()) {
+    showEnableLocalLoginPrompt(login);
+  }
+};
+type ButtonProps = {
+  onClick: () => void;
+};
+
+const MobileLoginButton: FC<ButtonProps> = ({ onClick }) => {
+  return (
+    <>
+      <Typography
+        style={{
+          fontSize: "14px",
+          paddingTop: 20,
+          lineHeight: 1,
+        }}
+      >
+        Or if this device is your main mobile:
+      </Typography>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Button
+          id="OKButton"
+          variant="contained"
+          color="primary"
+          onClick={onClick}
+          style={{
+            marginTop: 5,
+          }}
+        >
+          Login on this Mobile
+        </Button>
+      </div>
+    </>
+  );
+};
+
+const CancelButton: FC<ButtonProps> = ({ onClick }) => {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: 15,
+        width: dialogWidth,
+        display: "flex",
+        justifyContent: "center",
+      }}
+    >
+      <Button variant="contained" color="primary" onClick={onClick} style={{}}>
+        Cancel
+      </Button>
+    </div>
   );
 };
 

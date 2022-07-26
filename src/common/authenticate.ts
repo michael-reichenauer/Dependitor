@@ -64,7 +64,6 @@ export class Authenticate implements IAuthenticate {
 
   public async check(): Promise<Result<void>> {
     if (!this.keyVaultConfigure.hasDataEncryptionKey()) {
-      console.log("No DEK");
       return new AuthenticateError();
     }
 
