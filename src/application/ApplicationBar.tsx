@@ -45,7 +45,7 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
 
   const enableSyncText = online.isLocalLoginEnabled()
     ? "Click to login"
-    : "Click to enable device sync and login";
+    : "Click to setup device sync and login";
 
   const styleAlways = (disabled?: any) => {
     return !disabled ? classes.iconsAlways : classes.iconsAlwaysDisabled;

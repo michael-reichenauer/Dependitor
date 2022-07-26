@@ -57,7 +57,7 @@ export function ApplicationMenu() {
       syncMode === SyncState.Disabled && di(IOnlineKey).isLocalLoginEnabled()
     ),
     menuItem(
-      "Enable device sync and login",
+      "Setup device sync and login",
       () => di(IOnlineKey).enableDeviceSync(true),
       syncMode !== SyncState.Progress,
       syncMode === SyncState.Disabled

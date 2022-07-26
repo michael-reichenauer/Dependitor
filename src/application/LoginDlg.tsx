@@ -32,7 +32,7 @@ const deviceSyncFailedMsg = "Failed to enable device sync";
 const authenticationNotAcceptedMsg =
   "Authentication was denied by the authenticator";
 const initialQrGuideText =
-  "Scan QR code on your mobile to enable sync with all your devices.";
+  "Scan QR code on your mobile to setup sync with your other devices.";
 
 export function showLoginDlg(provider: ILoginProvider) {
   setLoginFunc(provider);
@@ -88,7 +88,7 @@ export const LoginDlg: FC = () => {
       <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
         <LinearProgress style={{ marginBottom: 5 }} />
         <Typography variant="h5" style={{ paddingBottom: 0 }}>
-          Login
+          Setup Device Sync
         </Typography>
 
         <QRCodeGuideText text={initialQrGuideText} />
@@ -234,7 +234,7 @@ async function showEnableLocalLoginPrompt(login: ILoginProvider) {
   if (
     await showQuestionAlert(
       "Enable Local Device Login",
-      `Would you like to setup local login on this device?
+      `Would you like to enable local login on this device?
   
       Recommended, since you do not need your mobile every time you login.`,
       {
@@ -250,10 +250,10 @@ async function showEnableLocalLoginPrompt(login: ILoginProvider) {
 async function showFirstTimeSyncPrompt() {
   if (
     await showQuestionAlert(
-      "Enable Sync",
-      `Would you like to login and enable device sync with all your devices?
+      "Setup Device Sync",
+      `Would you like setup device sync with your other devices?
   
-      You can, of course, enable sync at a later time.`,
+      You can, of course, setup sync at a later time.`,
       {
         okText: "Yes",
         cancelText: "Later",
