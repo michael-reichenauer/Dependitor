@@ -43,6 +43,10 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
     return !disabled ? classes.icons : classes.iconsDisabled;
   };
 
+  const enableSyncText = online.isLocalLoginEnabled()
+    ? "Click to login"
+    : "Click to enable device sync and login";
+
   const styleAlways = (disabled?: any) => {
     return !disabled ? classes.iconsAlways : classes.iconsAlwaysDisabled;
   };
@@ -75,7 +79,7 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
         )}
         {syncMode === SyncState.Disabled && (
           <Button
-            tooltip="Click to login and enable device sync"
+            tooltip={enableSyncText}
             icon={<SyncDisabledIcon style={{ color: "#FFFF66" }} />}
             onClick={() => online.enableDeviceSync()}
           />

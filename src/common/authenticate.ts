@@ -13,6 +13,7 @@ export interface IAuthenticate {
   check(): Promise<Result<void>>;
   login(): Promise<Result<void>>;
   isLocalLoginEnabled(): boolean;
+  disableLocalLogin(): void;
   setLoggedIn(username: string, clientId: string, dek: CryptoKey): void;
   resetLogin(): void;
   readUserInfo(): Result<UserInfo>;
@@ -77,6 +78,15 @@ export class Authenticate implements IAuthenticate {
     }
 
     return !!userInfo.wDek && !!userInfo.credentialId;
+  }
+
+  public disableLocalLogin(): void {
+    const userInfo = this.readUserInfo();
+    if (isError(userInfo)) {
+      return;
+    }
+
+    this.writeUserInfo({ ...userInfo, credentialId: "", wDek: "" });
   }
 
   public setLoggedIn(username: string, clientId: string, dek: CryptoKey): void {

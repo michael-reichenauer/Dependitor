@@ -33,8 +33,11 @@ import { showLoginDlg } from "./LoginDlg";
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
 export interface IOnline {
-  enableDeviceSync(): Promise<Result<void>>;
+  enableDeviceSync(skipLocalLogin?: boolean): Promise<Result<void>>;
   disableDeviceSync(): void;
+
+  isLocalLoginEnabled(): boolean;
+  disableLocalLogin(): void;
 
   loginOnLocalDevice(): Promise<Result<void>>;
   cancelLoginOnLocalDevice(): void;
@@ -85,6 +88,14 @@ export class Online implements IOnline {
     this.store.configure({
       onSyncChanged: (f: boolean, e?: Error) => this.onSyncChanged(f, e),
     });
+  }
+
+  public disableLocalLogin(): void {
+    this.authenticate.disableLocalLogin();
+  }
+
+  public isLocalLoginEnabled(): boolean {
+    return this.authenticate.isLocalLoginEnabled();
   }
 
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
@@ -145,7 +156,9 @@ export class Online implements IOnline {
   }
 
   // enableSync called when device sync should be enabled
-  public async enableDeviceSync(): Promise<Result<void>> {
+  public async enableDeviceSync(
+    skipLocalLogin: boolean = false
+  ): Promise<Result<void>> {
     try {
       this.showProgress();
 
@@ -153,7 +166,7 @@ export class Online implements IOnline {
       const checkRsp = await this.authenticate.check();
       if (checkRsp instanceof AuthenticateError) {
         // Authentication is needed, showing the authentication dialog or sync enable dlg
-        if (this.authenticate.isLocalLoginEnabled()) {
+        if (!skipLocalLogin && this.authenticate.isLocalLoginEnabled()) {
           return this.loginOnLocalDevice();
         }
         showLoginDlg(new LoginProvider(this));

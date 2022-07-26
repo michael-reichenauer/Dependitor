@@ -51,13 +51,20 @@ export function ApplicationMenu() {
     ]),
 
     menuItem(
-      "Login and enable device sync",
+      "Login",
       () => di(IOnlineKey).enableDeviceSync(),
+      syncMode !== SyncState.Progress,
+      syncMode === SyncState.Disabled && di(IOnlineKey).isLocalLoginEnabled()
+    ),
+    menuItem(
+      "Enable device sync and login",
+      () => di(IOnlineKey).enableDeviceSync(true),
       syncMode !== SyncState.Progress,
       syncMode === SyncState.Disabled
     ),
+
     menuItem(
-      "Logoff and disable device sync",
+      "Logoff",
       () => di(IOnlineKey).disableDeviceSync(),
       syncMode !== SyncState.Progress,
       syncMode !== SyncState.Disabled

@@ -6,8 +6,9 @@ const vConsoleKey = "vConsole.enable";
 let vConsole: any = null;
 const removeKeys = [vConsoleKey, "vConsole_switch_x", "vConsole_switch_y"];
 
-export const isVirtualConsoleSupported =
-  true || /Android|iPad|iPhone/i.test(navigator.userAgent);
+export const isVirtualConsoleSupported = /Android|iPad|iPhone/i.test(
+  navigator.userAgent
+);
 
 export function isVirtualConsoleEnabled() {
   return !!vConsole;
