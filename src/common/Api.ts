@@ -12,6 +12,37 @@ import {
 } from "@simplewebauthn/typescript-types";
 import { withProgress } from "./Progress";
 import { commonApiKey } from "../config";
+import { second } from "./utils";
+
+export const IApiKey = diKey<IApi>();
+export interface IApi {
+  check(): Promise<Result<void>>;
+
+  loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void>>;
+  loginDevice(req: LoginDeviceReq): Promise<Result<string>>;
+  logoff(): Promise<Result<void>>;
+
+  tryReadBatch(queries: Query[]): Promise<Result<ApiEntity[]>>;
+  writeBatch(entities: ApiEntity[]): Promise<Result<ApiEntityRsp[]>>;
+  removeBatch(keys: string[]): Promise<Result<void>>;
+
+  getWebAuthnRegistrationOptions(
+    username: string
+  ): Promise<Result<GetWebAuthnRegistrationOptionsRsp>>;
+  verifyWebAuthnRegistration(
+    username: string,
+    registration: RegistrationCredentialJSON
+  ): Promise<Result<boolean>>;
+  getWebAuthnAuthenticationOptions(
+    username: string
+  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON>>;
+  verifyWebAuthnAuthentication(
+    username: string,
+    authentication: AuthenticationCredentialJSON
+  ): Promise<Result<boolean>>;
+
+  withNoProgress<T>(callback: () => Promise<T>): Promise<T>;
+}
 
 export interface GetWebAuthnRegistrationOptionsRsp {
   options: PublicKeyCredentialCreationOptionsJSON;
@@ -76,41 +107,14 @@ export class NetworkError extends CustomError {}
 export class ServerError extends NetworkError {}
 export class AuthenticateError extends NetworkError {}
 export class CredentialError extends AuthenticateError {}
-export class TokenError extends AuthenticateError {}
+export class SessionError extends AuthenticateError {}
 export class NoContactError extends NetworkError {}
+export class ContactTimeoutError extends NoContactError {}
 export class RequestError extends NetworkError {}
 export class LocalApiServerError extends NoContactError {}
 export class LocalEmulatorError extends NoContactError {}
 
-export const IApiKey = diKey<IApi>();
-export interface IApi {
-  check(): Promise<Result<void>>;
-
-  loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void>>;
-  loginDevice(req: LoginDeviceReq): Promise<Result<string>>;
-  logoff(): Promise<Result<void>>;
-
-  tryReadBatch(queries: Query[]): Promise<Result<ApiEntity[]>>;
-  writeBatch(entities: ApiEntity[]): Promise<Result<ApiEntityRsp[]>>;
-  removeBatch(keys: string[]): Promise<Result<void>>;
-
-  getWebAuthnRegistrationOptions(
-    username: string
-  ): Promise<Result<GetWebAuthnRegistrationOptionsRsp>>;
-  verifyWebAuthnRegistration(
-    username: string,
-    registration: RegistrationCredentialJSON
-  ): Promise<Result<boolean>>;
-  getWebAuthnAuthenticationOptions(
-    username: string
-  ): Promise<Result<PublicKeyCredentialRequestOptionsJSON>>;
-  verifyWebAuthnAuthentication(
-    username: string,
-    authentication: AuthenticationCredentialJSON
-  ): Promise<Result<boolean>>;
-
-  withNoProgress<T>(callback: () => Promise<T>): Promise<T>;
-}
+const requestTimeout = 20 * second;
 
 @singleton(IApiKey)
 export class Api implements IApi {
@@ -238,6 +242,7 @@ export class Api implements IApi {
       const rsp = await this.withProgress(() =>
         axios.get(uri, {
           headers: { "x-api-key": this.apiKey },
+          timeout: requestTimeout,
         })
       );
 
@@ -268,11 +273,13 @@ export class Api implements IApi {
   async post(uri: string, requestData: any): Promise<Result<any>> {
     this.requestCount++;
     // console.log(`Request #${this.requestCount}: POST ${uri} ...`);
+
     const t = timing();
     try {
       const rsp = await this.withProgress(() =>
         axios.post(uri, requestData, {
           headers: { "x-api-key": this.apiKey },
+          timeout: requestTimeout,
         })
       );
       const rspData = rsp.data;
@@ -330,6 +337,9 @@ export class Api implements IApi {
             serverError
           );
         }
+        if (rsp.data?.includes("SessionError")) {
+          return new SessionError(serverError);
+        }
         if (
           rsp.data?.includes("The table specified does not exist") ||
           rsp.data?.includes("Invalid token") ||
@@ -343,6 +353,9 @@ export class Api implements IApi {
       return new RequestError("Invalid or unsupported request", serverError);
     } else if (rspError.request) {
       // The request was made but no response was received
+      if (rspError.code === "ECONNABORTED") {
+        return new ContactTimeoutError(rspError);
+      }
       return new NoContactError(rspError);
     }
 

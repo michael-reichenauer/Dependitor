@@ -12,7 +12,7 @@ export const AuthenticatorBar: FC<ApplicationBarProps> = ({ height }) => {
   const classes = useAppBarStyles();
 
   return (
-    <AppBar position="static" style={{ height: height }}>
+    <AppBar position="static" style={{ height: height, background: "#8e24aa" }}>
       <Toolbar>
         {/* <AuthenticatorMenu /> */}
         <Typography className={classes.title} variant="h6" noWrap>

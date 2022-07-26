@@ -9,14 +9,14 @@ import {
   AuthenticateReq,
   AuthenticatorRsp,
   IAuthenticatorProtocolKey,
-  isAuthenticatorApp,
 } from "./AuthenticatorProtocol";
 import { CustomError } from "../common/CustomError";
+import { withProgress } from "../common/Progress";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IAuthenticatorKey = diKey<IAuthenticator>();
 export interface IAuthenticator {
-  handleAuthenticateRequest(): Promise<Result<string>>;
+  handleAuthenticateRequest(): Promise<Result<boolean>>;
 }
 
 export class AuthenticatorError extends CustomError {}
@@ -34,44 +34,39 @@ export class Authenticator implements IAuthenticator {
     private dataCrypt = di(IDataCryptKey),
     private keyVault = di(IKeyVaultKey),
     private protocol = di(IAuthenticatorProtocolKey)
-  ) {
-    if (isAuthenticatorApp()) {
-      // Since authenticate stores some local values, which needs to be separated from main app
-      this.authenticate.setIsAuthenticator();
-    }
-  }
+  ) {}
 
-  public async handleAuthenticateRequest(): Promise<Result<string>> {
+  public async handleAuthenticateRequest(): Promise<Result<boolean>> {
     if (this.isHandled) {
-      return "";
+      return false;
     }
     this.isHandled = true;
 
-    if (!this.protocol.hasAuthenticateCode()) {
+    const code = this.protocol.getRequestAuthenticateCode();
+    if (!code) {
       return new NoRequestError();
     }
 
-    const device = this.protocol.parseAuthenticateReq();
-    if (isError(device)) {
+    const request = await this.protocol.parseAuthenticateReq(code);
+    if (isError(request)) {
       return new InvalidRequestError();
     }
 
     // login if needed
-    const login = await this.login();
+    const login = await withProgress(() => this.login());
     if (isError(login)) {
       return login;
     }
     console.log("Authenticator logged in");
 
-    const rsp = await this.postAuthenticateOKResponse(device);
+    const rsp = await this.postAuthenticateOKResponse(request);
     if (isError(rsp)) {
       return new FailedToRespondError();
     }
 
     // A message was posted to the device that it is now authenticated and allowed to sync
-    const description = device.d;
-    console.log("Device allowed to authenticate in", description);
-    return description;
+    console.log("Device allowed to authenticate in");
+    return true;
   }
 
   private async login(): Promise<Result<void>> {
@@ -96,7 +91,10 @@ export class Authenticator implements IAuthenticator {
       return userInfo;
     }
 
-    const user: User = { username: authRequest.n, password: authRequest.k };
+    const user: User = {
+      username: authRequest.clientName,
+      password: authRequest.passkey,
+    };
 
     // Get the data encryption key and wrap/encrypt it for the device user (as string)
     const wDek = await this.keyVault.getWrappedDataEncryptionKey(user);
@@ -109,7 +107,7 @@ export class Authenticator implements IAuthenticator {
       isAccepted: isAccepted,
     };
 
-    const channelId = authRequest.c;
+    const channelId = authRequest.channelId;
     return await this.postAuthenticateResponse(
       rsp,
       user,

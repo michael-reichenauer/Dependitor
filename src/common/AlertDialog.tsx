@@ -19,46 +19,103 @@ let setAlertFunc: any = null;
 
 type AlertIcon = string;
 
-export const InfoAlert: AlertIcon = "info";
-export const SuccessAlert: AlertIcon = "success";
-export const ErrorAlert: AlertIcon = "error";
-export const WarningAlert: AlertIcon = "warning";
-export const QuestionAlert: AlertIcon = "question";
+const InfoAlert: AlertIcon = "info";
+const SuccessAlert: AlertIcon = "success";
+const ErrorAlert: AlertIcon = "error";
+const WarningAlert: AlertIcon = "warning";
+const QuestionAlert: AlertIcon = "question";
 
-export interface AlertProperties {
-  onOk?: () => void;
-  onCancel?: () => void;
+export interface AlertOptions {
+  // onOk?: () => void;
+  // onCancel?: () => void;
   showOk?: boolean;
   showCancel?: boolean;
   okText?: string;
   cancelText?: string;
+  // icon?: AlertIcon;
+}
+
+interface AlertOptionsImpl extends AlertOptions {
+  title: string;
+  message: string;
+  onOk?: () => void;
+  onCancel?: () => void;
   icon?: AlertIcon;
 }
 
-const defaultProperties: AlertProperties = {
-  onOk: undefined,
-  onCancel: undefined,
+const defaultOptions: AlertOptions = {
+  // onOk: undefined,
+  // onCancel: undefined,
   showOk: true,
   showCancel: false,
   okText: "OK",
   cancelText: "Cancel",
-  icon: InfoAlert,
+  //  icon: InfoAlert,
 };
 
-export function showAlert(
+export function showInfoAlert(
   title: string,
   message: string,
-  properties?: AlertProperties
-) {
-  const showCancel =
-    properties?.showCancel || properties?.cancelText || properties?.onCancel;
-  setAlertFunc?.({
+  options: AlertOptions
+): Promise<boolean> {
+  return showAlert(title, message, InfoAlert, options);
+}
+
+export function showSuccessAlert(
+  title: string,
+  message: string,
+  options?: AlertOptions
+): Promise<boolean> {
+  return showAlert(title, message, SuccessAlert, options);
+}
+
+export function showErrorAlert(
+  title: string,
+  message: string,
+  options?: AlertOptions
+): Promise<boolean> {
+  return showAlert(title, message, ErrorAlert, options);
+}
+export function showWarningAlert(
+  title: string,
+  message: string,
+  options?: AlertOptions
+): Promise<boolean> {
+  return showAlert(title, message, WarningAlert, options);
+}
+export function showQuestionAlert(
+  title: string,
+  message: string,
+  options?: AlertOptions
+): Promise<boolean> {
+  const opt = { showCancel: true, ...options };
+  return showAlert(title, message, QuestionAlert, opt);
+}
+
+function showAlert(
+  title: string,
+  message: string,
+  icon: AlertIcon,
+  options?: AlertOptions
+): Promise<boolean> {
+  const showCancel = options?.showCancel || !!options?.cancelText;
+  const alertOptions: AlertOptionsImpl = {
     title: title,
     message: message,
-    ...defaultProperties,
-    ...properties,
+    ...defaultOptions,
+    ...options,
     showCancel: showCancel,
+    icon: icon,
+  };
+  // const onOk = alertOptions.onOk;
+  // const onCancel = alertOptions.onCancel;
+
+  const promise = new Promise<boolean>((resolve) => {
+    alertOptions.onOk = () => resolve(true);
+    alertOptions.onCancel = () => resolve(false);
   });
+  setAlertFunc?.(alertOptions);
+  return promise;
 }
 
 // Use alert for OK/cancel or just OK
@@ -134,7 +191,7 @@ export default function AlertDialog() {
 }
 
 type IconProps = {
-  alert: AlertProperties;
+  alert: AlertOptionsImpl;
 };
 
 const Icon: FC<IconProps> = ({ alert }) => {

@@ -8,13 +8,13 @@ import {
 } from "../authenticator/AuthenticatorClient";
 
 export interface ILoginProvider {
-  login(): Promise<Result<void>>;
-  cancelLogin(): void;
-  loginViaAuthenticator(): void;
-  getAuthenticateUrl(): string;
+  loginLocalDevice(): Promise<Result<void>>;
+  cancelLoginLocalDevice(): void;
+  cancelLoginViaAuthenticator(): void;
+  getAuthenticatorUrl(): string;
   tryLoginViaAuthenticator(): Promise<Result<void>>;
-  hasLocalLogin(): boolean;
-  supportLocalLogin(): Promise<boolean>;
+  hasEnabledLocalLoginDevice(): boolean;
+  isLocalLoginSupported(): Promise<boolean>;
 }
 
 export class LoginProvider implements ILoginProvider {
@@ -27,15 +27,15 @@ export class LoginProvider implements ILoginProvider {
   ) {
     this.operation = authenticatorClient.getAuthenticateOperation();
   }
-  public async supportLocalLogin(): Promise<boolean> {
+  public async isLocalLoginSupported(): Promise<boolean> {
     return await this.authenticate.supportLocalLogin();
   }
 
-  public hasLocalLogin(): boolean {
-    return this.authenticate.isLocalLogin();
+  public hasEnabledLocalLoginDevice(): boolean {
+    return this.authenticate.isLocalLoginEnabled();
   }
 
-  public getAuthenticateUrl(): string {
+  public getAuthenticatorUrl(): string {
     return this.authenticatorClient.getAuthenticateUrl(this.operation);
   }
 
@@ -48,22 +48,21 @@ export class LoginProvider implements ILoginProvider {
         return rsp;
       }
 
-      return this.online.enableSync();
+      return this.online.enableDeviceSync();
     } catch (error) {
-      console.log("error", error);
       return error as Error;
     }
   }
 
-  public async login(): Promise<Result<void>> {
-    return await this.online.login();
+  public async loginLocalDevice(): Promise<Result<void>> {
+    return await this.online.loginOnLocalDevice();
   }
 
-  public loginViaAuthenticator(): void {
-    this.operation.isCanceled = true;
+  public cancelLoginViaAuthenticator(): void {
+    this.operation.ac.abort();
   }
 
-  public cancelLogin(): void {
-    this.online.cancelLogin();
+  public cancelLoginLocalDevice(): void {
+    this.online.cancelLoginOnLocalDevice();
   }
 }

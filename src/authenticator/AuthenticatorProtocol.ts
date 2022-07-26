@@ -1,11 +1,7 @@
-import { diKey, singleton } from "../common/di";
-import Result, { isError } from "../common/Result";
-import {
-  base64ToString,
-  jsonParse,
-  jsonStringify,
-  stringToBase64,
-} from "../common/utils";
+import { ICryptKey } from "../common/crypt";
+import { di, diKey, singleton } from "../common/di";
+import Result from "../common/Result";
+import { arrayToString } from "../common/utils";
 
 // isAuthenticatorApp returns true if the current url path specifies a authenticator app
 export function isAuthenticatorApp(): boolean {
@@ -15,20 +11,25 @@ export function isAuthenticatorApp(): boolean {
 // IAuthenticatorProtocol defines the protocol between the authenticator server and client
 export const IAuthenticatorProtocolKey = diKey<IAuthenticatorProtocol>();
 export interface IAuthenticatorProtocol {
+  getRequestAuthenticateCode(): string;
+  generateAuthenticateCode(): string;
   getAuthenticatorUrl(): string;
-  getAuthenticateUrl(request: AuthenticateReq): string;
+  getAuthenticateUrl(authenticateCode: AuthenticateCode): string;
   hasAuthenticateCode(): boolean;
 
-  stringifyAuthenticateReq(request: AuthenticateReq): string;
-  parseAuthenticateReq(): Result<AuthenticateReq>;
+  parseAuthenticateReq(
+    authenticateCode: AuthenticateCode
+  ): Promise<Result<AuthenticateReq>>;
 }
+
+export type AuthenticateCode = string;
 
 // AuthenticateReq is request info that a device encodes in a QR code to the authenticator
 export interface AuthenticateReq {
-  n: string; // Unique client device name for this client/browser instance
-  d: string; // Client description, like .e.g Edge, IPad
-  k: string; // The password key to encrypt response from authenticator to this device
-  c: string; // The channel id where this device is polling for authenticator response
+  clientName: string; // Unique client device name for this client/browser instance
+  //d: string; // Client description, like .e.g Edge, IPad
+  passkey: string; // The password key to encrypt response from authenticator to this device
+  channelId: string; // The channel id where this device is polling for authenticator response
 }
 
 // AuthenticatorRsp is the response to the device for an AuthenticateReq request
@@ -39,40 +40,59 @@ export interface AuthenticatorRsp {
 }
 
 const authenticatorUrlPath = "/a/"; // The base path which determines if authenticator is requested
+const codeCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789"; // No O, I chars
+const codeLength = 8; // The length of the authenticator code (code in the QR code url)
+const codePartsLength = 15; // The length of each of the expanded parts
 
 @singleton(IAuthenticatorProtocolKey)
 export class AuthenticatorProtocol implements IAuthenticatorProtocol {
+  constructor(private crypt = di(ICryptKey)) {}
+
+  public generateAuthenticateCode(): string {
+    const randomBytes = crypto.getRandomValues(new Uint8Array(codeLength));
+
+    return arrayToString(randomBytes, codeCharacters);
+  }
+
   public hasAuthenticateCode(): boolean {
-    return !!this.getAuthenticateCode();
+    return !!this.getRequestAuthenticateCode();
   }
   public getAuthenticatorUrl(): string {
     const baseUrl = `${window.location.protocol}//${window.location.host}`;
     return `${baseUrl}${authenticatorUrlPath}`;
   }
 
-  public getAuthenticateUrl(request: AuthenticateReq): string {
-    const code = this.stringifyAuthenticateReq(request);
-
-    return `${this.getAuthenticatorUrl()}${code}`;
+  public getAuthenticateUrl(authenticateCode: AuthenticateCode): string {
+    return `${this.getAuthenticatorUrl()}${authenticateCode}`;
   }
 
-  public stringifyAuthenticateReq(request: AuthenticateReq): string {
-    const requestJson = jsonStringify(request);
-    const code = stringToBase64(requestJson);
-    return code;
+  public async parseAuthenticateReq(
+    authenticateCode: AuthenticateCode
+  ): Promise<Result<AuthenticateReq>> {
+    const expandedCode = await this.expandCode(authenticateCode);
+
+    return {
+      clientName: expandedCode.substring(0, codePartsLength),
+      passkey: expandedCode.substring(codePartsLength, 2 * codePartsLength),
+      channelId: expandedCode.substring(
+        2 * codePartsLength,
+        3 * codePartsLength
+      ),
+    };
   }
 
-  public parseAuthenticateReq(): Result<AuthenticateReq> {
-    const authenticateCode = this.getAuthenticateCode();
-
-    const infoJson = base64ToString(authenticateCode);
-    if (isError(infoJson)) {
-      return infoJson;
-    }
-    return jsonParse<AuthenticateReq>(infoJson);
-  }
-
-  public getAuthenticateCode(): string {
+  public getRequestAuthenticateCode(): AuthenticateCode {
     return window.location.pathname.substring(authenticatorUrlPath.length);
+  }
+
+  private async expandCode(code: AuthenticateCode): Promise<string> {
+    const salt = await this.crypt.sha256(code);
+    const bits = await this.crypt.deriveBits(
+      code,
+      salt,
+      8 * 3 * codePartsLength
+    );
+    const array = new Uint8Array(bits);
+    return arrayToString(array, codeCharacters);
   }
 }

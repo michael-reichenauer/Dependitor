@@ -8,7 +8,11 @@ export const minute = 60 * second;
 export const hour = 60 * minute;
 export const day = 24 * hour;
 
-export const isMobileDevice = /Android|iPhone|iPad/i.test(navigator.userAgent);
+export const isMobileDevice = /Android|iPhone/i.test(navigator.userAgent);
+
+export const isMobileOrTabletDevice = /Android|iPad|iPhone/i.test(
+  navigator.userAgent
+);
 
 // Returns a duration as a nice human readable string
 export const durationString = (duration: number): string => {
@@ -44,6 +48,17 @@ export const randomString = (count: number): string => {
   return randomText;
 };
 
+export function stackTrace(): string {
+  const error = new Error();
+  if (!error.stack) {
+    return "";
+  }
+
+  // Skip first line to ensure the caller line is the first line
+  const lines = error.stack.split("\n");
+  return lines.slice(2).join("\n");
+}
+
 export function jsonStringify<T>(obj: T): string {
   return JSON.stringify(obj);
 }
@@ -78,9 +93,13 @@ export const distance = (
 };
 
 // Async sleep/delay
-export async function delay(time: number): Promise<void> {
-  return new Promise((res) => {
-    setTimeout(res, time);
+export async function delay(
+  time: number,
+  ac?: AbortController
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), time);
+    ac?.signal.addEventListener("abort", () => resolve(false));
   });
 }
 
@@ -132,6 +151,14 @@ export const fetchFiles = (
       console.log(error);
     });
 };
+
+export function arrayToString(array: Uint8Array, charactersSet: string) {
+  let text = "";
+  for (var i = 0; i < array.length; i++) {
+    text += charactersSet.charAt(array[i] % charactersSet.length);
+  }
+  return text;
+}
 
 export const svgToSvgDataUrl = (svg: string): string => {
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);

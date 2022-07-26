@@ -221,8 +221,8 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
 
     // Make ports larger to support touch
     this.getPorts().each((_i: number, p: Figure2d) => {
-      p.setCoronaWidth(5);
-      p.setDimension(10);
+      p.setCoronaWidth(15);
+      p.setDiameter(10);
     });
   }
 

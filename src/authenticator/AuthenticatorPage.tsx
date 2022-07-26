@@ -8,7 +8,6 @@ import {
   NoRequestError,
 } from "./Authenticator";
 import { isError } from "../common/Result";
-import { ErrorAlert, showAlert, SuccessAlert } from "../common/AlertDialog";
 import { IAuthenticatorProtocolKey } from "./AuthenticatorProtocol";
 import {
   AuthenticateError,
@@ -20,6 +19,11 @@ import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
+import {
+  showErrorAlert,
+  showInfoAlert,
+  showSuccessAlert,
+} from "../common/AlertDialog";
 
 export const AuthenticatorPage: FC = () => {
   const authenticator = di(IAuthenticatorKey);
@@ -36,9 +40,9 @@ export const AuthenticatorPage: FC = () => {
     } else if (isError(rsp, FailedToRespondError)) {
       showFailedToCommunicateAlert();
     } else if (isError(rsp)) {
-      showErrorAlert(rsp);
+      showErrorDlg(rsp);
     } else if (rsp) {
-      showDeviceAuthenticatedMessage(rsp);
+      showDeviceAuthenticatedMessage();
     }
   };
 
@@ -62,39 +66,40 @@ export const AuthenticatorPage: FC = () => {
   );
 };
 
-function showDeviceAuthenticatedMessage(description: string) {
-  showAlert(
-    "Device Authenticated",
-    `'${description}' device is now authenticated
-     and allowed to sync with all your devices.`,
-    { icon: SuccessAlert, onOk: () => resetUrl() }
-  );
+async function showDeviceAuthenticatedMessage() {
+  if (
+    await showSuccessAlert(
+      "Device Authenticated",
+      `The device is now authenticated
+     and allowed to sync with all your devices.`
+    )
+  ) {
+    resetUrl();
+  }
 }
 
 function showClosePageAlert() {
-  showAlert("Close Page", `You can now close this page.`, {
+  showInfoAlert("Close Page", `You can now close this page.`, {
     showOk: false,
     showCancel: false,
   });
 }
 
-function showInvalidRequestAlert() {
-  showAlert("Error", `Invalid device authentication request`, {
-    icon: ErrorAlert,
-    onOk: () => resetUrl(),
-  });
+async function showInvalidRequestAlert() {
+  if (await showErrorAlert("Error", `Invalid device authentication request`)) {
+    resetUrl();
+  }
 }
 
-function showErrorAlert(error: Error) {
+async function showErrorDlg(error: Error) {
   const errorMsg = toErrorMessage(error);
-  showAlert("Error", `${errorMsg}`, {
-    icon: ErrorAlert,
-    onOk: () => resetUrl(),
-  });
+  if (await showErrorAlert("Error", `${errorMsg}`)) {
+    resetUrl();
+  }
 }
 
 function showReloadPageAlert() {
-  showAlert(
+  showInfoAlert(
     "Reload Page",
     `Please manually reload this page to show the authentication dialog.
 
@@ -103,21 +108,27 @@ function showReloadPageAlert() {
   );
 }
 
-function showCanceledAlert() {
-  showAlert(
-    "Canceled",
-    `Authentication was canceled.
-    Device was not authenticated and allowed to sync. `,
-    { icon: ErrorAlert, onOk: () => resetUrl() }
-  );
+async function showCanceledAlert() {
+  if (
+    await showErrorAlert(
+      "Canceled",
+      `Authentication was canceled.
+    Device was not authenticated and allowed to sync. `
+    )
+  ) {
+    resetUrl();
+  }
 }
 
-function showFailedToCommunicateAlert() {
-  showAlert(
-    "Error",
-    `Failed to communicate with device requesting authorization.`,
-    { icon: ErrorAlert, onOk: () => resetUrl() }
-  );
+async function showFailedToCommunicateAlert() {
+  if (
+    await showErrorAlert(
+      "Error",
+      `Failed to communicate with device requesting authorization.`
+    )
+  ) {
+    resetUrl();
+  }
 }
 
 // toErrorMessage translate network and sync errors to ui messages
@@ -129,7 +140,7 @@ function toErrorMessage(error?: Error): string {
     return "Local Azure storage emulator not started.";
   }
   if (isError(error, AuthenticateError)) {
-    return "Invalid credentials. Please try again with different credentials.";
+    return "Authentication error. Please retry again.";
   }
   if (isError(error, NoContactError)) {
     return "No network contact with server. Please retry again in a while.";

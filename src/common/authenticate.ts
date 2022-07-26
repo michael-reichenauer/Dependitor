@@ -12,19 +12,16 @@ export const IAuthenticateKey = diKey<IAuthenticate>();
 export interface IAuthenticate {
   check(): Promise<Result<void>>;
   login(): Promise<Result<void>>;
-  isLocalLogin(): boolean;
+  isLocalLoginEnabled(): boolean;
+  disableLocalLogin(): void;
   setLoggedIn(username: string, clientId: string, dek: CryptoKey): void;
   resetLogin(): void;
   readUserInfo(): Result<UserInfo>;
-  setIsAuthenticator(): void;
   supportLocalLogin(): Promise<boolean>;
 }
 
 const userInfoKeyDefault = "authenticate.userInfo";
-const authenticatorUserInfoKeyDefault = "/a/authenticate.userInfo";
-
 const userDisplayNameDefault = "Dependitor";
-const authenticatorUserDisplayNameDefault = "Authenticator";
 
 const randomUsernameLength = 12;
 const randomKekPasswordLength = 12;
@@ -66,27 +63,30 @@ export class Authenticate implements IAuthenticate {
     return await this.webAuthn.platformAuthenticatorIsAvailable();
   }
 
-  public setIsAuthenticator(): void {
-    this.userInfoKey = authenticatorUserInfoKeyDefault;
-    this.deviceUsername = authenticatorUserDisplayNameDefault;
-  }
-
   public async check(): Promise<Result<void>> {
     if (!this.keyVaultConfigure.hasDataEncryptionKey()) {
-      console.log("No DEK");
       return new AuthenticateError();
     }
 
-    return await this.api.withNoProgress(() => this.api.check());
+    return await this.api.check();
   }
 
-  public isLocalLogin(): boolean {
+  public isLocalLoginEnabled(): boolean {
     const userInfo = this.readUserInfo();
     if (isError(userInfo)) {
       return false;
     }
 
     return !!userInfo.wDek && !!userInfo.credentialId;
+  }
+
+  public disableLocalLogin(): void {
+    const userInfo = this.readUserInfo();
+    if (isError(userInfo)) {
+      return;
+    }
+
+    this.writeUserInfo({ ...userInfo, credentialId: "", wDek: "" });
   }
 
   public setLoggedIn(username: string, clientId: string, dek: CryptoKey): void {
@@ -186,6 +186,16 @@ export class Authenticate implements IAuthenticate {
     // Authenticate the existing registered username
     const { username, credentialId, wDek } = userInfo;
     const password = await this.authenticate(username, credentialId);
+    if (password instanceof AuthenticateError) {
+      // Failed to authenticate, need to re-register device, lets clear
+      this.writeUserInfo({
+        username: "",
+        clientId: "",
+        credentialId: "",
+        wDek: "",
+      });
+      return password;
+    }
     if (isError(password)) {
       return password;
     }
@@ -202,7 +212,7 @@ export class Authenticate implements IAuthenticate {
         credentialId: "",
         wDek: "",
       });
-      return dek;
+      return new AuthenticateError(dek);
     }
 
     // Make the DEK available to be used when encrypting/decrypting data when accessing server

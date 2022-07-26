@@ -11,12 +11,13 @@ import { di } from "../common/di";
 import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
-import { QuestionAlert, showAlert } from "../common/AlertDialog";
-import { isStandaloneApp, isMobileDevice } from "../common/utils";
+import { isStandaloneApp } from "../common/utils";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,
+  isVirtualConsoleSupported,
 } from "../common/virtualConsole";
+import { showQuestionAlert } from "../common/AlertDialog";
 
 export function ApplicationMenu() {
   const syncMode = useSyncMode();
@@ -50,14 +51,21 @@ export function ApplicationMenu() {
     ]),
 
     menuItem(
-      "Login and enable device sync",
-      () => di(IOnlineKey).enableSync(),
+      "Login",
+      () => di(IOnlineKey).enableDeviceSync(),
+      syncMode !== SyncState.Progress,
+      syncMode === SyncState.Disabled && di(IOnlineKey).isLocalLoginEnabled()
+    ),
+    menuItem(
+      "Setup device sync and login",
+      () => di(IOnlineKey).enableDeviceSync(true),
       syncMode !== SyncState.Progress,
       syncMode === SyncState.Disabled
     ),
+
     menuItem(
-      "Logoff and disable device sync",
-      () => di(IOnlineKey).disableSync(),
+      "Logoff",
+      () => di(IOnlineKey).disableDeviceSync(),
       syncMode !== SyncState.Progress,
       syncMode !== SyncState.Disabled
     ),
@@ -87,13 +95,13 @@ export function ApplicationMenu() {
       "Enable Debug Console",
       () => enableVirtualConsole(true),
       true,
-      isMobileDevice && !isVirtualConsoleEnabled()
+      isVirtualConsoleSupported && !isVirtualConsoleEnabled()
     ),
     menuItem(
       "Disable Debug Console",
       () => enableVirtualConsole(false),
       true,
-      isMobileDevice && isVirtualConsoleEnabled()
+      isVirtualConsoleSupported && isVirtualConsoleEnabled()
     ),
 
     menuItem("About", () => setShowAbout(true)),
@@ -135,10 +143,13 @@ function getDiagramsMenuItems(recentDiagrams: DiagramInfoDto[]) {
   );
 }
 
-function deleteDiagram() {
-  showAlert("Delete", "Do you really want to delete the current diagram?", {
-    onOk: () => PubSub.publish("canvas.DeleteDiagram"),
-    showCancel: true,
-    icon: QuestionAlert,
-  });
+async function deleteDiagram() {
+  if (
+    await showQuestionAlert(
+      "Delete",
+      "Do you really want to delete the current diagram?"
+    )
+  ) {
+    PubSub.publish("canvas.DeleteDiagram");
+  }
 }

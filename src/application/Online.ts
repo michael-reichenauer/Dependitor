@@ -2,11 +2,11 @@ import { atom, useAtom } from "jotai";
 import { di, diKey, singleton } from "./../common/di";
 import { SetAtom } from "jotai/core/types";
 import { IAuthenticateKey } from "../common/authenticate";
-import { showLoginDlg } from "./LoginDlg";
 import {
   NoContactError,
   LocalApiServerError,
   LocalEmulatorError,
+  SessionError,
 } from "../common/Api";
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "./../common/Api";
@@ -14,6 +14,7 @@ import {
   clearErrorMessages,
   setErrorMessage,
   setInfoMessage,
+  setWarnMessage,
 } from "../common/MessageSnackbar";
 import { setSuccessMessage } from "./../common/MessageSnackbar";
 import { IStoreKey } from "./diagram/Store";
@@ -24,17 +25,22 @@ import {
   WebAuthnCanceledError,
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
+import { withProgress } from "../common/Progress";
+import { showInfoAlert } from "../common/AlertDialog";
 import { LoginProvider } from "./LoginProvider";
-import { showAlert } from "../common/AlertDialog";
+import { showLoginDlg } from "./LoginDlg";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
 export interface IOnline {
-  enableSync(): Promise<Result<void>>;
-  disableSync(): void;
+  enableDeviceSync(skipLocalLogin?: boolean): Promise<Result<void>>;
+  disableDeviceSync(): void;
 
-  login(): Promise<Result<void>>;
-  cancelLogin(): void;
+  isLocalLoginEnabled(): boolean;
+  disableLocalLogin(): void;
+
+  loginOnLocalDevice(): Promise<Result<void>>;
+  cancelLoginOnLocalDevice(): void;
 }
 
 // Current sync state to be shown e.g. in ui
@@ -60,7 +66,8 @@ const loginAfterReloadKeyName = "online.loginAfterReload";
 
 const deviseSyncOKMessage = "Device sync is enabled and OK";
 const deviceSyncDisabledMsg = "Device sync is disabled";
-const deviceSyncCanceledMsg = "Authentication canceled";
+const deviceSyncCanceledMsg =
+  "Authentication canceled, device sync was not enabled";
 
 @singleton(IOnlineKey)
 export class Online implements IOnline {
@@ -83,107 +90,59 @@ export class Online implements IOnline {
     });
   }
 
+  public disableLocalLogin(): void {
+    this.authenticate.disableLocalLogin();
+  }
+
+  public isLocalLoginEnabled(): boolean {
+    return this.authenticate.isLocalLoginEnabled();
+  }
+
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
-  public async login(): Promise<Result<void>> {
-    console.log("login");
-    try {
-      this.showProgress();
+  public async loginOnLocalDevice(): Promise<Result<void>> {
+    return await withProgress(async () => {
+      console.log("login");
+      try {
+        this.showProgress();
 
-      const loginRsp = await this.authenticate.login();
-      if (loginRsp instanceof WebAuthnNeedReloadError) {
-        this.setLoginAfterReloadEnabled(true);
-        this.showReloadPageAlert();
-        return;
-      }
-      if (loginRsp instanceof WebAuthnCanceledError) {
-        setInfoMessage(deviceSyncCanceledMsg);
-        setInfoMessage(deviceSyncDisabledMsg);
-        this.cancelLogin();
-        return;
-      }
-      if (isError(loginRsp)) {
-        console.error("Failed to login:", loginRsp);
-        setErrorMessage(this.toErrorMessage(loginRsp));
-        return loginRsp;
-      }
+        const loginRsp = await this.authenticate.login();
+        if (loginRsp instanceof WebAuthnNeedReloadError) {
+          // On IOS, access to WebAuthn only works on recently manually loaded web page,
+          // so user must must manually reload and after reload we try again.
+          this.setTriggerLoginAfterReload(true);
+          this.showReloadPageAlert();
+          return;
+        }
+        if (loginRsp instanceof WebAuthnCanceledError) {
+          // User canceled login
+          setInfoMessage(deviceSyncCanceledMsg);
+          this.cancelLoginOnLocalDevice();
+          return;
+        }
+        if (isError(loginRsp)) {
+          // Some other unexpected error
+          console.error("Failed to login:", loginRsp);
+          setErrorMessage(this.toErrorMessage(loginRsp));
+          return loginRsp;
+        }
 
-      // Login successful, enable device sync
-      return await this.enableSync();
-    } finally {
-      this.hideProgress();
-    }
+        // Login was successful, enable device sync
+        return await this.enableDeviceSync();
+      } finally {
+        this.hideProgress();
+      }
+    });
   }
 
   // cancelLogin called by LoginDlg if user cancels/closes the dialog
-  public cancelLogin(): void {
-    this.disableSync();
-  }
-
-  // enableSync called when device sync should be enabled
-  public async enableSync(): Promise<Result<void>> {
-    console.log("enable");
-    try {
-      this.showProgress();
-
-      // Check connection and authentication with server
-      const checkRsp = await this.authenticate.check();
-
-      if (checkRsp instanceof NoContactError) {
-        // No contact with server, cannot enable sync
-        this.isError = true;
-        setErrorMessage(this.toErrorMessage(checkRsp));
-        showSyncState(SyncState.Error);
-        return checkRsp;
-      }
-
-      if (checkRsp instanceof AuthenticateError) {
-        // Authentication is needed, showing the login dialog
-        if (this.getPersistentIsEnabled() && this.authenticate.isLocalLogin()) {
-          return await this.login();
-        }
-        showLoginDlg(new LoginProvider(this));
-        return checkRsp;
-      }
-
-      if (isError(checkRsp)) {
-        // Som other unexpected error (neither contact nor authenticate error)
-        this.isError = true;
-        setErrorMessage(this.toErrorMessage(checkRsp));
-        showSyncState(SyncState.Error);
-        return checkRsp;
-      }
-
-      // Enable database sync and verify that sync does work
-      this.setDatabaseSync(true);
-      const syncResult = await this.store.triggerSync();
-
-      if (isError(syncResult)) {
-        // Database sync failed, it should nog happen in production but might during development
-        setErrorMessage(this.toErrorMessage(syncResult));
-        showSyncState(SyncState.Error);
-        this.isError = true;
-        this.setDatabaseSync(false);
-        this.authenticate.resetLogin();
-        return syncResult;
-      }
-
-      // Device sync successfully enabled
-      this.setPersistentIsEnabled(true);
-      this.isEnabled = true;
-      this.isError = false;
-      setSuccessMessage(deviseSyncOKMessage);
-      showSyncState(SyncState.Enabled);
-    } catch (error) {
-      return error as Error;
-    } finally {
-      this.hideProgress();
-    }
+  public cancelLoginOnLocalDevice(): void {
+    this.disableDeviceSync();
   }
 
   // disableSync called when disabling device sync
-  public disableSync(): void {
+  public disableDeviceSync(): void {
     const wasEnabled = this.isEnabled;
-    this.setPersistentIsEnabled(false);
+    this.setPersistentIsSyncEnabled(false);
     this.isEnabled = false;
     this.isError = false;
     this.setDatabaseSync(false);
@@ -194,6 +153,60 @@ export class Online implements IOnline {
     }
 
     showSyncState(SyncState.Disabled);
+  }
+
+  // enableSync called when device sync should be enabled
+  public async enableDeviceSync(
+    skipLocalLogin: boolean = false
+  ): Promise<Result<void>> {
+    try {
+      this.showProgress();
+
+      // Check connection and authentication with server
+      const checkRsp = await this.authenticate.check();
+      if (checkRsp instanceof AuthenticateError) {
+        // Authentication is needed, showing the authentication dialog or sync enable dlg
+        if (!skipLocalLogin && this.authenticate.isLocalLoginEnabled()) {
+          return this.loginOnLocalDevice();
+        }
+        showLoginDlg(new LoginProvider(this));
+        return checkRsp;
+      }
+      if (isError(checkRsp)) {
+        this.setError(checkRsp);
+        return checkRsp;
+      }
+
+      // Authenticated, enable database sync and verify that sync does work
+      this.setDatabaseSync(true);
+      const syncResult = await this.store.triggerSync();
+      if (isError(syncResult)) {
+        // Database sync failed, it should not happen in production but might during development
+        this.setError(syncResult);
+        this.setDatabaseSync(false);
+        this.authenticate.resetLogin();
+        return syncResult;
+      }
+
+      // Device sync successfully enabled
+      this.setSuccess();
+    } finally {
+      this.hideProgress();
+    }
+  }
+
+  private setError(error: Error) {
+    this.isError = true;
+    setErrorMessage(this.toErrorMessage(error));
+    showSyncState(SyncState.Error);
+  }
+
+  private setSuccess() {
+    this.setPersistentIsSyncEnabled(true);
+    this.isEnabled = true;
+    this.isError = false;
+    setSuccessMessage(deviseSyncOKMessage);
+    showSyncState(SyncState.Enabled);
   }
 
   // onSyncChanged called by the StoreDB whenever sync changes to OK or to !OK with some error
@@ -209,6 +222,12 @@ export class Online implements IOnline {
     if (!ok) {
       // StoreDB failed syncing, showing error
       this.isError = true;
+      if (error instanceof SessionError) {
+        setWarnMessage(this.toErrorMessage(error));
+        showSyncState(SyncState.Error);
+        setTimeout(() => this.enableDeviceSync(), 0);
+        return;
+      }
       setErrorMessage(this.toErrorMessage(error));
       showSyncState(SyncState.Error);
       return;
@@ -241,13 +260,13 @@ export class Online implements IOnline {
       // First activity signal, checking if sync should be enabled automatically
       this.firstActivate = false;
       if (this.getLoginAfterReloadEnabled()) {
-        this.setLoginAfterReloadEnabled(false);
-        setTimeout(() => this.login(), 0);
+        this.setTriggerLoginAfterReload(false);
+        setTimeout(() => this.loginOnLocalDevice(), 0);
         return;
       }
 
-      if (this.getPersistentIsEnabled()) {
-        setTimeout(() => this.enableSync(), 0);
+      if (this.getPersistentIsSyncEnabled()) {
+        setTimeout(() => this.enableDeviceSync(), 0);
         return;
       }
     }
@@ -263,13 +282,13 @@ export class Online implements IOnline {
     this.store.configure({ isSyncEnabled: flag });
   }
 
-  // getPersistentIsEnabled returns true if sync should be automatically enabled after browser start
-  private getPersistentIsEnabled() {
-    return orDefault(this.localStore.tryRead(persistentSyncKeyName), false);
+  // getPersistentIsSyncEnabled returns true if sync should be automatically enabled after browser start
+  private getPersistentIsSyncEnabled() {
+    return this.localStore.readOrDefault(persistentSyncKeyName, false);
   }
 
-  // setPersistentIsEnabled stores if  sync should be automatically enabled after browser start
-  private setPersistentIsEnabled(state: boolean) {
+  // setPersistentIsSyncEnabled stores if  sync should be automatically enabled after browser start
+  private setPersistentIsSyncEnabled(state: boolean) {
     this.localStore.write(persistentSyncKeyName, state);
   }
 
@@ -279,7 +298,7 @@ export class Online implements IOnline {
   }
 
   // setLoginAfterReloadEnabled stores if  login should be done once after a reload
-  private setLoginAfterReloadEnabled(state: boolean) {
+  private setTriggerLoginAfterReload(state: boolean) {
     this.localStore.write(loginAfterReloadKeyName, state);
   }
 
@@ -300,12 +319,12 @@ export class Online implements IOnline {
   }
 
   private showReloadPageAlert() {
-    showAlert(
+    showInfoAlert(
       "Reload Page",
       `Please manually reload this page to show the authentication dialog.
 
       This browser requires a recently manually loaded page before allowing access to authentication.`,
-      { showOk: false, showCancel: false }
+      { showOk: false }
     );
   }
 
@@ -317,8 +336,11 @@ export class Online implements IOnline {
     if (isError(error, LocalEmulatorError)) {
       return "Local Azure storage emulator not started.";
     }
+    if (isError(error, SessionError)) {
+      return "Invalid session. Please retry to enable sync again";
+    }
     if (isError(error, AuthenticateError)) {
-      return "Invalid credentials. Please try again with different credentials or create a new account";
+      return "Authentication error. Please retry again.";
     }
     if (isError(error, NoContactError)) {
       return "No network contact with server. Please retry again in a while.";

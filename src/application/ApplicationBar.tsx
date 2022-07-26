@@ -43,6 +43,10 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
     return !disabled ? classes.icons : classes.iconsDisabled;
   };
 
+  const enableSyncText = online.isLocalLoginEnabled()
+    ? "Click to login"
+    : "Click to setup device sync and login";
+
   const styleAlways = (disabled?: any) => {
     return !disabled ? classes.iconsAlways : classes.iconsAlwaysDisabled;
   };
@@ -63,21 +67,21 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
           <Button
             tooltip={`Device sync enabled and OK, click to sync now`}
             icon={<SyncIcon style={{ color: "Lime" }} />}
-            onClick={() => online.enableSync()}
+            onClick={() => online.enableDeviceSync()}
           />
         )}
         {syncMode === SyncState.Error && (
           <Button
             tooltip="Device sync error, click to retry sync now"
             icon={<SyncProblemIcon style={{ color: "#FF3366" }} />}
-            onClick={() => online.enableSync()}
+            onClick={() => online.enableDeviceSync()}
           />
         )}
         {syncMode === SyncState.Disabled && (
           <Button
-            tooltip="Click to login and enable device sync"
+            tooltip={enableSyncText}
             icon={<SyncDisabledIcon style={{ color: "#FFFF66" }} />}
-            onClick={() => online.enableSync()}
+            onClick={() => online.enableDeviceSync()}
           />
         )}
 
@@ -143,7 +147,7 @@ const Button: FC<ButtonProps> = ({
   className,
 }) => {
   return (
-    <Tooltip title={tooltip} className={className}>
+    <Tooltip title={tooltip} className={className} arrow>
       <span>
         <IconButton
           disabled={disabled}
