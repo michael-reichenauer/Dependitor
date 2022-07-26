@@ -4,6 +4,10 @@ import { di } from "./di";
 
 const vConsoleKey = "vConsole.enable";
 let vConsole: any = null;
+const removeKeys = [vConsoleKey, "vConsole_switch_x", "vConsole_switch_y"];
+
+export const isVirtualConsoleSupported =
+  true || /Android|iPad|iPhone/i.test(navigator.userAgent);
 
 export function isVirtualConsoleEnabled() {
   return !!vConsole;
@@ -21,7 +25,7 @@ export function enableVirtualConsole(flag: boolean): void {
   if (flag) {
     di(ILocalStoreKey).write(vConsoleKey, flag);
   } else {
-    di(ILocalStoreKey).remove(vConsoleKey);
+    di(ILocalStoreKey).removeBatch(removeKeys);
   }
 }
 
