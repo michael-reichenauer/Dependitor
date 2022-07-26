@@ -11,7 +11,7 @@ import { di } from "../common/di";
 import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
-import { isStandaloneApp, isMobileDevice } from "../common/utils";
+import { isStandaloneApp, isMobileOrTabletDevice } from "../common/utils";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,
@@ -87,13 +87,13 @@ export function ApplicationMenu() {
       "Enable Debug Console",
       () => enableVirtualConsole(true),
       true,
-      isMobileDevice && !isVirtualConsoleEnabled()
+      isMobileOrTabletDevice && !isVirtualConsoleEnabled()
     ),
     menuItem(
       "Disable Debug Console",
       () => enableVirtualConsole(false),
       true,
-      isMobileDevice && isVirtualConsoleEnabled()
+      isMobileOrTabletDevice && isVirtualConsoleEnabled()
     ),
 
     menuItem("About", () => setShowAbout(true)),
