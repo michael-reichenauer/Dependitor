@@ -322,23 +322,24 @@ export class Api implements IApi {
       //console.log("Failed:", rspError.response);
       const rsp = rspError.response;
       const serverError = new ServerError(
-        `Status: ${rsp.status} '${rsp.statusText}': ${rsp.data}`
+        `ServerError: Status: ${rsp.status} '${rsp.statusText}': ${rsp.data}`
       );
 
       if (rsp.status === 500 && rsp.data?.includes("(ECONNREFUSED)")) {
         return new LocalApiServerError(
-          "Local api server not started, Start local Azure functions server",
+          "LocalApiServerError: Local api server not started, Start local Azure functions server",
           serverError
         );
       } else if (rsp.status === 400) {
         if (rsp.data?.includes("ECONNREFUSED 127.0.0.1:10002")) {
           return new LocalEmulatorError(
-            "Local storage emulator not started. Call 'AzureStorageEmulator.exe start'",
+            "LocalEmulatorError: Local storage emulator not started. Call 'AzureStorageEmulator.exe start'",
             serverError
           );
         }
         if (rsp.data?.includes("SessionError")) {
-          return new SessionError(serverError);
+          console.log("Session error");
+          return new SessionError("SessionError:", serverError);
         }
         if (
           rsp.data?.includes("The table specified does not exist") ||
@@ -346,22 +347,25 @@ export class Api implements IApi {
           rsp.data?.includes("Invalid user") ||
           rsp.data?.includes("AuthenticateError")
         ) {
-          return new AuthenticateError(serverError);
+          return new AuthenticateError("AuthenticateError:", serverError);
         }
       }
 
-      return new RequestError("Invalid or unsupported request", serverError);
+      return new RequestError(
+        "RequestError: Invalid or unsupported request",
+        serverError
+      );
     } else if (rspError.request) {
       // The request was made but no response was received
       if (rspError.code === "ECONNABORTED") {
-        return new ContactTimeoutError(rspError);
+        return new ContactTimeoutError("ContactTimeoutError:", rspError);
       }
-      return new NoContactError(rspError);
+      return new NoContactError("NoContactError:", rspError);
     }
 
     // Something happened in setting up the request that triggered an Error
     return new NetworkError(
-      "Failed to send request. Request setup error",
+      "NetworkError: Failed to send request. Request setup error",
       rspError
     );
   }
