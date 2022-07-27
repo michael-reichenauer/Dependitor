@@ -11,14 +11,14 @@ import { di, diKey, singleton } from "../common/di";
 import Result, { isError } from "../common/Result";
 
 import now from "../common/stopwatch";
-import { delay, minute, second } from "../common/utils";
+import { delay, jsonStringify, minute, second } from "../common/utils";
 import {
   AuthenticateCode,
   AuthenticateReq,
   AuthenticatorRsp,
   IAuthenticatorProtocolKey,
 } from "./AuthenticatorProtocol";
-// const uaParser = require("ua-parser-js");
+const uaParser = require("ua-parser-js");
 
 // IAuthenticatorClient is the client  the Dependitor app uses when authenticating
 export const IAuthenticatorClientKey = diKey<IAuthenticatorClient>();
@@ -54,6 +54,8 @@ export class AuthenticatorClient implements IAuthenticatorClient {
   ) {}
 
   public getAuthenticateOperation(): AuthenticateOperation {
+    const ua = uaParser();
+    alert("ui " + jsonStringify(ua));
     return {
       code: this.protocol.generateAuthenticateCode(),
       isStarted: false,
@@ -167,12 +169,12 @@ export class AuthenticatorClient implements IAuthenticatorClient {
     return new AuthenticateError();
   }
 
-  // private getDeviceDescription(): string {
-  //   const ua = uaParser();
+  private getDeviceDescription(): string {
+    const ua = uaParser();
 
-  //   const model = !!ua.device.model ? ua.device.model : ua.os.name;
-  //   return `${ua.browser.name} on ${model}`;
-  // }
+    const model = !!ua.device.model ? ua.device.model : ua.os.name;
+    return `${ua.browser.name} on ${model}`;
+  }
 
   private getClientId() {
     let clientId: string;
