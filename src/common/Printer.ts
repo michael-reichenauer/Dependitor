@@ -57,6 +57,7 @@ export default class Printer {
       // execute iframe print command
       // @ts-ignore
       const result = contentWindow.document.execCommand("print", false, null);
+      console.log("result", result);
 
       // iframe print listener
       // @ts-ignore
@@ -70,6 +71,7 @@ export default class Printer {
 
       // if execCommand is unsupported
       if (!result) {
+        console.log("No result, printing with print");
         contentWindow?.print();
       }
     } catch (e) {
