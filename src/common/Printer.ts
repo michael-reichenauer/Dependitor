@@ -25,13 +25,10 @@ export default class Printer {
   }
 
   print(pages: string[]) {
-    console.log("print pages", pages);
     // Create one page with page brakes between
-    pages = ["Some text"];
     const pagesHtml = pages.join(
       '<p style="page-break-after: always;">&nbsp;</p>'
     );
-    console.log("html pages", pagesHtml);
 
     // create a hidden iframe named PrettyPrintFrame
     const prettyPrintIframe = document.createElement("iframe");
@@ -50,14 +47,12 @@ export default class Printer {
     prettyPrintIframe.contentWindow.document.body.innerHTML = pagesHtml;
 
     try {
-      console.log("after try");
       // reference to iframe window
       const contentWindow = prettyPrintIframe.contentWindow;
 
       // execute iframe print command
       // @ts-ignore
       const result = contentWindow.document.execCommand("print", false, null);
-      console.log("result", result);
 
       // iframe print listener
       // @ts-ignore
@@ -71,11 +66,9 @@ export default class Printer {
 
       // if execCommand is unsupported
       if (!result) {
-        console.log("No result, printing with print");
         contentWindow?.print();
       }
     } catch (e) {
-      console.log("print error", e);
       // print fallback
       // @ts-ignore
       window.frames["PrettyPrintFrame"].focus();

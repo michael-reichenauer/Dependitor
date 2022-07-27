@@ -11,7 +11,11 @@ import { di } from "../common/di";
 import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
-import { isEdgeOnIos, isStandaloneApp } from "../common/utils";
+import {
+  isEdgeOnIos,
+  isMobileOrTabletDevice,
+  isStandaloneApp,
+} from "../common/utils";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,
@@ -51,13 +55,13 @@ export function ApplicationMenu() {
         "Export png",
         () => PubSub.publish("canvas.Export", { type: "png", target: "file" }),
         true,
-        !isEdgeOnIos
+        !isMobileOrTabletDevice
       ),
       menuItem(
         "Export svg",
         () => PubSub.publish("canvas.Export", { type: "svg", target: "file" }),
         true,
-        !isEdgeOnIos
+        !isMobileOrTabletDevice
       ),
     ]),
 
@@ -102,20 +106,21 @@ export function ApplicationMenu() {
       isStandaloneApp()
     ),
 
+    menuItem("About", () => setShowAbout(true)),
+
     menuItem(
       "Enable Debug Console",
       () => enableVirtualConsole(true),
       true,
       isVirtualConsoleSupported && !isVirtualConsoleEnabled()
     ),
+
     menuItem(
       "Disable Debug Console",
       () => enableVirtualConsole(false),
       true,
       isVirtualConsoleSupported && isVirtualConsoleEnabled()
     ),
-
-    menuItem("About", () => setShowAbout(true)),
   ];
 
   return (
