@@ -5,7 +5,7 @@ on:
     branches: [master, preview, dev]
   pull_request:
     types: [opened, synchronize, reopened, closed]
-    branches: [master, preview, dev2]
+    branches: [master, preview, dev]
 
 jobs:
   build_and_deploy_job:
