@@ -25,6 +25,7 @@ export default class Printer {
   }
 
   print(pages: string[]) {
+    console.log("print pages", pages);
     // Create one page with page brakes between
     const pagesHtml = pages.join(
       '<p style="page-break-after: always;">&nbsp;</p>'
@@ -47,6 +48,7 @@ export default class Printer {
     prettyPrintIframe.contentWindow.document.body.innerHTML = pagesHtml;
 
     try {
+      console.log("after try");
       // reference to iframe window
       const contentWindow = prettyPrintIframe.contentWindow;
 
@@ -69,6 +71,7 @@ export default class Printer {
         contentWindow?.print();
       }
     } catch (e) {
+      console.log("print error", e);
       // print fallback
       // @ts-ignore
       window.frames["PrettyPrintFrame"].focus();
