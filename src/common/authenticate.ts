@@ -64,12 +64,8 @@ export class Authenticate implements IAuthenticate {
   }
 
   public async check(): Promise<Result<void>> {
-    const checkRsp = await this.api.check();
-    if (isError(checkRsp)) {
-      return checkRsp;
-    }
     if (!this.keyVaultConfigure.hasDataEncryptionKey()) {
-      return new AuthenticateError();
+      return new AuthenticateError("AuthenticateError:");
     }
 
     return await this.api.check();
@@ -216,7 +212,7 @@ export class Authenticate implements IAuthenticate {
         credentialId: "",
         wDek: "",
       });
-      return new AuthenticateError(dek);
+      return new AuthenticateError("AuthenticateError:", dek);
     }
 
     // Make the DEK available to be used when encrypting/decrypting data when accessing server
@@ -282,7 +278,6 @@ export class Authenticate implements IAuthenticate {
     credentialId: string
   ): Promise<Result<string>> {
     // GET authentication options from the endpoint that calls
-    console.log("authenticate");
     const options = await this.api.getWebAuthnAuthenticationOptions(username);
     if (isError(options)) {
       return options;
@@ -319,7 +314,9 @@ export class Authenticate implements IAuthenticate {
       return verified;
     }
     if (!verified) {
-      return new AuthenticateError(`Failed to verify authentication`);
+      return new AuthenticateError(
+        `AuthenticateError: Failed to verify authentication`
+      );
     }
 
     console.log("Verified authentication");
