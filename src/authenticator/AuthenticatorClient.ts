@@ -40,7 +40,7 @@ export interface AuthenticateOperation {
   ac: AbortController;
 }
 
-//const randomIdLength = 12; // The length of random user id and names
+//const randomIdLength = 12; // The length of random user id and names.
 const tryLoginTimeout = 3 * minute; // Wait for authenticator to allow/deny login
 const tryLoginPreWait = 4 * second; // Time before starting to poll server for result
 
