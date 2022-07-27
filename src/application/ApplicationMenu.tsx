@@ -109,7 +109,7 @@ export function ApplicationMenu() {
     menuItem("About", () => setShowAbout(true)),
 
     menuItem(
-      "Enable Debug Console",
+      "(Enable Debug Console)",
       () => enableVirtualConsole(true),
       true,
       isVirtualConsoleSupported && !isVirtualConsoleEnabled()
