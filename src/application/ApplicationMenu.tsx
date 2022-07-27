@@ -11,7 +11,7 @@ import { di } from "../common/di";
 import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
-import { isStandaloneApp } from "../common/utils";
+import { isEdgeOnIos, isStandaloneApp } from "../common/utils";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,
@@ -41,12 +41,23 @@ export function ApplicationMenu() {
     menuParentItem("Diagrams", [
       menuItem("Rename", () => renameDiagram(diagramName)),
       menuItem("Delete", deleteDiagram),
-      menuItem("Print ...", () => PubSub.publish("canvas.Print"), true),
-      menuItem("Export png", () =>
-        PubSub.publish("canvas.Export", { type: "png", target: "file" })
+      menuItem(
+        "Print ...",
+        () => PubSub.publish("canvas.Print"),
+        true,
+        !isEdgeOnIos
       ),
-      menuItem("Export svg", () =>
-        PubSub.publish("canvas.Export", { type: "svg", target: "file" })
+      menuItem(
+        "Export png",
+        () => PubSub.publish("canvas.Export", { type: "png", target: "file" }),
+        true,
+        !isEdgeOnIos
+      ),
+      menuItem(
+        "Export svg",
+        () => PubSub.publish("canvas.Export", { type: "svg", target: "file" }),
+        true,
+        !isEdgeOnIos
       ),
     ]),
 
