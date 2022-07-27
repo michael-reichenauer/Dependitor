@@ -71,11 +71,11 @@ export class WebAuthn implements IWebAuthn {
 
     if (this.isReloadError(error, duration)) {
       console.log("Reload is needed:", msg);
-      return new WebAuthnNeedReloadError(error);
+      return new WebAuthnNeedReloadError("WebAuthnNeedReloadError:", error);
     }
     if (error.name === "NotAllowedError") {
       console.log("Authentication canceled:", msg);
-      return new WebAuthnCanceledError(error);
+      return new WebAuthnCanceledError("WebAuthnCanceledError:", error);
     }
 
     console.warn(msg);

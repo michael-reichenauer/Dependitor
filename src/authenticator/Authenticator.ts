@@ -44,12 +44,12 @@ export class Authenticator implements IAuthenticator {
 
     const code = this.protocol.getRequestAuthenticateCode();
     if (!code) {
-      return new NoRequestError();
+      return new NoRequestError("NoRequestError:");
     }
 
     const request = await this.protocol.parseAuthenticateReq(code);
     if (isError(request)) {
-      return new InvalidRequestError();
+      return new InvalidRequestError("InvalidRequestError:");
     }
 
     // login if needed
@@ -61,7 +61,7 @@ export class Authenticator implements IAuthenticator {
 
     const rsp = await this.postAuthenticateOKResponse(request);
     if (isError(rsp)) {
-      return new FailedToRespondError();
+      return new FailedToRespondError("FailedToRespondError:");
     }
 
     // A message was posted to the device that it is now authenticated and allowed to sync

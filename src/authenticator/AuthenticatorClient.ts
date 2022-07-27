@@ -95,7 +95,9 @@ export class AuthenticatorClient implements IAuthenticatorClient {
     }
 
     if (!authenticateRsp.isAccepted) {
-      return new AuthenticatorNotAcceptedError();
+      return new AuthenticatorNotAcceptedError(
+        "AuthenticatorNotAcceptedError:"
+      );
     }
 
     const wDek = authenticateRsp.wDek;
@@ -137,14 +139,14 @@ export class AuthenticatorClient implements IAuthenticatorClient {
 
     // Wait a little before starting to poll since authenticator needs some time anyway
     if (!(await delay(tryLoginPreWait, operation.ac))) {
-      return new AuthenticatorCanceledError();
+      return new AuthenticatorCanceledError("AuthenticatorCanceledError:");
     }
 
     // Poll authentication response from the server, it might take several attempts
     while (startTime.time() < tryLoginTimeout) {
       const authData = await this.api.loginDevice(req);
       if (operation.ac.signal.aborted) {
-        return new AuthenticatorCanceledError();
+        return new AuthenticatorCanceledError("AuthenticatorCanceledError:");
       }
       if (isError(authData)) {
         return authData;
@@ -153,7 +155,7 @@ export class AuthenticatorClient implements IAuthenticatorClient {
       if (!authData) {
         // No auth data yet, lets wait a little before retrying again
         if (!(await delay(1 * second, operation.ac))) {
-          return new AuthenticatorCanceledError();
+          return new AuthenticatorCanceledError("AuthenticatorCanceledError:");
         }
         continue;
       }

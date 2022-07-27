@@ -29,7 +29,7 @@ export interface IRemoteDB {
 }
 
 const noValueError = new RangeError("No value for key");
-const notModifiedError = new NotModifiedError();
+const notModifiedError = new NotModifiedError("NotModifiedError:");
 
 @singleton(IRemoteDBKey)
 export class RemoteDB implements IRemoteDB {
