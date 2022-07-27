@@ -27,9 +27,11 @@ export default class Printer {
   print(pages: string[]) {
     console.log("print pages", pages);
     // Create one page with page brakes between
+    pages = ["Some text"];
     const pagesHtml = pages.join(
       '<p style="page-break-after: always;">&nbsp;</p>'
     );
+    console.log("html pages", pagesHtml);
 
     // create a hidden iframe named PrettyPrintFrame
     const prettyPrintIframe = document.createElement("iframe");
