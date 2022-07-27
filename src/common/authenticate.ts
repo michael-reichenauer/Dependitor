@@ -64,6 +64,10 @@ export class Authenticate implements IAuthenticate {
   }
 
   public async check(): Promise<Result<void>> {
+    const checkRsp = await this.api.check();
+    if (isError(checkRsp)) {
+      return checkRsp;
+    }
     if (!this.keyVaultConfigure.hasDataEncryptionKey()) {
       return new AuthenticateError();
     }
