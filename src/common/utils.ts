@@ -17,7 +17,7 @@ export const isMobileOrTabletDevice = /Android|iPad|iPhone/i.test(
 export const isEdgeOnIos =
   isMobileOrTabletDevice && /Edge/i.test(navigator.userAgent);
 
-// Returns a duration as a nice human readable string
+// Returns a duration as a nice human readable string.
 export const durationString = (duration: number): string => {
   return humanizeDuration(duration);
 };
