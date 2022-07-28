@@ -121,7 +121,6 @@ export class Online implements IOnline {
         }
         if (isError(loginRsp)) {
           // Some other unexpected error
-          console.error("Failed to login:", loginRsp);
           setErrorMessage(this.toErrorMessage(loginRsp));
           return loginRsp;
         }
