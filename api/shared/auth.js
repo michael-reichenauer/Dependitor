@@ -23,8 +23,13 @@ const authenticatorPartitionKey = 'authenticator'
 const clientIdExpires = new Date(2040, 12, 31) // Persistent for a long time
 const deleteCookieExpires = new Date(1970, 1, 1) // past date to delete cookie
 const sessionDuration = 10 * util.hour
+const authenticatorLoginDuration = 3 * util.minute
+
+const cryptoAlgorithm = "aes-256-cbc";
 
 
+// Call in every server api function to verify that client has expected api key,
+// Which changes for every build
 exports.verifyApiKey = context => {
     const req = context.req
     const apiKey = req.headers['x-api-key']
@@ -33,7 +38,7 @@ exports.verifyApiKey = context => {
     }
 }
 
-
+// Called by client to api is upp and running and client has been logged in
 exports.check = async (context, body, userId) => {
     // Verify authentication
     if (!userId) {
@@ -41,7 +46,7 @@ exports.check = async (context, body, userId) => {
     }
 }
 
-
+// Called by the Authenticator to post a responds to a device calling loginDevice()
 exports.loginDeviceSet = async (context, body, userId) => {
     try {
         const { channelId, authData } = body
@@ -49,7 +54,7 @@ exports.loginDeviceSet = async (context, body, userId) => {
         await clearOldAuthenticatorChannels()
 
 
-        // Creating a new client id adn session for the other device 
+        // Creating a new client id and session for the other device 
         const clientId = makeRandomId()
         const sessionId = await createSession(clientId, userId)
 
@@ -63,6 +68,8 @@ exports.loginDeviceSet = async (context, body, userId) => {
     }
 }
 
+
+// Called by devices trying to retrieve Authenticator response set by loginDeviceSet
 exports.loginDevice = async (context, body) => {
     try {
         const { channelId } = body
@@ -70,6 +77,12 @@ exports.loginDevice = async (context, body) => {
         try {
             const entity = await table.retrieveEntity(authenticatorTableName, authenticatorPartitionKey, channelId)
             if (entity.authData) {
+                const expireDate = util.currentDateAdd(authenticatorLoginDuration);
+                const entityDate = Date.parse(entity.Timestamp)
+                if (entityDate > expireDate) {
+                    throw new Error('Expired')
+                }
+
                 const cookies = createCookies(entity.clientId, entity.sessionId)
                 return { response: entity.authData, cookies: cookies };
             }
@@ -94,12 +107,12 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
             // The authenticator does not specify a user, i.e. a new random user name is generated
             username = makeRandomId()
         } else {
-            // A dependitor has proposed a username, lets verify it is same as logged in user
+            // A caller has proposed a username, lets verify it is same as logged in user
             // Which was authenticated by the authenticator.
             const proposedUserId = toUserId(username)
             const contextUserId = await getLoginUserId(context)
             if (proposedUserId !== contextUserId) {
-                // Does no match, the dependitor was not authenticated by an authenticator
+                // Does no match, the caller was not authenticated by an authenticator
                 throw new Error(util.authenticateError)
             }
         }
@@ -110,7 +123,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
         // otherwise the device will be added to the user
         let user
         try {
-            user = await getUser(userId)
+            user = await retrieveUser(userId, username)
         } catch (err) {
             // No user with that name registered, user default user
             user = { id: userId, username: username, devices: [] }
@@ -131,7 +144,7 @@ exports.getWebAuthnRegistrationOptions = async (context, data) => {
 
         // Store the current challenge for this user for next verifyWebAuthnRegistration() call
         user.currentChallenge = options.challenge
-        await updateUser(userId, user)
+        await insertOrReplaceUser(userId, user, username)
 
         return { options: options, username: username };
     } catch (error) {
@@ -145,7 +158,7 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
         const { username, registration } = data
         const userId = toUserId(username)
 
-        const user = await getUser(userId);
+        const user = await retrieveUser(userId, username);
         const expectedChallenge = user.currentChallenge;
         user.currentChallenge = null
 
@@ -182,7 +195,7 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
         // Limit number of allowed user device registrations
         user.devices = user.devices.slice(-maxUserDeviceRegistrations)
 
-        await updateUser(userId, user)
+        await insertOrReplaceUser(userId, user, username)
 
         const clientId = getClientId(context)
         const sessionId = await createSession(clientId, userId)
@@ -200,7 +213,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
         const { username } = data
         const userId = toUserId(username)
 
-        const user = await getUser(userId);
+        const user = await retrieveUser(userId, username);
 
         // Currently using request origin, can be narrowed to some wellknown origins
         const expectedRPID = getRPId(context)
@@ -225,7 +238,7 @@ exports.getWebAuthnAuthenticationOptions = async (context, data) => {
 
         // Store the challenge to be verified in the next verifyWebAuthnAuthentication() call
         user.currentChallenge = options.challenge
-        await updateUser(userId, user)
+        await insertOrReplaceUser(userId, user, username)
 
         return { options: options };
     } catch (error) {
@@ -238,7 +251,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
         const { username, authentication } = data
         const userId = toUserId(username)
 
-        const user = await getUser(userId);
+        const user = await retrieveUser(userId, username);
 
         // Get the current challenge stored in the previous getWebAuthnAuthenticationOptions() call
         const expectedChallenge = user.currentChallenge;
@@ -273,7 +286,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
         // Update the authenticator's counter in the DB to the newest count in the authentication
         deviceAuthenticator.counter = authenticationInfo.newCounter;
 
-        await updateUser(userId, user)
+        await insertOrReplaceUser(userId, user, username)
 
         const clientId = getClientId(context)
         const sessionId = await createSession(clientId, userId)
@@ -325,9 +338,9 @@ const getLoginUserId = async (context) => {
         }
 
         const entity = await table.retrieveEntity(sessionsTableName, sessionsPartitionKey, sessionId)
-        const expireDate = new Date(new Date().getTime() - sessionDuration);
-        const sessionDate = Date.parse(entity.Timestamp)
-        if (sessionDate < expireDate) {
+        const expireDate = util.currentDateAdd(sessionDuration);
+        const entityDate = Date.parse(entity.Timestamp)
+        if (entityDate > expireDate) {
             throw new Error(util.authenticateError)
         }
 
@@ -347,11 +360,14 @@ const getClientId = (context) => {
     return clientId
 }
 
-async function getUser(userId) {
+async function retrieveUser(userId, username) {
     const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
 
+    // Simple decryption of user date based on user name, which is not stored by server in clear text
+    const userJson = decrypt(userTableEntity.user, username, username)
+
     // The user struct is a json string
-    const user = JSON.parse(userTableEntity.user)
+    const user = JSON.parse(userJson)
 
     // Since user.devices contain binary buffers, they need to be decoded manually
     user.devices = user.devices.map(device => ({
@@ -365,7 +381,7 @@ async function getUser(userId) {
 }
 
 
-async function updateUser(userId, user) {
+async function insertOrReplaceUser(userId, user, username) {
     // Since user.devices contain binary buffers, they need to be encoded manually
     user.devices = user.devices.map(device => ({
         credentialID: device.credentialID.toString('base64'),
@@ -377,7 +393,10 @@ async function updateUser(userId, user) {
     // Convert the user struct to json
     const userJson = JSON.stringify(user)
 
-    const userItem = toUserTableEntity(userId, userJson)
+    // Simple encryption of user data based on user name, which is not stored by server in clear text
+    const userJsonData = encrypt(userJson, username, username)
+
+    const userItem = toUserTableEntity(userId, userJsonData)
     await table.insertOrReplaceEntity(usersTableName, userItem)
 }
 
@@ -567,4 +586,30 @@ function getExpectedOrigin(clientDataJSONField) {
     const clientData = JSON.parse(clientDataJSON);
     const expectedOrigin = clientData.origin
     return expectedOrigin
+}
+
+function encrypt(text, key, salt) {
+    // Creating dek from the key and salt and an empty iv, since that is ok in this case
+    const dek = crypto.scryptSync(key, salt, 32);
+    const iv = Buffer.alloc(16, 0);
+
+    // Encrypting
+    const cipher = crypto.createCipheriv(cryptoAlgorithm, dek, iv);
+    let encryptedText = cipher.update(text, "utf-8", "base64");
+    encryptedText += cipher.final("base64");
+
+    return encryptedText
+}
+
+function decrypt(encryptedText, key, salt) {
+    // Creating dek from the key and salt and an empty iv, since that is ok in this case
+    const dek = crypto.scryptSync(key, salt, 32);
+    const iv = Buffer.alloc(16, 0);
+
+    // Decrypting
+    const decipher = crypto.createDecipheriv(cryptoAlgorithm, dek, iv);
+    let decryptedText = decipher.update(encryptedText, "base64", "utf-8");
+    decryptedText += decipher.final("utf8");
+
+    return decryptedText
 }
