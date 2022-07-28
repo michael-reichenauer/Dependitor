@@ -9,7 +9,7 @@ module.exports = async function (context, req) {
 
         context.res = { status: 200, body: data, cookies: cookies };
     } catch (err) {
-        context.log.error('error:', err);
+        // context.log.error('error:', err);
         context.res = { status: 400, body: `error: '${err.message}'` };
 
     }

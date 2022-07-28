@@ -1,8 +1,16 @@
+import { isProduction, stackTrace } from "./utils";
+
 export class CustomError extends Error {
   constructor(message?: string | Error, nested?: Error) {
     if (message instanceof Error) {
       super();
       this.name = this.constructor.name;
+      if (!isProduction) {
+        console.warn(
+          "Custom exception message not started with exception class name",
+          stackTrace()
+        );
+      }
 
       if (this.stack) {
         if (message.stack) {
@@ -14,6 +22,12 @@ export class CustomError extends Error {
     } else {
       super(message);
       this.name = this.constructor.name;
+      if (!message?.startsWith(this.name) && !isProduction) {
+        console.warn(
+          "Custom exception message not started with exception class name",
+          stackTrace()
+        );
+      }
     }
 
     if (nested?.stack) {

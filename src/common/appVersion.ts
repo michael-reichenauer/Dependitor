@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useRef } from "react";
 import { useActivity } from "./activity";
-import { minute } from "./utils";
+import { minute, second } from "./utils";
 
 const checkRemoteInterval = 30 * minute;
 const retryFailedRemoteInterval = 5 * minute;
@@ -42,7 +42,9 @@ export const useAppVersionMonitor = () => {
           `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
         );
         // console.log(`Checking remote, active=${isActive} ...`)
-        const manifest = (await axios.get("/manifest.json")).data;
+        const manifest = (
+          await axios.get("/manifest.json", { timeout: 20 * second })
+        ).data;
 
         const remoteSha =
           manifest.sha === "%REACT_APP_SHA%" ? localSha : manifest.sha;

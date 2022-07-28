@@ -101,7 +101,6 @@ export class Online implements IOnline {
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
   public async loginOnLocalDevice(): Promise<Result<void>> {
     return await withProgress(async () => {
-      console.log("login");
       try {
         this.showProgress();
 
@@ -121,7 +120,6 @@ export class Online implements IOnline {
         }
         if (isError(loginRsp)) {
           // Some other unexpected error
-          console.error("Failed to login:", loginRsp);
           setErrorMessage(this.toErrorMessage(loginRsp));
           return loginRsp;
         }

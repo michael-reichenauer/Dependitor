@@ -24,9 +24,24 @@ exports.toError = (errorMsg, error) => {
     return new Error(`${errorMsg}${exceptionDetails}`)
 }
 
+exports.currentDateAdd = (duration) => {
+    return new Date(new Date().getTime() + duration)
+}
 
 exports.delay = (time) => {
     return new Promise((res) => {
         setTimeout(res, time);
     });
+}
+
+
+exports.stackTrace = () => {
+    const error = new Error();
+    if (!error.stack) {
+        return "";
+    }
+
+    // Skip first line to ensure the caller line is the first line
+    const lines = error.stack.split("\n");
+    return lines.slice(2).join("\n");
 }
