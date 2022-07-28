@@ -18,7 +18,7 @@ import {
   AuthenticatorRsp,
   IAuthenticatorProtocolKey,
 } from "./AuthenticatorProtocol";
-// const uaParser = require("ua-parser-js");
+//const uaParser = require("ua-parser-js");
 
 // IAuthenticatorClient is the client  the Dependitor app uses when authenticating
 export const IAuthenticatorClientKey = diKey<IAuthenticatorClient>();
@@ -40,7 +40,7 @@ export interface AuthenticateOperation {
   ac: AbortController;
 }
 
-const randomIdLength = 12; // The length of random user id and names
+//const randomIdLength = 12; // The length of random user id and names.
 const tryLoginTimeout = 3 * minute; // Wait for authenticator to allow/deny login
 const tryLoginPreWait = 4 * second; // Time before starting to poll server for result
 
@@ -174,14 +174,14 @@ export class AuthenticatorClient implements IAuthenticatorClient {
   //   return `${ua.browser.name} on ${model}`;
   // }
 
-  private getClientId() {
-    let clientId: string;
-    const userInfo = this.authenticate.readUserInfo();
-    if (isError(userInfo) || !userInfo.clientId) {
-      clientId = this.dataCrypt.generateRandomString(randomIdLength);
-    } else {
-      clientId = userInfo.clientId;
-    }
-    return clientId;
-  }
+  // private getClientId() {
+  //   let clientId: string;
+  //   const userInfo = this.authenticate.readUserInfo();
+  //   if (isError(userInfo) || !userInfo.clientId) {
+  //     clientId = this.dataCrypt.generateRandomString(randomIdLength);
+  //   } else {
+  //     clientId = userInfo.clientId;
+  //   }
+  //   return clientId;
+  // }
 }
