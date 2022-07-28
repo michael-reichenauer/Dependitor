@@ -61,7 +61,6 @@ export const LoginDlg: FC = () => {
 
   useEffect(() => {
     if (login) {
-      alert("navigator.userAgent " + navigator.userAgent);
       // When dialog with QR cose is shown, try login via authenticator on a mobile (await response)
       tryLoginViaAuthenticator(login, setLogin);
     }
