@@ -1,9 +1,27 @@
 // Some handy utility functions
-import { isError } from "./Result";
+import Result, { isError } from "./Result";
 
 const humanizeDuration = require("humanize-duration");
 
-// Returns a duration as a nice human readable string
+export const second = 1000;
+export const minute = 60 * second;
+export const hour = 60 * minute;
+export const day = 24 * hour;
+
+const isIpad =
+  navigator.userAgent.toLowerCase().indexOf("macintosh") > -1 &&
+  navigator.maxTouchPoints &&
+  navigator.maxTouchPoints > 2;
+
+export const isMobileDevice = /Android|iPhone/i.test(navigator.userAgent);
+
+export const isMobileOrTabletDevice =
+  isIpad || /Android|iPad|iPhone/i.test(navigator.userAgent);
+
+export const isEdgeOnIos =
+  isMobileOrTabletDevice && /Edg/i.test(navigator.userAgent);
+
+// Returns a duration as a nice human readable string.
 export const durationString = (duration: number): string => {
   return humanizeDuration(duration);
 };
@@ -14,6 +32,62 @@ export const random = (min: number, max: number): number => {
   max = Math.floor(max) + 1;
   return Math.floor(Math.random() * (max - min) + min);
 };
+
+export function isProduction(): boolean {
+  return window.location.hostname === "dependitor.com";
+}
+
+export const isStandaloneApp = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  // @ts-ignore
+  window.navigator.standalone ||
+  document.referrer.includes("android-app://");
+
+export const randomString = (count: number): string => {
+  let randomText = "";
+  const randomBytes = crypto.getRandomValues(new Uint8Array(count));
+  let characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789";
+
+  for (var i = 0; i < count; i++) {
+    randomText += characters.charAt(randomBytes[i] % characters.length);
+  }
+  return randomText;
+};
+
+export function stackTrace(): string {
+  const error = new Error();
+  if (!error.stack) {
+    return "";
+  }
+
+  // Skip first line to ensure the caller line is the first line
+  const lines = error.stack.split("\n");
+  return lines.slice(2).join("\n");
+}
+
+export function jsonStringify<T>(obj: T): string {
+  return JSON.stringify(obj);
+}
+
+export function jsonParse<T>(jsonText: string): Result<T> {
+  try {
+    const obj = JSON.parse(jsonText);
+    return obj as T;
+  } catch (error) {
+    return error as Error;
+  }
+}
+
+// currentTimeAdd returns a time in the future (or past), e.g. currentTimeAdd(10*minute)
+export function currentTimeAdd(timeToAdd: number): Date {
+  return timeAdd(new Date(), timeToAdd);
+}
+
+// timeAdd returns a time relative to the specified date timeAdd(someDate, 15 *second)
+export function timeAdd(time: Date, timeToAdd: number): Date {
+  return new Date(time.getTime() + timeToAdd);
+}
 
 // Returns the distance between 2 points
 export const distance = (
@@ -26,14 +100,18 @@ export const distance = (
 };
 
 // Async sleep/delay
-export async function delay(time: number): Promise<void> {
-  return new Promise((res) => {
-    setTimeout(res, time);
+export async function delay(
+  time: number,
+  ac?: AbortController
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), time);
+    ac?.signal.addEventListener("abort", () => resolve(false));
   });
 }
 
 // Returns the sha 256 hash of the string
-export async function sha256Hash(text: string) {
+export async function sha256Hash(text: string): Promise<string> {
   // encode as UTF-8
   const msgBuffer = new TextEncoder().encode(text);
 
@@ -81,6 +159,14 @@ export const fetchFiles = (
     });
 };
 
+export function arrayToString(array: Uint8Array, charactersSet: string) {
+  let text = "";
+  for (var i = 0; i < array.length; i++) {
+    text += charactersSet.charAt(array[i] % charactersSet.length);
+  }
+  return text;
+}
+
 export const svgToSvgDataUrl = (svg: string): string => {
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 };
@@ -125,3 +211,57 @@ export const lx = (obj: any): any => {
   }
   return obj;
 };
+
+export function stringToBase64(text: string): string {
+  const enc = new TextEncoder();
+  return bufferToBase64(enc.encode(text));
+}
+
+export function base64ToString(text: string): Result<string> {
+  try {
+    var enc = new TextDecoder("utf-8");
+    return enc.decode(base64ToBuffer(text));
+  } catch (error) {
+    return error as Error;
+  }
+}
+
+export function bufferToBase64(buffer: ArrayBuffer): string {
+  const bytes: any = new Uint8Array(buffer);
+  let str = "";
+
+  for (const charCode of bytes) {
+    str += String.fromCharCode(charCode);
+  }
+
+  const base64String = btoa(str);
+
+  return base64String.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+
+export function base64ToBuffer(base64URLString: string): ArrayBuffer {
+  // Convert from Base64URL to Base64
+  const base64 = base64URLString.replace(/-/g, "+").replace(/_/g, "/");
+  /**
+   * Pad with '=' until it's a multiple of four
+   * (4 - (85 % 4 = 1) = 3) % 4 = 3 padding
+   * (4 - (86 % 4 = 2) = 2) % 4 = 2 padding
+   * (4 - (87 % 4 = 3) = 1) % 4 = 1 padding
+   * (4 - (88 % 4 = 0) = 4) % 4 = 0 padding
+   */
+  const padLength = (4 - (base64.length % 4)) % 4;
+  const padded = base64.padEnd(base64.length + padLength, "=");
+
+  // Convert to a binary string
+  const binary = atob(padded);
+
+  // Convert binary string to buffer
+  const buffer = new ArrayBuffer(binary.length);
+  const bytes = new Uint8Array(buffer);
+
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return buffer;
+}

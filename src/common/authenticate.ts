@@ -1,120 +1,327 @@
 import { AuthenticateError, IApi, IApiKey } from "./Api";
 import { User } from "./Api";
 import { di, diKey, singleton } from "./di";
-import { IKeyVaultConfigure, IKeyVaultConfigureKey } from "./keyVault";
-import Result, { isError } from "./Result";
-import { IDataCrypt, IDataCryptKey } from "./DataCrypt";
+import { IKeyVaultConfigureKey, IKeyVaultKey } from "./keyVault";
+import Result, { expectValue, isError, orDefault } from "./Result";
+import { IDataCryptKey } from "./DataCrypt";
+import { IWebAuthnKey } from "./webauthn";
+import { ILocalStoreKey } from "./LocalStore";
+import timing from "./timing";
 
-// IAuthenticate provides crate account and login functionality
+// IAuthenticate provides crate account and login functionality.
 export const IAuthenticateKey = diKey<IAuthenticate>();
 export interface IAuthenticate {
   check(): Promise<Result<void>>;
-  createUser(user: User): Promise<Result<void>>;
-  login(user: User): Promise<Result<void>>;
+  login(): Promise<Result<void>>;
+  isLocalLoginEnabled(): boolean;
+  disableLocalLogin(): void;
+  setLoggedIn(username: string, clientId: string, dek: CryptoKey): void;
   resetLogin(): void;
+  readUserInfo(): Result<UserInfo>;
+  supportLocalLogin(): Promise<boolean>;
 }
 
-const minUserName = 2;
-const minPassword = 4;
+const userInfoKeyDefault = "authenticate.userInfo";
+const userDisplayNameDefault = "Dependitor";
+
+const randomUsernameLength = 12;
+const randomKekPasswordLength = 12;
+
+export interface UserInfo {
+  username: string;
+  clientId: string;
+  credentialId: string;
+  wDek: string;
+}
+
+const defaultUserInfo: UserInfo = {
+  username: "",
+  clientId: "",
+  credentialId: "",
+  wDek: "",
+};
+
+interface RegisterRsp {
+  credentialId: string;
+  user: User;
+}
 
 @singleton(IAuthenticateKey)
 export class Authenticate implements IAuthenticate {
+  private userInfoKey = userInfoKeyDefault;
+  private deviceUsername = userDisplayNameDefault;
+
   constructor(
     private api: IApi = di(IApiKey),
-    private keyVaultConfigure: IKeyVaultConfigure = di(IKeyVaultConfigureKey),
-    private dataCrypt: IDataCrypt = di(IDataCryptKey)
+    private webAuthn = di(IWebAuthnKey),
+    private keyVault = di(IKeyVaultKey),
+    private keyVaultConfigure = di(IKeyVaultConfigureKey),
+    private dataCrypt = di(IDataCryptKey),
+    private localStore = di(ILocalStoreKey)
   ) {}
 
+  public async supportLocalLogin(): Promise<boolean> {
+    return await this.webAuthn.platformAuthenticatorIsAvailable();
+  }
+
   public async check(): Promise<Result<void>> {
-    if (!this.keyVaultConfigure.getDek()) {
-      console.log("No DEK");
-      return new AuthenticateError();
+    if (!this.keyVaultConfigure.hasDataEncryptionKey()) {
+      return new AuthenticateError("AuthenticateError:");
     }
 
     return await this.api.check();
   }
 
-  public async createUser(enteredUser: User): Promise<Result<void>> {
-    const user = await this.hashAndExpandUser(enteredUser);
-    if (isError(user)) {
-      return user;
+  public isLocalLoginEnabled(): boolean {
+    const userInfo = this.readUserInfo();
+    if (isError(userInfo)) {
+      return false;
     }
 
-    // Generate the data encryption key DEK and wrap/encrypt into a wDek
-    const wrappedDek = await this.dataCrypt.generateWrappedDataEncryptionKey(
-      user
-    );
-
-    return await this.api.createAccount({ user: user, wDek: wrappedDek });
+    return !!userInfo.wDek && !!userInfo.credentialId;
   }
 
-  public async login(enteredUser: User): Promise<Result<void>> {
-    const user = await this.hashAndExpandUser(enteredUser);
-    if (isError(user)) {
-      return user;
+  public disableLocalLogin(): void {
+    const userInfo = this.readUserInfo();
+    if (isError(userInfo)) {
+      return;
     }
 
-    const loginRsp = await this.api.login(user);
-    if (isError(loginRsp)) {
-      return loginRsp;
+    this.writeUserInfo({ ...userInfo, credentialId: "", wDek: "" });
+  }
+
+  public setLoggedIn(username: string, clientId: string, dek: CryptoKey): void {
+    this.keyVaultConfigure.setDataEncryptionKey(dek);
+
+    const userInfo = orDefault(this.readUserInfo(), defaultUserInfo);
+    if (username === userInfo.username) {
+      // Same username, no need to update.
+      return;
     }
 
-    // Extract the data encryption key DEK from the wrapped/encrypted wDek
-    const dek = await this.dataCrypt.unwrapDataEncryptionKey(
-      loginRsp.wDek,
-      user
-    );
+    this.writeUserInfo({
+      username: username,
+      clientId: clientId,
+      credentialId: "",
+      wDek: "",
+    });
+  }
 
-    // Make the DEK available to be used when encrypting/decrypting data when accessing server
-    this.keyVaultConfigure.setDek(dek);
+  public async login(): Promise<Result<void>> {
+    console.log("Login");
+    if (!(await this.webAuthn.platformAuthenticatorIsAvailable())) {
+      return new Error("Error: Biometrics not available");
+    }
+
+    const userInfo = orDefault(this.readUserInfo(), defaultUserInfo);
+    if (!userInfo.wDek) {
+      // No stored user info wDek, i.e. first time for local device login, lets create a new device user and login
+      return await this.loginNewUser(userInfo);
+    }
+
+    // This device has a registered used, lets login that user
+    return await this.loginExistingUser(userInfo);
   }
 
   public resetLogin(): void {
-    this.keyVaultConfigure.setDek(null);
+    this.keyVaultConfigure.clearDataEncryptionKey();
 
     // Try to logoff from server ass well (but don't await result)
     this.api.logoff();
   }
 
-  private async hashAndExpandUser(enteredUser: User): Promise<Result<User>> {
-    let { username, password } = enteredUser;
-
-    if (
-      !username ||
-      !password ||
-      username.length < minUserName ||
-      password.length < minPassword
-    ) {
-      return new AuthenticateError();
-    }
-
-    // Normalize username and password
-    username = username.trim().toLowerCase();
-    password = password.trim();
-
-    // Hash username to ensure original username is hidden from server
-    username = await this.toSha256(username);
-
-    // Expand/derive the password to ensure that password is hard to crack using brute force
-    // This hashing is done first on client side and then one more time on server side on the
-    // already client side hashed password.
-    password = await this.dataCrypt.expandPassword({
-      username: username,
-      password: password,
-    });
-
-    return { username: username, password: password };
+  public readUserInfo(): Result<UserInfo> {
+    return this.localStore.tryRead<UserInfo>(this.userInfoKey);
   }
 
-  private async toSha256(text: string): Promise<string> {
-    const msgBuffer = new TextEncoder().encode(text);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
+  private writeUserInfo(userInfo: UserInfo): void {
+    this.localStore.write(this.userInfoKey, userInfo);
+  }
 
-    // convert bytes to hex string
-    const hashHex = hashArray
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    return hashHex;
+  // Creates a new user, which is registered in the device Authenticator and in the server
+  private async loginNewUser(userInfo: UserInfo): Promise<Result<void>> {
+    // Register this user in the system authenticator using WebAuthn api and let the
+    // api server verify that registration
+    const registerRsp = await this.registerDevice(userInfo);
+    if (isError(registerRsp)) {
+      return registerRsp;
+    }
+
+    const { credentialId, user } = registerRsp;
+
+    let wDek: string;
+    if (this.keyVault.hasDataEncryptionKey()) {
+      wDek = await this.keyVault.getWrappedDataEncryptionKey(user);
+    } else {
+      // Generate a new data encryption key DEK and wrap/encrypt
+      // into a wDek protected by the username and password
+      wDek = await this.dataCrypt.generateWrappedDataEncryptionKey(user);
+    }
+
+    // Unwrap the wrapped DEK so it can be used and make it available
+    // to be used when encrypting/decrypting data when accessing server
+    const dek = expectValue(
+      await this.dataCrypt.unwrapDataEncryptionKey(wDek, user)
+    );
+    this.keyVaultConfigure.setDataEncryptionKey(dek);
+
+    // Store the user name and wrapped DEK for the next authentication
+    const clientId = !userInfo.clientId
+      ? this.dataCrypt.generateRandomString(randomUsernameLength)
+      : userInfo.clientId;
+
+    const info: UserInfo = {
+      username: user.username,
+      clientId: clientId,
+      credentialId: credentialId,
+      wDek: wDek,
+    };
+    this.writeUserInfo(info);
+  }
+
+  // Authenticates the existing server in the device Authenticator
+  private async loginExistingUser(userInfo: UserInfo): Promise<Result<void>> {
+    // Authenticate the existing registered username
+    const { username, credentialId, wDek } = userInfo;
+    const password = await this.authenticate(username, credentialId);
+    if (password instanceof AuthenticateError) {
+      // Failed to authenticate, need to re-register device, lets clear
+      this.writeUserInfo({
+        username: "",
+        clientId: "",
+        credentialId: "",
+        wDek: "",
+      });
+      return password;
+    }
+    if (isError(password)) {
+      return password;
+    }
+
+    const user = { username, password };
+
+    // Unwrap the dek so it can be used
+    const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
+    if (isError(dek)) {
+      // The wDek could not be unwrapped, lets clear the wDek and it might work next time
+      this.writeUserInfo({
+        username: username,
+        clientId: userInfo.clientId,
+        credentialId: "",
+        wDek: "",
+      });
+      return new AuthenticateError("AuthenticateError:", dek);
+    }
+
+    // Make the DEK available to be used when encrypting/decrypting data when accessing server
+    this.keyVaultConfigure.setDataEncryptionKey(dek);
+  }
+
+  private async registerDevice(
+    userInfo: UserInfo
+  ): Promise<Result<RegisterRsp>> {
+    console.log("RegisterDevice");
+    // Generating a new user with random password
+    const proposedUsername = !userInfo.username ? "" : userInfo.username;
+
+    // Getting the registration options, including the random unique challenge, from the server,
+    // Which will then later be verified by the server in the verifyWebAuthnRegistration() call.
+    const registrationRsp = await this.api.getWebAuthnRegistrationOptions(
+      proposedUsername
+    );
+    if (isError(registrationRsp)) {
+      return registrationRsp;
+    }
+
+    const username = registrationRsp.username;
+    const password = this.dataCrypt.generateRandomString(
+      randomKekPasswordLength
+    );
+    const user: User = { username, password };
+    const options = registrationRsp.options;
+
+    // Prefix the user id with the KEK password.
+    // This password-userId is then returned when authenticating as the response.userHandle
+    options.user.id = password + options.user.id;
+
+    // Using the standard user name, since the actual user name is random unique string
+    options.user.displayName = this.deviceUsername;
+    options.user.name = this.deviceUsername;
+
+    // Register this user/device in the device authenticator. The challenge will be signed
+    const t = timing();
+    const registration = await this.webAuthn.startRegistration(options);
+    console.log(`WebAuthn registration: ${!isError(registration)}, ${t()}`);
+    if (isError(registration)) {
+      return registration;
+    }
+
+    // Let the server verify the registration by validating the challenge is signed with the
+    // authenticator hidden private key, which corresponds with the public key
+    const verified = await this.api.verifyWebAuthnRegistration(
+      username,
+      registration
+    );
+    if (isError(verified)) {
+      return verified;
+    }
+    if (!verified) {
+      return new Error(`Failed to verify registration`);
+    }
+
+    console.log("Verified registration");
+    return { credentialId: registration.id, user: user };
+  }
+
+  private async authenticate(
+    username: string,
+    credentialId: string
+  ): Promise<Result<string>> {
+    // GET authentication options from the endpoint that calls
+    const options = await this.api.getWebAuthnAuthenticationOptions(username);
+    if (isError(options)) {
+      return options;
+    }
+
+    // Since both Dependitor and Authenticator can be logged in to same authenticator, lets filter
+    options.allowCredentials = options.allowCredentials?.filter(
+      (cred) => cred.id === credentialId
+    );
+
+    // Pass the options to the authenticator and wait for a response
+    const t = timing();
+    const authentication = await this.webAuthn.startAuthentication(options);
+    console.log(`WebAuthn authentication: ${!isError(authentication)}, ${t()}`);
+    if (isError(authentication)) {
+      return authentication;
+    }
+
+    // Extract the password, which prefixed to the user id
+    const password =
+      authentication.response.userHandle?.substring(
+        0,
+        randomKekPasswordLength
+      ) ?? "";
+
+    // Clear the user handle, since the server should not know the password prefix
+    // and does not need to know the user id
+    authentication.response.userHandle = undefined;
+
+    // POST the response to the endpoint that calls
+    const verified = await this.api.verifyWebAuthnAuthentication(
+      username,
+      authentication
+    );
+    if (isError(verified)) {
+      return verified;
+    }
+    if (!verified) {
+      return new AuthenticateError(
+        `AuthenticateError: Failed to verify authentication`
+      );
+    }
+
+    console.log("Verified authentication");
+    return password;
   }
 }

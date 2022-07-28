@@ -1,15 +1,12 @@
 import { atom, useAtom } from "jotai";
 import { di, diKey, singleton } from "./../common/di";
 import { SetAtom } from "jotai/core/types";
-import { IAuthenticate, IAuthenticateKey } from "../common/authenticate";
-import { ILoginProvider, showLoginDlg } from "./LoginDlg";
+import { IAuthenticateKey } from "../common/authenticate";
 import {
-  IApi,
-  User,
-  IApiKey,
   NoContactError,
   LocalApiServerError,
   LocalEmulatorError,
+  SessionError,
 } from "../common/Api";
 import Result, { isError } from "../common/Result";
 import { AuthenticateError } from "./../common/Api";
@@ -17,18 +14,33 @@ import {
   clearErrorMessages,
   setErrorMessage,
   setInfoMessage,
+  setWarnMessage,
 } from "../common/MessageSnackbar";
 import { setSuccessMessage } from "./../common/MessageSnackbar";
-import { IStore, IStoreKey } from "./diagram/Store";
+import { IStoreKey } from "./diagram/Store";
 import { activityEventName } from "../common/activity";
-import { ILocalStore, ILocalStoreKey } from "./../common/LocalStore";
+import { ILocalStoreKey } from "./../common/LocalStore";
 import { orDefault } from "./../common/Result";
+import {
+  WebAuthnCanceledError,
+  WebAuthnNeedReloadError,
+} from "../common/webauthn";
+import { withProgress } from "../common/Progress";
+import { showInfoAlert } from "../common/AlertDialog";
+import { LoginProvider } from "./LoginProvider";
+import { showLoginDlg } from "./LoginDlg";
 
 // Online is uses to control if device database sync should and can be enable or not
 export const IOnlineKey = diKey<IOnline>();
 export interface IOnline {
-  enableSync(): Promise<Result<void>>;
-  disableSync(): void;
+  enableDeviceSync(skipLocalLogin?: boolean): Promise<Result<void>>;
+  disableDeviceSync(): void;
+
+  isLocalLoginEnabled(): boolean;
+  disableLocalLogin(): void;
+
+  loginOnLocalDevice(): Promise<Result<void>>;
+  cancelLoginOnLocalDevice(): void;
 }
 
 // Current sync state to be shown e.g. in ui
@@ -49,20 +61,24 @@ export const useSyncMode = (): SyncState => {
   return syncMode;
 };
 
-const persistentSyncKeyName = "syncState";
-const deviseSyncOKMessage = "Device sync is OK";
+const persistentSyncKeyName = "online.syncState";
+const loginAfterReloadKeyName = "online.loginAfterReload";
+
+const deviseSyncOKMessage = "Device sync is enabled and OK";
+const deviceSyncDisabledMsg = "Device sync is disabled";
+const deviceSyncCanceledMsg =
+  "Authentication canceled, device sync was not enabled";
 
 @singleton(IOnlineKey)
-export class Online implements IOnline, ILoginProvider {
+export class Online implements IOnline {
   private isEnabled = false;
   private isError = false;
   private firstActivate = true;
 
   constructor(
-    private authenticate: IAuthenticate = di(IAuthenticateKey),
-    private api: IApi = di(IApiKey),
-    private store: IStore = di(IStoreKey),
-    private localStore: ILocalStore = di(ILocalStoreKey)
+    private authenticate = di(IAuthenticateKey),
+    private store = di(IStoreKey),
+    private localStore = di(ILocalStoreKey)
   ) {
     // Listen for user activate events to control if device sync should be activated or deactivated
     document.addEventListener(activityEventName, (activity: any) =>
@@ -74,103 +90,121 @@ export class Online implements IOnline, ILoginProvider {
     });
   }
 
-  // createAccount called by LoginDlg when user wants to create an new user account
-  public async createAccount(user: User): Promise<Result<void>> {
-    try {
-      this.showProgress();
-      const createRsp = await this.authenticate.createUser(user);
-      if (isError(createRsp)) {
-        setErrorMessage("Failed to create account");
-        return createRsp;
-      }
-      clearErrorMessages();
-    } finally {
-      this.hideProgress();
-    }
+  public disableLocalLogin(): void {
+    this.authenticate.disableLocalLogin();
+  }
+
+  public isLocalLoginEnabled(): boolean {
+    return this.authenticate.isLocalLoginEnabled();
   }
 
   // login called by LoginDlg when user wants to login and if successful, also enables device sync
-  public async login(user: User): Promise<Result<void>> {
-    try {
-      this.showProgress();
+  public async loginOnLocalDevice(): Promise<Result<void>> {
+    return await withProgress(async () => {
+      try {
+        this.showProgress();
 
-      const loginRsp = await this.authenticate.login(user);
-      if (isError(loginRsp)) {
-        setErrorMessage(this.toErrorMessage(loginRsp));
-        return loginRsp;
+        const loginRsp = await this.authenticate.login();
+        if (loginRsp instanceof WebAuthnNeedReloadError) {
+          // On IOS, access to WebAuthn only works on recently manually loaded web page,
+          // so user must must manually reload and after reload we try again.
+          this.setTriggerLoginAfterReload(true);
+          this.showReloadPageAlert();
+          return;
+        }
+        if (loginRsp instanceof WebAuthnCanceledError) {
+          // User canceled login
+          setInfoMessage(deviceSyncCanceledMsg);
+          this.cancelLoginOnLocalDevice();
+          return;
+        }
+        if (isError(loginRsp)) {
+          // Some other unexpected error
+          setErrorMessage(this.toErrorMessage(loginRsp));
+          return loginRsp;
+        }
+
+        // Login was successful, enable device sync
+        return await this.enableDeviceSync();
+      } finally {
+        this.hideProgress();
       }
+    });
+  }
 
-      // Login successful, enable device sync
-      return await this.enableSync();
-    } finally {
-      this.hideProgress();
+  // cancelLogin called by LoginDlg if user cancels/closes the dialog
+  public cancelLoginOnLocalDevice(): void {
+    this.disableDeviceSync();
+  }
+
+  // disableSync called when disabling device sync
+  public disableDeviceSync(): void {
+    const wasEnabled = this.isEnabled;
+    this.setPersistentIsSyncEnabled(false);
+    this.isEnabled = false;
+    this.isError = false;
+    this.setDatabaseSync(false);
+    clearErrorMessages();
+    if (wasEnabled) {
+      this.authenticate.resetLogin();
+      setInfoMessage(deviceSyncDisabledMsg);
     }
+
+    showSyncState(SyncState.Disabled);
   }
 
   // enableSync called when device sync should be enabled
-  public async enableSync(): Promise<Result<void>> {
+  public async enableDeviceSync(
+    skipLocalLogin: boolean = false
+  ): Promise<Result<void>> {
     try {
       this.showProgress();
 
       // Check connection and authentication with server
       const checkRsp = await this.authenticate.check();
-
-      if (checkRsp instanceof NoContactError) {
-        // No contact with server, cannot enable sync
-        this.isError = true;
-        setErrorMessage(this.toErrorMessage(checkRsp));
-        showSyncState(SyncState.Error);
-        return checkRsp;
-      }
-
       if (checkRsp instanceof AuthenticateError) {
-        // Authentication is needed, showing the login dialog
-        showLoginDlg(this);
+        // Authentication is needed, showing the authentication dialog or sync enable dlg
+        if (!skipLocalLogin && this.authenticate.isLocalLoginEnabled()) {
+          return this.loginOnLocalDevice();
+        }
+        showLoginDlg(new LoginProvider(this));
         return checkRsp;
       }
-
       if (isError(checkRsp)) {
-        // Som other unexpected error (neither contact nor authenticate error)
-        this.isError = true;
-        setErrorMessage(this.toErrorMessage(checkRsp));
-        showSyncState(SyncState.Error);
+        this.setError(checkRsp);
         return checkRsp;
       }
 
-      // Enable database sync and verify that sync does work
+      // Authenticated, enable database sync and verify that sync does work
       this.setDatabaseSync(true);
       const syncResult = await this.store.triggerSync();
       if (isError(syncResult)) {
-        // Database sync failed, it should nog happen in production but might during development
-        setErrorMessage(this.toErrorMessage(syncResult));
-        showSyncState(SyncState.Error);
-        this.isError = true;
+        // Database sync failed, it should not happen in production but might during development
+        this.setError(syncResult);
         this.setDatabaseSync(false);
         this.authenticate.resetLogin();
         return syncResult;
       }
 
       // Device sync successfully enabled
-      this.setPersistentIsEnabled(true);
-      this.isEnabled = true;
-      this.isError = false;
-      setSuccessMessage(deviseSyncOKMessage);
-      showSyncState(SyncState.Enabled);
+      this.setSuccess();
     } finally {
       this.hideProgress();
     }
   }
 
-  // disableSync called when disabling device sync
-  public disableSync(): void {
-    this.setPersistentIsEnabled(false);
-    this.isEnabled = false;
+  private setError(error: Error) {
+    this.isError = true;
+    setErrorMessage(this.toErrorMessage(error));
+    showSyncState(SyncState.Error);
+  }
+
+  private setSuccess() {
+    this.setPersistentIsSyncEnabled(true);
+    this.isEnabled = true;
     this.isError = false;
-    this.setDatabaseSync(false);
-    this.authenticate.resetLogin();
-    clearErrorMessages();
-    setInfoMessage("Device sync is disabled");
-    showSyncState(SyncState.Disabled);
+    setSuccessMessage(deviseSyncOKMessage);
+    showSyncState(SyncState.Enabled);
   }
 
   // onSyncChanged called by the StoreDB whenever sync changes to OK or to !OK with some error
@@ -186,6 +220,12 @@ export class Online implements IOnline, ILoginProvider {
     if (!ok) {
       // StoreDB failed syncing, showing error
       this.isError = true;
+      if (error instanceof SessionError) {
+        setWarnMessage(this.toErrorMessage(error));
+        showSyncState(SyncState.Error);
+        setTimeout(() => this.enableDeviceSync(), 0);
+        return;
+      }
       setErrorMessage(this.toErrorMessage(error));
       showSyncState(SyncState.Error);
       return;
@@ -200,7 +240,7 @@ export class Online implements IOnline, ILoginProvider {
   // onActivityEvent called whenever user activity changes, e.g. not active or activated page
   private onActivityEvent(activity: CustomEvent) {
     const isActive = activity.detail;
-    console.log(`onActivity: ${isActive}`);
+    // console.log(`onActivity: ${isActive}`);
 
     if (!isActive) {
       // User no longer active, inactivate database sync if enabled
@@ -217,8 +257,14 @@ export class Online implements IOnline, ILoginProvider {
     if (this.firstActivate) {
       // First activity signal, checking if sync should be enabled automatically
       this.firstActivate = false;
-      if (this.getPersistentIsEnabled()) {
-        setTimeout(() => this.enableSync(), 0);
+      if (this.getLoginAfterReloadEnabled()) {
+        this.setTriggerLoginAfterReload(false);
+        setTimeout(() => this.loginOnLocalDevice(), 0);
+        return;
+      }
+
+      if (this.getPersistentIsSyncEnabled()) {
+        setTimeout(() => this.enableDeviceSync(), 0);
         return;
       }
     }
@@ -234,14 +280,24 @@ export class Online implements IOnline, ILoginProvider {
     this.store.configure({ isSyncEnabled: flag });
   }
 
-  // getPersistentIsEnabled returns true if sync should be automatically enabled after browser start
-  private getPersistentIsEnabled() {
-    return orDefault(this.localStore.tryRead(persistentSyncKeyName), false);
+  // getPersistentIsSyncEnabled returns true if sync should be automatically enabled after browser start
+  private getPersistentIsSyncEnabled() {
+    return this.localStore.readOrDefault(persistentSyncKeyName, false);
   }
 
-  // setPersistentIsEnabled stores if  sync should be automatically enabled after browser start
-  private setPersistentIsEnabled(state: boolean) {
+  // setPersistentIsSyncEnabled stores if  sync should be automatically enabled after browser start
+  private setPersistentIsSyncEnabled(state: boolean) {
     this.localStore.write(persistentSyncKeyName, state);
+  }
+
+  // getLoginAfterReloadEnabled returns true if a login should be done once after a reload
+  private getLoginAfterReloadEnabled() {
+    return orDefault(this.localStore.tryRead(loginAfterReloadKeyName), false);
+  }
+
+  // setLoginAfterReloadEnabled stores if  login should be done once after a reload
+  private setTriggerLoginAfterReload(state: boolean) {
+    this.localStore.write(loginAfterReloadKeyName, state);
   }
 
   // showProgress notifies ui to show progress icon while trying to enable sync ot not active
@@ -260,6 +316,16 @@ export class Online implements IOnline, ILoginProvider {
     }
   }
 
+  private showReloadPageAlert() {
+    showInfoAlert(
+      "Reload Page",
+      `Please manually reload this page to show the authentication dialog.
+
+      This browser requires a recently manually loaded page before allowing access to authentication.`,
+      { showOk: false }
+    );
+  }
+
   // toErrorMessage translate network and sync errors to ui messages
   private toErrorMessage(error?: Error): string {
     if (isError(error, LocalApiServerError)) {
@@ -268,8 +334,11 @@ export class Online implements IOnline, ILoginProvider {
     if (isError(error, LocalEmulatorError)) {
       return "Local Azure storage emulator not started.";
     }
+    if (isError(error, SessionError)) {
+      return "Invalid session. Please retry to enable sync again";
+    }
     if (isError(error, AuthenticateError)) {
-      return "Invalid credentials. Please try again with different credentials or create a new account";
+      return "Authentication error. Please retry again.";
     }
     if (isError(error, NoContactError)) {
       return "No network contact with server. Please retry again in a while.";

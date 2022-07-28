@@ -86,7 +86,7 @@ export default class Node extends draw2d.shape.node.Between {
     });
 
     const o = { ...defaultOptions(type), ...options };
-    if (!o.name) {
+    if (o.name === undefined || o.name === null) {
       const ic = icons.getIcon(o.icon);
       o.name = ic.name;
     }
@@ -402,8 +402,8 @@ export default class Node extends draw2d.shape.node.Between {
 
     // Make ports larger to support touch
     this.getPorts().each((_i: number, p: Figure2d) => {
-      p.setCoronaWidth(5);
-      p.setDimension(10);
+      p.setCoronaWidth(15);
+      p.setDiameter(10);
     });
   }
 }

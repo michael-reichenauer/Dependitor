@@ -1,14 +1,22 @@
-import { ILocalDB, ILocalDBKey, LocalEntity } from "./LocalDB";
-import {
-  IRemoteDB,
-  IRemoteDBKey,
-  NotModifiedError,
-  RemoteEntity,
-} from "./RemoteDB";
+import { ILocalDBKey, LocalEntity } from "./LocalDB";
+import { IRemoteDBKey, NotModifiedError, RemoteEntity } from "./RemoteDB";
 import Result, { isError } from "../Result";
 import { di, diKey, singleton } from "../di";
 import { Query } from "../Api";
 import assert from "assert";
+import { second } from "../utils";
+
+// Key-value database, that syncs locally stored entities with a remote server
+export const IStoreDBKey = diKey<IStoreDB>();
+export interface IStoreDB {
+  configure(options: Partial<Configuration>): void;
+  monitorRemoteEntities(keys: string[]): void;
+  readLocal<T>(key: string, defaultValue: T): T;
+  tryReadLocalThenRemote<T>(key: string): Promise<Result<T>>;
+  writeBatch(entities: Entity[]): void;
+  removeBatch(keys: string[]): void;
+  triggerSync(): Promise<Result<void>>;
+}
 
 export interface Entity {
   key: string;
@@ -34,19 +42,7 @@ export interface Configuration {
   isSyncEnabled: boolean;
 }
 
-// Key-value database, that syncs locally stored entities with a remote server
-export const IStoreDBKey = diKey<IStoreDB>();
-export interface IStoreDB {
-  configure(options: Partial<Configuration>): void;
-  monitorRemoteEntities(keys: string[]): void;
-  readLocal<T>(key: string, defaultValue: T): T;
-  tryReadLocalThenRemote<T>(key: string): Promise<Result<T>>;
-  writeBatch(entities: Entity[]): void;
-  removeBatch(keys: string[]): void;
-  triggerSync(): Promise<Result<void>>;
-}
-
-const autoSyncInterval = 30000;
+const autoSyncInterval = 15 * second; // The interval between checking server for db updates
 
 @singleton(IStoreDBKey)
 export class StoreDB implements IStoreDB {
@@ -62,8 +58,8 @@ export class StoreDB implements IStoreDB {
   };
 
   constructor(
-    private localDB: ILocalDB = di(ILocalDBKey),
-    private remoteDB: IRemoteDB = di(IRemoteDBKey)
+    private localDB = di(ILocalDBKey),
+    private remoteDB = di(IRemoteDBKey)
   ) {}
 
   // Called when remote entities should be monitored for changed by other clients

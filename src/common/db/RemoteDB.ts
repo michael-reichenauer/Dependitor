@@ -2,7 +2,6 @@ import { di, diKey, singleton } from "../di";
 import Result, { isError } from "../Result";
 import { CustomError } from "../CustomError";
 import { ApiEntity, IApi, IApiKey, Query } from "../Api";
-import { IDataCrypt, IDataCryptKey } from "../DataCrypt";
 import { IKeyVault, IKeyVaultKey } from "../keyVault";
 
 export interface RemoteEntity {
@@ -30,20 +29,21 @@ export interface IRemoteDB {
 }
 
 const noValueError = new RangeError("No value for key");
-const notModifiedError = new NotModifiedError();
+const notModifiedError = new NotModifiedError("NotModifiedError:");
 
 @singleton(IRemoteDBKey)
 export class RemoteDB implements IRemoteDB {
   constructor(
     private api: IApi = di(IApiKey),
-    private keyVault: IKeyVault = di(IKeyVaultKey),
-    private dataCrypt: IDataCrypt = di(IDataCryptKey)
+    private keyVault: IKeyVault = di(IKeyVaultKey)
   ) {}
 
   public async tryReadBatch(
     queries: Query[]
   ): Promise<Result<Result<RemoteEntity>[]>> {
-    const apiEntities = await this.api.tryReadBatch(queries);
+    const apiEntities = await this.api.withNoProgress(() =>
+      this.api.tryReadBatch(queries)
+    );
     if (isError(apiEntities)) {
       return apiEntities;
     }
@@ -67,9 +67,6 @@ export class RemoteDB implements IRemoteDB {
     queries: Query[],
     apiEntities: ApiEntity[]
   ): Promise<Result<RemoteEntity>[]> {
-    // Get the DEK key to decrypt each package
-    const dek = this.keyVault.getDek();
-
     return Promise.all(
       queries.map(async (query) => {
         const entity = apiEntities.find((e) => e.key === query.key);
@@ -90,7 +87,12 @@ export class RemoteDB implements IRemoteDB {
         }
 
         // Decrypt downloaded value
-        const value = await this.decryptValue(entity.value, dek);
+        const decryptedValue = await this.decryptValue(entity.value);
+        if (isError(decryptedValue)) {
+          return decryptedValue;
+        }
+
+        const value = decryptedValue as any;
         return {
           key: entity.key,
           etag: entity.etag ?? "",
@@ -105,14 +107,11 @@ export class RemoteDB implements IRemoteDB {
   private async toUploadingApiEntities(
     remoteEntities: RemoteEntity[]
   ): Promise<ApiEntity[]> {
-    // Get the DEK key to encrypt each package
-    const dek = this.keyVault.getDek();
-
     return Promise.all(
       remoteEntities.map(async (entity) => {
         // Encrypt value before uploading
         const value = { value: entity.value, version: entity.version };
-        const encryptedValue = await this.encryptValue(value, dek);
+        const encryptedValue = await this.encryptValue(value);
 
         return {
           key: entity.key,
@@ -123,15 +122,28 @@ export class RemoteDB implements IRemoteDB {
     );
   }
 
-  private async encryptValue(value: any, kek: any): Promise<any> {
-    const valueText = JSON.stringify(value);
-    const encryptedValue = await this.dataCrypt.encryptText(valueText, kek);
-    return encryptedValue;
+  private async encryptValue(value: any): Promise<any> {
+    try {
+      const valueText = JSON.stringify(value);
+      const encryptedValue = await this.keyVault.encryptString(valueText);
+      return encryptedValue;
+    } catch (error) {
+      console.log("error", error);
+      throw error;
+    }
   }
 
-  private async decryptValue(encryptedValue: any, kek: any): Promise<any> {
-    const valueText = await this.dataCrypt.decryptText(encryptedValue, kek);
-    const value = JSON.parse(valueText);
-    return value;
+  private async decryptValue(encryptedValue: any): Promise<Result<any>> {
+    try {
+      const valueText = await this.keyVault.decryptString(encryptedValue);
+      if (isError(valueText)) {
+        return valueText;
+      }
+      const value = JSON.parse(valueText);
+      return value;
+    } catch (error) {
+      console.log("error", error);
+      throw error;
+    }
   }
 }

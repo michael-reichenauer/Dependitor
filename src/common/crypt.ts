@@ -13,13 +13,18 @@ const deriveBitsIterations = 1000000;
 export const ICryptKey = diKey<ICrypt>();
 export interface ICrypt {
   generateSalt(): Uint8Array;
+  randomBytes(count: number): Uint8Array;
   sha256(text: string): Promise<ArrayBuffer>;
   deriveKey(
     password: string,
     salt: ArrayBuffer,
     keyUsage: KeyUsage[]
   ): Promise<CryptoKey>;
-  deriveBits(password: string, salt: ArrayBuffer): Promise<ArrayBuffer>;
+  deriveBits(
+    password: string,
+    salt: ArrayBuffer,
+    length?: number
+  ): Promise<ArrayBuffer>;
   encryptData(
     data: ArrayBuffer,
     key: CryptoKey
@@ -43,6 +48,10 @@ export interface ICrypt {
 export class Crypt {
   public generateSalt(): Uint8Array {
     return crypto.getRandomValues(new Uint8Array(saltLength));
+  }
+
+  public randomBytes(count: number): Uint8Array {
+    return crypto.getRandomValues(new Uint8Array(count));
   }
 
   async sha256(text: string): Promise<ArrayBuffer> {
@@ -81,7 +90,8 @@ export class Crypt {
 
   public async deriveBits(
     password: string,
-    salt: ArrayBuffer
+    salt: ArrayBuffer,
+    length: number = 256
   ): Promise<ArrayBuffer> {
     const passwordBytes = new TextEncoder().encode(password);
     const passwordKey = await crypto.subtle.importKey(
@@ -100,7 +110,7 @@ export class Crypt {
         hash: "SHA-256",
       },
       passwordKey,
-      256
+      length
     );
 
     return bits;
@@ -177,7 +187,7 @@ export class Crypt {
         name: algorithm,
         length: keyLength,
       },
-      false, // unwrapped key should not be extractable
+      true, // unwrapped key should not be extractable
       ["encrypt", "decrypt"] // Key usages
     );
   }

@@ -1,6 +1,6 @@
 # Dependitor
 
-[Dependitor](dependitor.com) is a Cloud Architecture diagram app focused on Azure, AWS, and GCP.
+[Dependitor](dependitor.com) is a Cloud Architecture diagram app focused on Azure, AWS, and GCP diagrams.
 
 | ![Azure example](doc/example.svg)|
 |:--|
@@ -13,10 +13,9 @@ Available at: [dependitor.com](https://dependitor.com)
 
 ### `npm start`
 
-Runs the app in the development mode.\
+Runs the app, api and Azurite in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-Do start the Azure functions and the Azure Storage Emulator first
 
 ### `npm test`
 

@@ -126,7 +126,7 @@ export default function LabelEditorDialog() {
           variant="standard"
           size="small"
           multiline
-          rows={2}
+          minRows={2}
           defaultValue={label?.name ?? ""}
           onChange={handleNameFieldChange}
           //onKeyPress={catchReturn}
@@ -138,7 +138,7 @@ export default function LabelEditorDialog() {
           variant="standard"
           size="small"
           multiline
-          rows={3}
+          minRows={3}
           // @ts-ignore
           defaultValue={label?.description ?? ""}
           onChange={handleDescriptionFieldChange}

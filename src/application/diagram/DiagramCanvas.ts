@@ -15,7 +15,6 @@ import { zoomAndMoveShowTotalDiagram } from "./showTotalDiagram";
 import { addDefaultNewDiagram, addFigureToCanvas } from "./addDefault";
 import InnerDiagramCanvas from "./InnerDiagramCanvas";
 import Printer from "../../common/Printer";
-import { setProgress } from "../../common/Progress";
 import { setErrorMessage, setInfoMessage } from "../../common/MessageSnackbar";
 import NodeGroup from "./NodeGroup";
 import { greenNumberIconKey } from "../../common/icons";
@@ -114,31 +113,23 @@ export default class DiagramCanvas {
   };
 
   commandNewDiagram = async () => {
-    setProgress(true);
-
     //store.loadFile(file => console.log('File:', file))
     console.log("Command new diagram");
     this.canvas.clearDiagram();
 
     this.showNewDiagram();
-
-    setProgress(false);
   };
 
   commandOpenDiagram = async (_msg: string, diagramId: string) => {
-    setProgress(true);
-
     console.log("open", diagramId);
     const diagramDto = await this.store.tryOpenDiagram(diagramId);
     if (isError(diagramDto)) {
-      setProgress(false);
       setErrorMessage("Failed to load diagram");
       return;
     }
 
     this.canvas.clearDiagram();
     this.showDiagram(diagramDto);
-    setProgress(false);
   };
 
   commandRenameDiagram = async (_msg: string, name: string) => {
@@ -147,13 +138,10 @@ export default class DiagramCanvas {
   };
 
   commandDeleteDiagram = async () => {
-    setProgress(true);
-
     this.store.deleteDiagram(this.diagramId);
     this.canvas.clearDiagram();
 
     await this.showRecentDiagramOrNew();
-    setProgress(false);
   };
 
   commandSaveToFile = () => {
@@ -161,85 +149,73 @@ export default class DiagramCanvas {
   };
 
   commandOpenFile = async () => {
-    setProgress(true);
-
     const diagramId = await this.store.loadDiagramFromFile();
     if (isError(diagramId)) {
       setErrorMessage("Failed to load file");
-      setProgress(false);
       return;
     }
 
     this.commandOpenDiagram("", diagramId);
-
-    setProgress(false);
   };
 
   commandArchiveToFile = async () => {
-    setProgress(true);
     try {
       this.store.saveAllDiagramsToFile();
     } catch (error) {
       setErrorMessage("Failed to save all diagram");
-    } finally {
-      setProgress(false);
     }
   };
 
   commandPrint = () => {
-    this.withWorkingIndicator(() => {
-      const diagram = this.store.exportDiagram();
+    const diagram = this.store.exportDiagram();
+    const pages: string[] = Object.values(diagram.canvases).map((d) =>
+      this.canvas.exportAsSvg(d, a4Width, a4Height, a4Margin)
+    );
 
-      const pages: string[] = Object.values(diagram.canvases).map((d) =>
-        this.canvas.exportAsSvg(d, a4Width, a4Height, a4Margin)
-      );
-      const printer = new Printer();
-      printer.print(pages);
-    });
+    const printer = new Printer();
+    printer.print(pages);
   };
 
   commandExport = (data: any) => {
-    this.withWorkingIndicator(() => {
-      const diagram = this.store.exportDiagram();
-      const diagramName = diagram.name;
-      const rect = this.canvas.getFiguresRect();
-      const imgWidth = rect.w + imgMargin * 2;
-      const imgHeight = rect.h + imgMargin * 2;
+    const diagram = this.store.exportDiagram();
+    const diagramName = diagram.name;
+    const rect = this.canvas.getFiguresRect();
+    const imgWidth = rect.w + imgMargin * 2;
+    const imgHeight = rect.h + imgMargin * 2;
 
-      let pages: string[] = Object.values(diagram.canvases).map((d) =>
-        this.canvas.exportAsSvg(d, imgWidth, imgHeight, imgMargin)
+    let pages: string[] = Object.values(diagram.canvases).map((d) =>
+      this.canvas.exportAsSvg(d, imgWidth, imgHeight, imgMargin)
+    );
+    let svgText = pages[0];
+
+    // Since icons are nested svg with external links, the links must be replaced with
+    // the actual icon image as an dataUrl. Let pars unique urls
+    const nestedSvgPaths = this.parseNestedSvgPaths(svgText);
+
+    // Fetch the actual icon svg files
+    fetchFiles(nestedSvgPaths, (files) => {
+      // Replace all the links with dataUrl of the files.
+      svgText = this.replacePathsWithSvgDataUrls(
+        svgText,
+        nestedSvgPaths,
+        files
       );
-      let svgText = pages[0];
 
-      // Since icons are nested svg with external links, the links must be replaced with
-      // the actual icon image as an dataUrl. Let pars unique urls
-      const nestedSvgPaths = this.parseNestedSvgPaths(svgText);
+      // Make one svgDataUrl of the diagram
+      let svgDataUrl = svgToSvgDataUrl(svgText);
 
-      // Fetch the actual icon svg files
-      fetchFiles(nestedSvgPaths, (files) => {
-        // Replace all the links with dataUrl of the files.
-        svgText = this.replacePathsWithSvgDataUrls(
-          svgText,
-          nestedSvgPaths,
-          files
+      if (data.type === "png") {
+        imgDataUrlToPngDataUrl(
+          svgDataUrl,
+          imgWidth,
+          imgHeight,
+          (pngDataUrl) => {
+            publishAsDownload(pngDataUrl, `${diagramName}.png`);
+          }
         );
-
-        // Make one svgDataUrl of the diagram
-        let svgDataUrl = svgToSvgDataUrl(svgText);
-
-        if (data.type === "png") {
-          imgDataUrlToPngDataUrl(
-            svgDataUrl,
-            imgWidth,
-            imgHeight,
-            (pngDataUrl) => {
-              publishAsDownload(pngDataUrl, `${diagramName}.png`);
-            }
-          );
-        } else if (data.type === "svg") {
-          publishAsDownload(svgDataUrl, `${diagramName}.svg`);
-        }
-      });
+      } else if (data.type === "svg") {
+        publishAsDownload(svgDataUrl, `${diagramName}.svg`);
+      }
     });
   };
 
@@ -278,12 +254,10 @@ export default class DiagramCanvas {
   }
 
   commandEditInnerDiagram = (_msg: string, figure: any) => {
-    this.withWorkingIndicator(() => {
-      this.inner.editInnerDiagram(figure);
-      this.callbacks.setTitle(this.diagramName);
-      this.updateToolbarButtonsStates();
-      this.save();
-    });
+    this.inner.editInnerDiagram(figure);
+    this.callbacks.setTitle(this.diagramName);
+    this.updateToolbarButtonsStates();
+    this.save();
   };
 
   commandTuneSelected = (x: number, y: number) => {
@@ -304,12 +278,10 @@ export default class DiagramCanvas {
   };
 
   commandPopFromInnerDiagram = () => {
-    this.withWorkingIndicator(() => {
-      this.inner.popFromInnerDiagram();
-      this.callbacks.setTitle(this.diagramName);
-      this.updateToolbarButtonsStates();
-      this.save();
-    });
+    this.inner.popFromInnerDiagram();
+    this.callbacks.setTitle(this.diagramName);
+    this.updateToolbarButtonsStates();
+    this.save();
   };
 
   onEditMode = (isEditMode: boolean) => {
@@ -398,21 +370,15 @@ export default class DiagramCanvas {
 
   onRemoteChanged = async () => {
     setInfoMessage("Updated with changes form other devices");
-    setProgress(true);
     this.canvas.clearDiagram();
 
     await this.showRecentDiagramOrNew();
-    setProgress(false);
   };
 
   async loadInitialDiagram() {
-    setProgress(true);
-
     this.store.configure({ onRemoteChanged: this.onRemoteChanged });
 
     await this.showRecentDiagramOrNew();
-
-    setProgress(false);
   }
 
   async showRecentDiagramOrNew(): Promise<void> {
@@ -522,11 +488,10 @@ export default class DiagramCanvas {
     });
   }
 
-  withWorkingIndicator(action: any) {
-    setProgress(true);
-    setTimeout(() => {
-      action();
-      setProgress(false);
-    }, 20);
-  }
+  // withWorkingIndicator(action: any) {
+  //   setProgress(true);
+  //   setTimeout(() => {
+  //     action();
+  //   }, 20);
+  // }
 }

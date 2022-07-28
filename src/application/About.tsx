@@ -1,60 +1,72 @@
-import React from 'react'
-import { atom, useAtom } from "jotai"
+import React from "react";
+import { atom, useAtom } from "jotai";
 import { Box, Button, Dialog, Tooltip, Typography } from "@material-ui/core";
 import { localBuildTime, localSha } from "../common/appVersion";
-import { SetAtom } from 'jotai/core/types';
+import { SetAtom } from "jotai/core/types";
+import { isProduction } from "../common/utils";
 //import { useLogin } from "./Login";
 
 // Test
-const aboutAtom = atom(false)
+const aboutAtom = atom(false);
 
-export const useAbout:()=> [boolean, SetAtom<boolean>] = () => useAtom(aboutAtom)
- 
-const About: React.FC = () =>{
-    const [show, setShow] = useAbout()
-    //const [, setShowLogin] = useLogin()
+export const useAbout: () => [boolean, SetAtom<boolean>] = () =>
+  useAtom(aboutAtom);
 
-    // const hasShown = localStorage.getItem('hasShownAbout')
+const About: React.FC = () => {
+  const [show, setShow] = useAbout();
+  //const [, setShowLogin] = useLogin()
 
-    // if (!show && hasShown !== 'true') {
-    //     console.log('Set timeout')
+  // const hasShown = localStorage.getItem('hasShownAbout')
 
-    //     setTimeout(() => {
-    //         localStorage.setItem('hasShownAbout', 'true')
-    //         setShow(true)
-    //     }, 3000);
-    // }//
+  // if (!show && hasShown !== 'true') {
+  //     console.log('Set timeout')
 
-    // const enableCloudSync = () => {
-    //     setShowLogin(true);
-    // }
+  //     setTimeout(() => {
+  //         localStorage.setItem('hasShownAbout', 'true')
+  //         setShow(true)
+  //     }, 3000);
+  // }//
 
-    return (
-        <Dialog open={show} onClose={() => { setShow(false) }} >
-            <Box style={{ width: 300, height: 180, padding: 20 }}>
-                <Tooltip title={`version: ${localBuildTime} (${localSha.substring(0, 6)})`}>
-                    <Typography variant="h5">About Dependitor</Typography>
-                </Tooltip>
-                <Typography >
-                    A tool for modeling cloud architecture.
-                </Typography>
+  // const enableCloudSync = () => {
+  //     setShowLogin(true);
+  // }
 
-                {/* <Typography style={{ paddingTop: 10 }} >
-                    Checkout the  "<Link href="https://c4model.com" target="_blank">C4 Model</Link>"
-                    by Simon Brown  to better understand on how to use the tool.
-                </Typography>
-                <Typography style={{ paddingTop: 10 }} >
-                    You can sync diagrams between different devices if you login to <Link onClick={enableCloudSync}>enable cloud sync</Link>
-                </Typography> */}
-                {/* <Typography style={{ paddingTop: 30 }} variant="body2">
-                    Hint: Use context menus to access functionality.
-                </Typography> */}
+  return (
+    <Dialog
+      open={show}
+      onClose={() => {
+        setShow(false);
+      }}
+    >
+      <Box style={{ width: 300, height: 180, padding: 20 }}>
+        <Tooltip
+          title={`version: ${localBuildTime} (${localSha.substring(0, 6)})`}
+        >
+          <Typography variant="h5">About Dependitor</Typography>
+        </Tooltip>
+        <Typography>A tool for modeling cloud architecture.</Typography>
 
-                <Box style={{ position: 'absolute', bottom: 20, left: '40%', }}
-                    textAlign='center'> <Button onClick={() => setShow(false)} variant="contained" color="primary">Close</Button>
-                </Box>
-            </Box>
-        </Dialog>
-    )
-}
-export default About
+        {!isProduction() && (
+          <Typography style={{ fontSize: "10px", marginTop: 40 }}>
+            Version: {`${localSha.substring(0, 6)}, ${localBuildTime} `}
+          </Typography>
+        )}
+
+        <Box
+          style={{ position: "absolute", bottom: 20, left: "40%" }}
+          textAlign="center"
+        >
+          {" "}
+          <Button
+            onClick={() => setShow(false)}
+            variant="contained"
+            color="primary"
+          >
+            Close
+          </Button>
+        </Box>
+      </Box>
+    </Dialog>
+  );
+};
+export default About;

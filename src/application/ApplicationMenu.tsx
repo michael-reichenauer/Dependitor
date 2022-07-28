@@ -1,122 +1,126 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import PubSub from "pubsub-js";
 import IconButton from "@material-ui/core/IconButton";
 import MenuIcon from "@material-ui/icons/Menu";
 import Tooltip from "@material-ui/core/Tooltip";
 import { AppMenu, menuItem, menuParentItem } from "../common/Menus";
 import { IStoreKey } from "./diagram/Store";
-import Printer from "../common/Printer";
 import { useAbout } from "./About";
-import { showConfirmAlert } from "../common/AlertDialog";
 import { showPrompt } from "../common/PromptDialog";
 import { di } from "../common/di";
-import { useTitle } from "./Diagram";
+import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
-
-const getDiagramsMenuItems = (recentDiagrams: DiagramInfoDto[]) => {
-  const diagrams = recentDiagrams.slice(1);
-  return diagrams.map((d) =>
-    menuItem(d.name, () => PubSub.publish("canvas.OpenDiagram", d.id))
-  );
-};
+import {
+  isEdgeOnIos,
+  isMobileOrTabletDevice,
+  isStandaloneApp,
+} from "../common/utils";
+import {
+  enableVirtualConsole,
+  isVirtualConsoleEnabled,
+  isVirtualConsoleSupported,
+} from "../common/virtualConsole";
+import { showQuestionAlert } from "../common/AlertDialog";
 
 export function ApplicationMenu() {
-  const onlineRef = useRef(di(IOnlineKey));
-  const storeRef = useRef(di(IStoreKey));
   const syncMode = useSyncMode();
   const [menu, setMenu] = useState(null);
   const [, setShowAbout] = useAbout();
-
-  const [titleText] = useTitle();
-
-  useEffect(() => {
-    const handler = Printer.registerPrintKey(() =>
-      PubSub.publish("canvas.Print")
-    );
-    return () => Printer.deregisterPrintKey(handler);
-  });
-
-  const deleteDiagram = () => {
-    showConfirmAlert(
-      "Delete",
-      "Do you really want to delete the current diagram?",
-      () => PubSub.publish("canvas.DeleteDiagram")
-    );
-  };
-
-  const renameDiagram = () => {
-    var name = titleText;
-    const index = titleText.lastIndexOf(" - ");
-    if (index > -1) {
-      name = name.substring(0, index);
-    }
-
-    showPrompt("Rename Diagram", "", name, (name: string) =>
-      PubSub.publish("canvas.RenameDiagram", name)
-    );
-  };
+  const [diagramName] = useDiagramName();
 
   const diagrams =
-    menu == null
-      ? []
-      : getDiagramsMenuItems(storeRef.current.getRecentDiagrams());
-  const isInStandaloneMode = () =>
-    window.matchMedia("(display-mode: standalone)").matches ||
-    // @ts-ignore
-    window.navigator.standalone ||
-    document.referrer.includes("android-app://");
+    menu == null ? [] : getDiagramsMenuItems(di(IStoreKey).getRecentDiagrams());
 
   const menuItems = [
     menuItem("New Diagram", () => PubSub.publish("canvas.NewDiagram")),
     menuParentItem("Open Recent", diagrams, diagrams.length > 0),
-    menuItem("Rename", renameDiagram),
-    menuItem("Print", () => PubSub.publish("canvas.Print"), true),
-    menuParentItem("Export", [
-      menuItem("As png file", () =>
-        PubSub.publish("canvas.Export", { type: "png", target: "file" })
-      ),
-      menuItem("As svg file", () =>
-        PubSub.publish("canvas.Export", { type: "svg", target: "file" })
+    menuParentItem("Insert", [
+      menuItem("Icon", () => PubSub.publish("nodes.showDialog", { add: true })),
+      menuItem("Container", () =>
+        PubSub.publish("nodes.showDialog", { add: true, group: true })
       ),
     ]),
-    menuItem("Delete", deleteDiagram),
+
+    menuParentItem("Diagrams", [
+      menuItem("Rename", () => renameDiagram(diagramName)),
+      menuItem("Delete", deleteDiagram),
+      menuItem(
+        "Print ...",
+        () => PubSub.publish("canvas.Print"),
+        true,
+        !isEdgeOnIos
+      ),
+      menuItem(
+        "Export png",
+        () => PubSub.publish("canvas.Export", { type: "png", target: "file" }),
+        true,
+        !isMobileOrTabletDevice
+      ),
+      menuItem(
+        "Export svg",
+        () => PubSub.publish("canvas.Export", { type: "svg", target: "file" }),
+        true,
+        !isMobileOrTabletDevice
+      ),
+    ]),
+
     menuItem(
-      "Enable device sync",
-      () => onlineRef.current.enableSync(),
+      "Login",
+      () => di(IOnlineKey).enableDeviceSync(),
+      syncMode !== SyncState.Progress,
+      syncMode === SyncState.Disabled && di(IOnlineKey).isLocalLoginEnabled()
+    ),
+    menuItem(
+      "Setup device sync and login",
+      () => di(IOnlineKey).enableDeviceSync(true),
       syncMode !== SyncState.Progress,
       syncMode === SyncState.Disabled
     ),
+
     menuItem(
-      "Disable device sync",
-      () => onlineRef.current.disableSync(),
+      "Logoff",
+      () => di(IOnlineKey).disableDeviceSync(),
       syncMode !== SyncState.Progress,
       syncMode !== SyncState.Disabled
     ),
-    menuParentItem(
-      "Files",
-      [
-        menuItem("Open file ...", () => PubSub.publish("canvas.OpenFile")),
-        menuItem("Save diagram to file", () =>
-          PubSub.publish("canvas.SaveDiagramToFile")
-        ),
-        menuItem("Save/Archive all to file", () =>
-          PubSub.publish("canvas.ArchiveToFile")
-        ),
-      ],
-      false
-    ),
+
+    // menuParentItem( //
+    //   "Files",
+    //   [
+    //     menuItem("Open file ...", () => PubSub.publish("canvas.OpenFile")),
+    //     menuItem("Save diagram to file", () =>
+    //       PubSub.publish("canvas.SaveDiagramToFile")
+    //     ),
+    //     menuItem("Save/Archive all to file", () =>
+    //       PubSub.publish("canvas.ArchiveToFile")
+    //     ),
+    //   ],
+    //   false
+    // ),
+
     menuItem(
       "Reload web page",
       () => window.location.reload(),
       true,
-      isInStandaloneMode()
+      isStandaloneApp()
     ),
+
     menuItem("About", () => setShowAbout(true)),
-    // menuParentItem('Advanced', [
-    //     menuItem('Clear all local data', () => clearLocalData()),
-    //     menuItem('Clear all local and remote user data', () => clearAllData()),
-    // ]),
+
+    menuItem(
+      "(Enable Debug Console)",
+      () => enableVirtualConsole(true),
+      true,
+      isVirtualConsoleSupported && !isVirtualConsoleEnabled()
+    ),
+
+    menuItem(
+      "Disable Debug Console",
+      () => enableVirtualConsole(false),
+      true,
+      isVirtualConsoleSupported && isVirtualConsoleEnabled()
+    ),
   ];
 
   return (
@@ -134,4 +138,34 @@ export function ApplicationMenu() {
       <AppMenu anchorEl={menu} items={menuItems} onClose={setMenu} />
     </>
   );
+}
+
+function renameDiagram(titleText: string) {
+  var name = titleText;
+  const index = titleText.lastIndexOf(" - ");
+  if (index > -1) {
+    name = name.substring(0, index);
+  }
+
+  showPrompt("Rename Diagram", "", name, (name: string) =>
+    PubSub.publish("canvas.RenameDiagram", name)
+  );
+}
+
+function getDiagramsMenuItems(recentDiagrams: DiagramInfoDto[]) {
+  const diagrams = recentDiagrams.slice(1);
+  return diagrams.map((d) =>
+    menuItem(d.name, () => PubSub.publish("canvas.OpenDiagram", d.id))
+  );
+}
+
+async function deleteDiagram() {
+  if (
+    await showQuestionAlert(
+      "Delete",
+      "Do you really want to delete the current diagram?"
+    )
+  ) {
+    PubSub.publish("canvas.DeleteDiagram");
+  }
 }
