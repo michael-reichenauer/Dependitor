@@ -168,10 +168,10 @@ export default class DiagramCanvas {
 
   commandPrint = () => {
     const diagram = this.store.exportDiagram();
-
     const pages: string[] = Object.values(diagram.canvases).map((d) =>
       this.canvas.exportAsSvg(d, a4Width, a4Height, a4Margin)
     );
+
     const printer = new Printer();
     printer.print(pages);
   };

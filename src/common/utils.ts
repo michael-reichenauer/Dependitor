@@ -8,13 +8,20 @@ export const minute = 60 * second;
 export const hour = 60 * minute;
 export const day = 24 * hour;
 
+const isIpad =
+  navigator.userAgent.toLowerCase().indexOf("macintosh") > -1 &&
+  navigator.maxTouchPoints &&
+  navigator.maxTouchPoints > 2;
+
 export const isMobileDevice = /Android|iPhone/i.test(navigator.userAgent);
 
-export const isMobileOrTabletDevice = /Android|iPad|iPhone/i.test(
-  navigator.userAgent
-);
+export const isMobileOrTabletDevice =
+  isIpad || /Android|iPad|iPhone/i.test(navigator.userAgent);
 
-// Returns a duration as a nice human readable string
+export const isEdgeOnIos =
+  isMobileOrTabletDevice && /Edg/i.test(navigator.userAgent);
+
+// Returns a duration as a nice human readable string.
 export const durationString = (duration: number): string => {
   return humanizeDuration(duration);
 };

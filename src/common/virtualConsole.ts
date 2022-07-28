@@ -1,14 +1,13 @@
 import VConsole from "vconsole";
 import { ILocalStoreKey } from "../common/LocalStore";
 import { di } from "./di";
+import { isMobileOrTabletDevice } from "./utils";
 
 const vConsoleKey = "vConsole.enable";
 let vConsole: any = null;
 const removeKeys = [vConsoleKey, "vConsole_switch_x", "vConsole_switch_y"];
 
-export const isVirtualConsoleSupported = /Android|iPad|iPhone/i.test(
-  navigator.userAgent
-);
+export const isVirtualConsoleSupported = isMobileOrTabletDevice;
 
 export function isVirtualConsoleEnabled() {
   return !!vConsole;
