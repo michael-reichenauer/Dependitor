@@ -6,6 +6,7 @@ import Result, { expectValue, isError, orDefault } from "./Result";
 import { IDataCryptKey } from "./DataCrypt";
 import { IWebAuthnKey } from "./webauthn";
 import { ILocalStoreKey } from "./LocalStore";
+import timing from "./timing";
 
 // IAuthenticate provides crate account and login functionality.
 export const IAuthenticateKey = diKey<IAuthenticate>();
@@ -107,6 +108,7 @@ export class Authenticate implements IAuthenticate {
   }
 
   public async login(): Promise<Result<void>> {
+    console.log("Login");
     if (!(await this.webAuthn.platformAuthenticatorIsAvailable())) {
       return new Error("Error: Biometrics not available");
     }
@@ -138,8 +140,6 @@ export class Authenticate implements IAuthenticate {
 
   // Creates a new user, which is registered in the device Authenticator and in the server
   private async loginNewUser(userInfo: UserInfo): Promise<Result<void>> {
-    console.log("loginNewUser");
-
     // Register this user in the system authenticator using WebAuthn api and let the
     // api server verify that registration
     const registerRsp = await this.registerDevice(userInfo);
@@ -181,8 +181,6 @@ export class Authenticate implements IAuthenticate {
 
   // Authenticates the existing server in the device Authenticator
   private async loginExistingUser(userInfo: UserInfo): Promise<Result<void>> {
-    console.log("loginExistingUser");
-
     // Authenticate the existing registered username
     const { username, credentialId, wDek } = userInfo;
     const password = await this.authenticate(username, credentialId);
@@ -251,7 +249,9 @@ export class Authenticate implements IAuthenticate {
     options.user.name = this.deviceUsername;
 
     // Register this user/device in the device authenticator. The challenge will be signed
+    const t = timing();
     const registration = await this.webAuthn.startRegistration(options);
+    console.log(`WebAuthn registration: ${!isError(registration)}, ${t()}`);
     if (isError(registration)) {
       return registration;
     }
@@ -289,7 +289,9 @@ export class Authenticate implements IAuthenticate {
     );
 
     // Pass the options to the authenticator and wait for a response
+    const t = timing();
     const authentication = await this.webAuthn.startAuthentication(options);
+    console.log(`WebAuthn authentication: ${!isError(authentication)}, ${t()}`);
     if (isError(authentication)) {
       return authentication;
     }
