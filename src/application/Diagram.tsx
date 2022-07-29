@@ -36,6 +36,7 @@ export default function Diagram({ width, height }) {
 
   // Enable print key
   useEffect(() => {
+    document.title = "Dependitor";
     const handler = Printer.registerPrintKey(() =>
       PubSub.publish("canvas.Print")
     );
