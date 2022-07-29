@@ -8,7 +8,6 @@ import {
   NoRequestError,
 } from "./Authenticator";
 import { isError } from "../common/Result";
-import { IAuthenticatorProtocolKey } from "./AuthenticatorProtocol";
 import {
   AuthenticateError,
   LocalApiServerError,
@@ -71,7 +70,9 @@ async function showDeviceAuthenticatedMessage() {
     await showSuccessAlert(
       "Device Authenticated",
       `The device is now authenticated
-     and allowed to sync with all your devices.`
+     and allowed to sync with all your devices.
+     
+     You will now be redirected to the Dependitor app.`
     )
   ) {
     resetUrl();
@@ -153,5 +154,7 @@ function toErrorMessage(error?: Error): string {
 }
 
 function resetUrl(): void {
-  window.location.replace(di(IAuthenticatorProtocolKey).getAuthenticatorUrl());
+  window.location.replace(
+    `${window.location.protocol}//${window.location.host}`
+  );
 }

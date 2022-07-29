@@ -20,7 +20,6 @@ const userPartitionKey = 'users'
 const sessionsPartitionKey = 'sessions'
 const authenticatorPartitionKey = 'authenticator'
 
-const clientIdExpires = new Date(2040, 12, 31) // Persistent for a long time
 const deleteCookieExpires = new Date(1970, 1, 1) // past date to delete cookie
 const sessionDuration = 10 * util.hour
 const authenticatorLoginDuration = 3 * util.minute
@@ -55,11 +54,10 @@ exports.loginDeviceSet = async (context, body, userId) => {
 
 
         // Creating a new client id and session for the other device 
-        const clientId = makeRandomId()
-        const sessionId = await createSession(clientId, userId)
+        const sessionId = await createSession(userId)
 
         // Store data for other device to retrieve using the loginDevice() call
-        const entity = toAuthenticatorAuthTableEntity(channelId, authData, clientId, sessionId)
+        const entity = toAuthenticatorAuthTableEntity(channelId, authData, sessionId)
         await table.insertEntity(authenticatorTableName, entity)
 
         return {}
@@ -83,7 +81,7 @@ exports.loginDevice = async (context, body) => {
                     throw new Error('Expired')
                 }
 
-                const cookies = createCookies(entity.clientId, entity.sessionId)
+                const cookies = createCookies(entity.sessionId)
                 return { response: entity.authData, cookies: cookies };
             }
         } catch (error) {
@@ -197,9 +195,9 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
 
         await insertOrReplaceUser(userId, user, username)
 
-        const clientId = getClientId(context)
-        const sessionId = await createSession(clientId, userId)
-        const cookies = createCookies(clientId, sessionId)
+
+        const sessionId = await createSession(userId)
+        const cookies = createCookies(sessionId)
 
         return { response: { verified: verified }, cookies: cookies }
     } catch (error) {
@@ -288,9 +286,8 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
         await insertOrReplaceUser(userId, user, username)
 
-        const clientId = getClientId(context)
-        const sessionId = await createSession(clientId, userId)
-        const cookies = createCookies(clientId, sessionId)
+        const sessionId = await createSession(userId)
+        const cookies = createCookies(sessionId)
 
         return { response: { verified }, cookies: cookies };
     } catch (error) {
@@ -301,8 +298,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
 exports.logoff = async (context, data, userId) => {
     try {
-        const clientId = getClientId(context)
-        await clearClientSessions(clientId)
+        await clearOldSessions()
 
         const cookies = [
             {
@@ -313,15 +309,6 @@ exports.logoff = async (context, data, userId) => {
                 httpOnly: true,
                 sameSite: "Strict",
                 expires: deleteCookieExpires,  // Passed date to delete cookie
-            },
-            {
-                name: 'clientId',
-                value: clientId,
-                path: '/',
-                expires: clientIdExpires,  // Persistent for a long time
-                secure: true,
-                httpOnly: true,
-                sameSite: "Strict"
             }]
 
         return { cookies: cookies }
@@ -351,14 +338,6 @@ const getLoginUserId = async (context) => {
 }
 exports.getLoginUserId = getLoginUserId
 
-const getClientId = (context) => {
-    let clientId = getCookie('clientId', context)
-    if (!clientId) {
-        clientId = makeRandomId()
-    }
-
-    return clientId
-}
 
 async function retrieveUser(userId, username) {
     const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
@@ -401,24 +380,24 @@ async function insertOrReplaceUser(userId, user, username) {
 }
 
 
-async function createSession(clientId, userId) {
+async function createSession(userId) {
     // Create user data table if it does not already exist
     const dataTableName = dataBaseTableName + userId
     await table.createTableIfNotExists(dataTableName)
     await table.createTableIfNotExists(sessionsTableName)
 
     // Clear previous sessions from this client
-    await clearClientSessions(clientId)
+    await clearOldSessions()
 
     // Create new session id and store
     const sessionId = makeRandomId()
-    const sessionTableEntity = toSessionTableEntity(sessionId, userId, clientId)
+    const sessionTableEntity = toSessionTableEntity(sessionId, userId)
     await table.insertEntity(sessionsTableName, sessionTableEntity)
 
     return sessionId
 }
 
-function createCookies(clientId, sessionId) {
+function createCookies(sessionId) {
     // Set session id and client id
     const cookies = [{
         name: 'sessionId',
@@ -427,15 +406,6 @@ function createCookies(clientId, sessionId) {
         secure: true,
         httpOnly: true,
         sameSite: "Strict",
-    },
-    {
-        name: 'clientId',
-        value: clientId,
-        path: '/',
-        expires: clientIdExpires,  // Persistent for a long time
-        secure: true,
-        httpOnly: true,
-        sameSite: "Strict"
     }]
 
     return cookies
@@ -446,12 +416,12 @@ function createCookies(clientId, sessionId) {
 // // // -----------------------------------------------------------------
 
 
-async function clearClientSessions(clientId) {
+async function clearOldSessions() {
     // Get all existing sessions for the client or very old sessions
     let dateVal = new Date(new Date().getTime() - sessionDuration);
     let tableQuery = new azure.TableQuery()
-        .where('PartitionKey == ?string? && (clientId == ?string? || Timestamp <= ?date?)',
-            sessionsPartitionKey, clientId, dateVal);
+        .where('PartitionKey == ?string? && Timestamp <= ?date?',
+            sessionsPartitionKey, dateVal);
 
     const items = await table.queryEntities(sessionsTableName, tableQuery, null)
     const keys = items.map(item => item.RowKey)
@@ -542,25 +512,23 @@ function toUserTableEntity(userId, user) {
 }
 
 
-function toAuthenticatorAuthTableEntity(id, authData, clientId, sessionId) {
+function toAuthenticatorAuthTableEntity(id, authData, sessionId) {
     return {
         RowKey: table.String(id),
         PartitionKey: table.String(authenticatorPartitionKey),
 
         authData: table.String(authData),
-        clientId: table.String(clientId),
         sessionId: table.String(sessionId),
     }
 }
 
 
-function toSessionTableEntity(sessionId, userId, clientId) {
+function toSessionTableEntity(sessionId, userId) {
     return {
         RowKey: table.String(sessionId),
         PartitionKey: table.String(sessionsPartitionKey),
 
         userId: table.String(userId),
-        clientId: table.String(clientId),
     }
 }
 
