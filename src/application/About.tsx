@@ -1,9 +1,20 @@
 import React from "react";
 import { atom, useAtom } from "jotai";
-import { Box, Button, Dialog, Tooltip, Typography } from "@material-ui/core";
+import {
+  Box,
+  Button,
+  Dialog,
+  Link,
+  Tooltip,
+  Typography,
+} from "@material-ui/core";
 import { localBuildTime, localSha } from "../common/appVersion";
 import { SetAtom } from "jotai/core/types";
 import { isProduction } from "../common/utils";
+import {
+  enableVirtualConsole,
+  isVirtualConsoleEnabled,
+} from "../common/virtualConsole";
 //import { useLogin } from "./Login";
 
 // Test
@@ -42,13 +53,24 @@ const About: React.FC = () => {
         <Tooltip
           title={`version: ${localBuildTime} (${localSha.substring(0, 6)})`}
         >
-          <Typography variant="h5">About Dependitor</Typography>
+          <Link
+            component="button"
+            underline="none"
+            color="inherit"
+            variant="h5"
+            onClick={() => {
+              enableVirtualConsole(!isVirtualConsoleEnabled());
+              setShow(false);
+            }}
+          >
+            About Dependitor
+          </Link>
         </Tooltip>
         <Typography>A tool for modeling cloud architecture.</Typography>
 
         {!isProduction() && (
           <Typography style={{ fontSize: "10px", marginTop: 40 }}>
-            Version: {`${localSha.substring(0, 6)}, ${localBuildTime} `}
+            Version: {`${localBuildTime} (${localSha.substring(0, 6)})`}
           </Typography>
         )}
 
