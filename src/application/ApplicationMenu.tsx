@@ -19,7 +19,6 @@ import {
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,
-  isVirtualConsoleSupported,
 } from "../common/virtualConsole";
 import { showQuestionAlert } from "../common/AlertDialog";
 
