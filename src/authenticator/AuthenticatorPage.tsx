@@ -8,7 +8,6 @@ import {
   NoRequestError,
 } from "./Authenticator";
 import { isError } from "../common/Result";
-import { IAuthenticatorProtocolKey } from "./AuthenticatorProtocol";
 import {
   AuthenticateError,
   LocalApiServerError,
