@@ -282,7 +282,7 @@ export class Online implements IOnline {
 
   // getPersistentIsSyncEnabled returns true if sync should be automatically enabled after browser start
   private getPersistentIsSyncEnabled() {
-    return this.localStore.readOrDefault(persistentSyncKeyName, false);
+    return this.localStore.readOr(persistentSyncKeyName, false);
   }
 
   // setPersistentIsSyncEnabled stores if  sync should be automatically enabled after browser start
@@ -292,7 +292,7 @@ export class Online implements IOnline {
 
   // getLoginAfterReloadEnabled returns true if a login should be done once after a reload
   private getLoginAfterReloadEnabled() {
-    return orDefault(this.localStore.tryRead(loginAfterReloadKeyName), false);
+    return orDefault(this.localStore.read(loginAfterReloadKeyName), false);
   }
 
   // setLoginAfterReloadEnabled stores if  login should be done once after a reload

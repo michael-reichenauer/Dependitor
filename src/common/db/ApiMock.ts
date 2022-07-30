@@ -72,7 +72,7 @@ export class ApiMock implements IApi {
   public async tryReadBatch(queries: Query[]): Promise<Result<ApiEntity[]>> {
     const remoteKeys = queries.map((query) => this.remoteKey(query.key));
 
-    const localEntities = this.local.tryReadBatch(remoteKeys);
+    const localEntities = this.local.readBatch(remoteKeys);
 
     return this.skipNotModifiedEntities(queries, localEntities);
   }

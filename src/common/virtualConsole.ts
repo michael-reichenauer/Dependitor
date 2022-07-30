@@ -30,5 +30,5 @@ export function enableVirtualConsole(flag: boolean): void {
 }
 
 export function restoreVirtualConsoleState(): void {
-  enableVirtualConsole(di(ILocalStoreKey).readOrDefault(vConsoleKey, false));
+  enableVirtualConsole(di(ILocalStoreKey).readOr(vConsoleKey, false));
 }

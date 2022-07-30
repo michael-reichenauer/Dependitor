@@ -131,7 +131,7 @@ export class Authenticate implements IAuthenticate {
   }
 
   public readUserInfo(): Result<UserInfo> {
-    return this.localStore.tryRead<UserInfo>(this.userInfoKey);
+    return this.localStore.read<UserInfo>(this.userInfoKey);
   }
 
   private writeUserInfo(userInfo: UserInfo): void {
