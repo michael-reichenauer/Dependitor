@@ -1,8 +1,8 @@
 import LocalStore, { ILocalStore } from "./LocalStore";
 import { expectValue, isError } from "./Result";
 
-describe("Test LocalData", () => {
-  test("Test", () => {
+describe("Test local store", () => {
+  test("local store api", () => {
     const local: ILocalStore = new LocalStore();
     expect(local.count()).toEqual(0);
 
