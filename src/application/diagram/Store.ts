@@ -209,6 +209,9 @@ export class Store implements IStore {
 
   public async loadDiagramFromFile(): Promise<Result<string>> {
     const fileText = await this.localFiles.loadFile();
+    if (isError(fileText)) {
+      return fileText;
+    }
     const fileDto: FileDto = JSON.parse(fileText);
 
     // if (!(await this.sync.uploadDiagrams(fileDto.diagrams))) {

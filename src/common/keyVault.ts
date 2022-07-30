@@ -3,6 +3,8 @@ import { IDataCrypt, IDataCryptKey } from "./DataCrypt";
 import { di, diKey, singleton } from "./di";
 import Result from "./Result";
 
+// IKeyVault and IKeyVaultConfigure are a simple wrappers to manage the data encryption key.
+// Note: It is not really secure
 export const IKeyVaultKey = diKey<IKeyVault>();
 export interface IKeyVault {
   hasDataEncryptionKey(): boolean;
