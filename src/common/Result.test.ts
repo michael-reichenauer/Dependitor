@@ -13,11 +13,11 @@ function getValue(key: string): Result<string> {
 describe("Test Result<T> type using isError(value) type guard for narrowing", () => {
   test("ok return value", () => {
     const value = getValue("ok");
+    expect(isError(value)).toEqual(false);
+
     if (isError(value)) {
-      // Since value is ok, this path will not occur, but value would be Error type if it did
-      const errorValue: Error = value as Error;
-      expect(errorValue.message).toBeFalsy();
-      assert.fail();
+      // Since value is ok, this path will not occur.
+      // But isError() is type guard for narrowing and ensures value is a string type after if statement
       return;
     }
 
@@ -28,21 +28,20 @@ describe("Test Result<T> type using isError(value) type guard for narrowing", ()
 
   test("error return value", () => {
     const value = getValue("error");
-    if (isError(value)) {
-      // Value is an Error type (i.e. message exists), verify and exit function
-      const error = value as Error;
-      expect(error.message).toEqual("invalid");
+    expect(isError(value)).toEqual(true);
+
+    if (!isError(value)) {
+      // Since value is error, this path will not occur.
+      // But isError() is type guard for narrowing and ensures value is a Error type after if statement
       return;
     }
 
-    // Since it was an error, this path will not occur, but if there where a value, it would be a string
-    const stringValue: string = value;
-    expect(stringValue.toUpperCase()).toEqual("OK");
-    assert.fail();
+    // Value is of Error type, thus value.message is accessible
+    expect(value.message).toEqual("invalid");
   });
 });
 
-describe("Test orDefault(value) for Result<T> value ", () => {
+describe("Test orDefault(value) for Result<T> value", () => {
   test("using orDefault(value) for ok return value", () => {
     // Using orDefault to force value to be expected type or default value
     const value: string = orDefault(getValue("ok"), "some");
@@ -59,11 +58,12 @@ describe("Test orDefault(value) for Result<T> value ", () => {
 describe("Test Result<T> type using instanceof operator(value) for narrowing", () => {
   test("ok return value determined with instanceof operator", () => {
     const value = getValue("ok");
-    if (value instanceof Error) {
-      // Since value is ok, this path will not occurs, but value would be Error type if it did
-      const errorValue: Error = value;
-      expect(errorValue.message).toBeFalsy();
-      assert.fail();
+    expect(value instanceof Error).toEqual(false);
+    expect(isError(value)).toEqual(false);
+
+    if (isError(value)) {
+      // Since value is ok, this path will not occur.
+      // But isError() is type guard for narrowing and ensures value is a string type after if statement
       return;
     }
 
@@ -73,37 +73,72 @@ describe("Test Result<T> type using instanceof operator(value) for narrowing", (
   });
 
   test("error return value determined instanceof", () => {
-    // Getting error return Error type
+    // Getting error return RangeError type
     const value = getValue("error");
-    if (value instanceof Error) {
+    expect(value instanceof RangeError).toEqual(true);
+    expect(value instanceof Error).toEqual(true);
+    expect(isError(value)).toEqual(true);
+
+    if (!isError(value)) {
+      // Since value is error, this path will not occur.
+      // But isError() is type guard for narrowing and ensures value is a Error type after if statement
       // Value is an Error type (i.e. message exists), verify and exit function
-      const error = value as Error;
-      expect(error.message).toEqual("invalid");
       return;
     }
 
-    // Since it was an error, this path will not occur, but if there where a value, it would be a string
-    const stringValue: string = value;
-    expect(stringValue.toUpperCase()).toEqual("OK");
-    assert.fail();
+    expect(value.message).toEqual("invalid");
   });
 });
 
-describe("Test isError() with specific error for narrowing", () => {
+describe("Test isError() with specific error type for narrowing", () => {
   test("isError()", () => {
-    const e1 = new RangeError();
-    const e2 = new URIError();
+    const value = getValue("error");
 
-    // Verify that e1 isError, Error and RangeError, but not a URIError
-    expect(isError(e1)).toEqual(true);
-    expect(isError(e1, Error)).toEqual(true);
-    expect(isError(e1, RangeError)).toEqual(true);
-    expect(isError(e1, URIError)).toEqual(false);
+    // Verify that value isError, Error and RangeError, but not a URIError
+    expect(isError(value)).toEqual(true);
+    expect(isError(value, Error)).toEqual(true);
+    expect(isError(value, RangeError)).toEqual(true);
+    expect(isError(value, URIError)).toEqual(false);
+  });
 
-    // Verify that e2 isError, Error and URIError, but not a RangeError
-    expect(isError(e2)).toEqual(true);
-    expect(isError(e2, Error)).toEqual(true);
-    expect(isError(e2, URIError)).toEqual(true);
-    expect(isError(e2, RangeError)).toEqual(false);
+  test("isError() with isError() for narrowing", () => {
+    const value = getValue("error");
+    expect(value instanceof RangeError).toEqual(true);
+
+    if (isError(value, URIError)) {
+      // This path will not occur, assert.fail() if it does
+      if (value.message !== "invalid") {
+        assert.fail();
+      }
+      assert.fail();
+      return;
+    }
+
+    if (isError(value, RangeError)) {
+      // This is the expected path, ensure that value now is of Error type
+      if (value.message !== "invalid") {
+        assert.fail();
+      }
+      return;
+    }
+
+    if (isError(value)) {
+      // This path will not occur, assert.fail() if it does
+      if (value.message !== "invalid") {
+        assert.fail();
+      }
+      assert.fail();
+      return;
+    }
+
+    if (value) {
+      // This path will not occur, assert.fail() if it does
+      assert.fail();
+    }
+
+    // This path will not occur, assert.fail() if it does,
+    // but make sure the isError() narrowing works and value would be a string at this point
+    const stringValue: string = value;
+    expect(stringValue.toUpperCase()).toEqual("OK");
   });
 });

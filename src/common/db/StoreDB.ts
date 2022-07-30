@@ -214,7 +214,7 @@ export class StoreDB implements IStoreDB {
         return;
       }
 
-      if (remoteEntity instanceof NotModifiedError) {
+      if (isError(remoteEntity, NotModifiedError)) {
         // Remote entity was not changed since last sync,
         if (localEntity.etag !== localEntity.syncedEtag) {
           // local has changed since last upload

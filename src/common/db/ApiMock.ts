@@ -26,10 +26,10 @@ export class ApiMock implements IApi {
   public async withNoProgress<T>(callback: () => Promise<T>): Promise<T> {
     return await callback();
   }
-  loginDevice(req: LoginDeviceReq): Promise<Result<string, Error>> {
+  loginDevice(req: LoginDeviceReq): Promise<Result<string>> {
     throw new Error("Method not implemented.");
   }
-  loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void, Error>> {
+  loginDeviceSet(authData: LoginDeviceSetReq): Promise<Result<void>> {
     throw new Error("Method not implemented.");
   }
   getWebAuthnRegistrationOptions(
@@ -40,7 +40,7 @@ export class ApiMock implements IApi {
   verifyWebAuthnRegistration(
     username: string,
     registration: RegistrationCredentialJSON
-  ): Promise<Result<boolean, Error>> {
+  ): Promise<Result<boolean>> {
     throw new Error("Method not implemented.");
   }
   getWebAuthnAuthenticationOptions(

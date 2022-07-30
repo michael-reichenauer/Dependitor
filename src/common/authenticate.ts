@@ -184,7 +184,7 @@ export class Authenticate implements IAuthenticate {
     // Authenticate the existing registered username
     const { username, credentialId, wDek } = userInfo;
     const password = await this.authenticate(username, credentialId);
-    if (password instanceof AuthenticateError) {
+    if (isError(password, AuthenticateError)) {
       // Failed to authenticate, need to re-register device, lets clear
       this.writeUserInfo({
         username: "",
