@@ -166,11 +166,7 @@ const useAppBarStyles = makeStyles((theme) => ({
     flexGrow: 1,
   },
   title: {
-    //flexGrow: 1,
     display: "block",
-    // [theme.breakpoints.up('sm')]: {
-    //     display: 'block',
-    // },
   },
   space: {
     flexGrow: 1,
