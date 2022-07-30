@@ -1,3 +1,4 @@
+import assert from "assert";
 import { User } from "./Api";
 import { IDataCrypt, IDataCryptKey } from "./DataCrypt";
 import { di, diKey, singleton } from "./di";
@@ -33,6 +34,7 @@ export class KeyVault implements IKeyVault, IKeyVaultConfigure {
   }
 
   public async encryptString(value: string): Promise<string> {
+    assert(this.hasDataEncryptionKey());
     return await this.dataCrypt.encryptText(value, this.dek);
   }
 
@@ -41,6 +43,7 @@ export class KeyVault implements IKeyVault, IKeyVaultConfigure {
   }
 
   public async getWrappedDataEncryptionKey(user: User): Promise<string> {
+    assert(this.hasDataEncryptionKey());
     return await this.dataCrypt.wrapDataEncryptionKey(this.dek, user);
   }
 
