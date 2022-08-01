@@ -12,7 +12,7 @@ import {
 } from "@simplewebauthn/typescript-types";
 import { withProgress } from "./Progress";
 import { commonApiKey } from "../config";
-import { second } from "./utils";
+import { second } from "../utils/time";
 
 export const IApiKey = diKey<IApi>();
 export interface IApi {

@@ -1,4 +1,5 @@
-import { isProduction, stackTrace } from "./utils";
+import { isProduction } from "../utils/build";
+import { stackTrace } from "../utils/utils";
 
 export class CustomError extends Error {
   constructor(message?: string | Error, nested?: Error) {

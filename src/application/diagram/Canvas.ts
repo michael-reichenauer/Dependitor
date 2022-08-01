@@ -4,7 +4,7 @@ import ZoomPolicy from "./ZoomPolicy";
 import KeyboardPolicy from "./KeyboardPolicy";
 import ConnectionCreatePolicy from "./ConnectionCreatePolicy";
 import Colors from "./Colors";
-import { random } from "../../common/utils";
+import { random } from "../../utils/utils";
 import CanvasSerializer from "./CanvasSerializer";
 import { Canvas2d, Command2d, Figure2d, Line2d } from "./draw2dTypes";
 import { CanvasDto } from "./StoreDtos";

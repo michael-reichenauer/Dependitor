@@ -6,7 +6,7 @@ import {
   imgDataUrlToPngDataUrl,
   publishAsDownload,
   random,
-} from "../../common/utils";
+} from "../../utils/utils";
 import Node from "./Node";
 import { IStore, IStoreKey } from "./Store";
 import Canvas from "./Canvas";
@@ -19,7 +19,7 @@ import { setErrorMessage, setInfoMessage } from "../../common/MessageSnackbar";
 import NodeGroup from "./NodeGroup";
 import { greenNumberIconKey } from "../../common/icons";
 import NodeNumber from "./NodeNumber";
-import { svgToSvgDataUrl, fetchFiles } from "../../common/utils";
+import { svgToSvgDataUrl, fetchFiles } from "../../utils/utils";
 import { Canvas2d } from "./draw2dTypes";
 import { isError } from "../../common/Result";
 import { DiagramDto } from "./StoreDtos";

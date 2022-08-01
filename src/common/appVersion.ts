@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useRef } from "react";
 import { useActivity } from "./activity";
-import { minute, second } from "./utils";
+import { minute, second } from "../utils/time";
 
 const checkRemoteInterval = 30 * minute;
 const retryFailedRemoteInterval = 5 * minute;

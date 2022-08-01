@@ -12,7 +12,7 @@ import {
 } from "@material-ui/core";
 import { localBuildTime, localShortSha } from "../common/appVersion";
 import { SetAtom } from "jotai/core/types";
-import { isProduction } from "../common/utils";
+import { isProduction } from "../utils/build";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,

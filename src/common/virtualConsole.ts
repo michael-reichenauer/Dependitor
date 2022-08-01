@@ -1,7 +1,7 @@
 import VConsole from "vconsole";
 import { ILocalStoreKey } from "../common/LocalStore";
 import { di } from "./di";
-import { isMobileOrTabletDevice } from "./utils";
+import { isMobileOrTabletDevice } from "../utils/build";
 
 const vConsoleKey = "vConsole.enable";
 let vConsole: any = null;

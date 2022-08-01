@@ -11,7 +11,7 @@ import { di, diKey, singleton } from "../common/di";
 import Result, { isError } from "../common/Result";
 
 import now from "../common/stopwatch";
-import { delay, minute, second } from "../common/utils";
+import { delay, minute, second } from "../utils/time";
 import {
   AuthenticateCode,
   AuthenticateReq,

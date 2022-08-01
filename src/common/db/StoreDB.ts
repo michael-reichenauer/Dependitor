@@ -4,7 +4,7 @@ import Result, { isError } from "../Result";
 import { di, diKey, singleton } from "../di";
 import { Query } from "../Api";
 import assert from "assert";
-import { second } from "../utils";
+import { second } from "../../utils/time";
 
 // Key-value database, that syncs locally stored entities with a remote server
 export const IStoreDBKey = diKey<IStoreDB>();

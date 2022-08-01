@@ -1,7 +1,7 @@
 import { ICryptKey } from "../common/crypt";
 import { di, diKey, singleton } from "../common/di";
 import Result from "../common/Result";
-import { arrayToString } from "../common/utils";
+import { arrayToString } from "../utils/utils";
 
 // isAuthenticatorApp returns true if the current url path specifies a authenticator app
 export function isAuthenticatorApp(): boolean {

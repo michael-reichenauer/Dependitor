@@ -15,7 +15,7 @@ import {
   isEdgeOnIos,
   isMobileOrTabletDevice,
   isStandaloneApp,
-} from "../common/utils";
+} from "../utils/build";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,

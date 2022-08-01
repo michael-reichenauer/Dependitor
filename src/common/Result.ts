@@ -38,3 +38,11 @@ export function expectValue<T>(result: Result<T>): T {
 
   return result;
 }
+
+export const lx = (obj: any): any => {
+  if (obj instanceof Error) {
+    const msg = obj.message ? `:${obj.message}` : "";
+    return `${obj.name}${msg}`;
+  }
+  return obj;
+};
