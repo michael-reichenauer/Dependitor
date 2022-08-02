@@ -14,6 +14,9 @@ import NodeSelectionFeedbackPolicy from "./NodeSelectionFeedbackPolicy";
 import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
 import { NodeToolbar } from "./NodeToolbar";
+import InnerDiagramFigure from "./InnerDiagramFigure";
+import { CanvasData } from "./CanvasStack";
+import { clickHandler } from "../../common/mouseClicks";
 
 const defaultIconKey = "Azure/General/Module";
 
@@ -121,7 +124,7 @@ export default class Node extends draw2d.shape.node.Between {
     return { x: 0, y: -35 };
   }
 
-  setCanvas(canvas: Canvas2d) {
+  public setCanvas(canvas: Canvas2d) {
     super.setCanvas(canvas);
 
     if (canvas != null) {
@@ -129,7 +132,7 @@ export default class Node extends draw2d.shape.node.Between {
     }
   }
 
-  static deserialize(data: FigureDto) {
+  public static deserialize(data: FigureDto) {
     return new Node(data.type, {
       id: data.id,
       width: data.rect.w,
@@ -141,7 +144,7 @@ export default class Node extends draw2d.shape.node.Between {
     });
   }
 
-  serialize(): FigureDto {
+  public serialize(): FigureDto {
     return {
       type: this.type,
       id: this.id,
@@ -153,9 +156,7 @@ export default class Node extends draw2d.shape.node.Between {
     };
   }
 
-  getConfigMenuItems() {
-    //const hasDiagramIcon = this.diagramIcon != null
-
+  public getConfigMenuItems() {
     return [
       menuItem("To front", () => this.moveToFront()),
       menuItem("To back", () => this.moveToBack()),
@@ -174,7 +175,14 @@ export default class Node extends draw2d.shape.node.Between {
     ];
   }
 
-  toBack(figure: Figure2d) {
+  public handleDoubleClick() {
+    console.log("Double click on", this.getName());
+
+    this.showInnerDiagram();
+    PubSub.publish("canvas.EditInnerDiagram", this);
+  }
+
+  public toBack(figure: Figure2d) {
     super.toBack(figure);
 
     // When node is moved back, all groups should be moved back as well
@@ -183,7 +191,7 @@ export default class Node extends draw2d.shape.node.Between {
     // group?.toBack()
   }
 
-  moveAllGroupsToBack() {
+  private moveAllGroupsToBack() {
     // Get all figures in z order
     const figures = this.canvas.getFigures().clone();
     figures.sort((a: Figure2d, b: Figure2d) => {
@@ -200,25 +208,25 @@ export default class Node extends draw2d.shape.node.Between {
     });
   }
 
-  moveToBack(): void {
+  public moveToBack(): void {
     this.toBack(this);
     PubSub.publish("canvas.Save");
   }
 
-  moveToFront(): void {
+  public moveToFront(): void {
     this.toFront();
     PubSub.publish("canvas.Save");
   }
 
-  changeIcon(iconKey: string): void {
+  public changeIcon(iconKey: string): void {
     this.canvas.runCmd(new CommandChangeIcon(this, iconKey));
   }
 
-  setName(name: string): void {
+  public setName(name: string): void {
     this.nameLabel?.setText(name);
   }
 
-  setDescription(description: string): void {
+  public setDescription(description: string): void {
     this.descriptionLabel?.setText(description);
   }
 
@@ -228,12 +236,7 @@ export default class Node extends draw2d.shape.node.Between {
       .flatMap((p: any) => p.getConnections().asArray());
   }
 
-  setDefaultSize(): void {
-    this.setWidth(Node.defaultWidth);
-    this.setHeight(Node.defaultHeight);
-  }
-
-  setNodeColor(colorName: string): void {
+  public setNodeColor(colorName: string): void {
     this.colorName = colorName;
     const color = Colors.getNodeColor(colorName);
     const borderColor = Colors.getNodeBorderColor(colorName);
@@ -248,12 +251,12 @@ export default class Node extends draw2d.shape.node.Between {
     this.diagramIcon?.setColor(fontColor);
   }
 
-  setDeleteable(flag: boolean) {
+  public setDeleteable(flag: boolean) {
     super.setDeleteable(flag);
     this.canDelete = flag;
   }
 
-  setIcon(name: string) {
+  public setIcon(name: string) {
     if (this.icon != null) {
       this.remove(this.icon);
       this.icon = null;
@@ -263,9 +266,11 @@ export default class Node extends draw2d.shape.node.Between {
     this.repaint();
   }
 
-  showInnerDiagram(): void {
-    // const t = timing();
-    // this.setChildrenVisible(false);
+  private showInnerDiagram(): void {
+    console.log("showInnerDiagram");
+
+    this.setChildrenVisible(false);
+    // const canvasDto = undefined;
     // const canvasDto = store.tryGetCanvas(
     //   this.getCanvas().diagramId,
     //   this.getId()
@@ -273,20 +278,20 @@ export default class Node extends draw2d.shape.node.Between {
     // if (isError(canvasDto)) {
     //   return;
     // }
-    // this.innerDiagram = new InnerDiagramFigure(this, canvasDto);
+    this.innerDiagram = new InnerDiagramFigure(this);
     // this.innerDiagram.onClick = clickHandler(
     //   () => this.hideInnerDiagram(),
     //   () => this.editInnerDiagram()
     // );
-    // this.add(this.innerDiagram, new InnerDiagramLocator());
-    // this.repaint();
-    // t.log();
+    this.add(this.innerDiagram, new InnerDiagramLocator());
+    this.repaint();
   }
 
-  hideInnerDiagram(): void {
+  public hideInnerDiagram(): void {
+   // return;
     const t = timing();
     if (this.innerDiagram == null) {
-      return;
+      return; 
     }
 
     this.setChildrenVisible(true);
@@ -454,8 +459,8 @@ class InnerDiagramIconLocator extends draw2d.layout.locator.PortLocator {
 //   }
 // }
 
-// class InnerDiagramLocator extends draw2d.layout.locator.Locator {
-//   relocate(_index: number, target: Figure2d) {
-//     target.setPosition(2, 2);
-//   }
-// }
+class InnerDiagramLocator extends draw2d.layout.locator.Locator {
+  relocate(_index: number, target: Figure2d) {
+    target.setPosition(2, 2);
+  }
+}

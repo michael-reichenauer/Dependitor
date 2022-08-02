@@ -21,6 +21,7 @@ export default class InnerDiagramCanvas {
   }
 
   editInnerDiagram = (node: Node): void => {
+    console.log("inner node", node);
     const t = timing();
     const innerDiagram = node.innerDiagram;
     if (innerDiagram == null) {
@@ -30,13 +31,16 @@ export default class InnerDiagramCanvas {
 
     // Remember the current outer zoom, which is used when zooming inner diagram
     const outerZoom = this.canvas.zoomFactor;
+    console.log("outer zoom", outerZoom);
 
     // Get the view coordinates of the inner diagram image where the inner diagram should
     // positioned after the switch
     const innerDiagramViewPos = innerDiagram.getDiagramViewCoordinate();
+    console.log("innerDiagramViewPos", innerDiagramViewPos);
 
     // Get nodes connected to outer node so they can be re-added in the inner diagram after push
     const connectedNodes = this.getNodesConnectedToOuterNode(node);
+    console.log("connectedNodes", connectedNodes);
 
     // Hide the inner diagram image from node (will be updated and shown when popping)
     node.hideInnerDiagram();
@@ -47,6 +51,7 @@ export default class InnerDiagramCanvas {
 
     // Load inner diagram or a default group node if first time
     if (!this.load(node.id)) {
+      console.log("failed to load", node.id);
       this.canvas.canvasId = node.id;
       addDefaultInnerDiagram(
         this.canvas,
@@ -57,6 +62,7 @@ export default class InnerDiagramCanvas {
 
     console.log("loaded diagram", t());
     const groupNode = this.canvas.getFigure(this.canvas.mainNodeId);
+    console.log("groupNode", groupNode);
     this.updateGroup(groupNode, node);
     this.addOrUpdateConnectedNodes(groupNode, connectedNodes);
     console.log("added connected nodes", t());
@@ -64,6 +70,12 @@ export default class InnerDiagramCanvas {
     // Zoom inner diagram to correspond to inner diagram image size in the outer node
     // @ts-ignore
     this.canvas.setZoom(outerZoom / innerDiagram.innerZoom);
+    console.log(
+      "setZoom",
+      outerZoom,
+      innerDiagram.innerZoom,
+      outerZoom / innerDiagram.innerZoom
+    );
 
     // Scroll inner diagram to correspond to where the inner diagram image in the outer node was
     const innerDiagramRect = this.getInnerDiagramRect(groupNode);
@@ -71,6 +83,7 @@ export default class InnerDiagramCanvas {
       innerDiagramRect.x - innerDiagramViewPos.left * this.canvas.zoomFactor;
     const top =
       innerDiagramRect.y - innerDiagramViewPos.top * this.canvas.zoomFactor;
+    console.log("setScroll", left, top);
     this.setScrollInCanvasCoordinate(left, top);
 
     console.log("editInnerDiagram", t());
@@ -263,6 +276,7 @@ export default class InnerDiagramCanvas {
           connection: c.serialize(),
         };
       });
+
     const top = figure
       .getPort("input1")
       .getConnections()
@@ -274,6 +288,7 @@ export default class InnerDiagramCanvas {
           connection: c.serialize(),
         };
       });
+
     const right = figure
       .getPort("output0")
       .getConnections()
@@ -285,6 +300,7 @@ export default class InnerDiagramCanvas {
           connection: c.serialize(),
         };
       });
+
     const bottom = figure
       .getPort("output1")
       .getConnections()
@@ -315,33 +331,49 @@ export default class InnerDiagramCanvas {
     const marginY = 100;
 
     const addedNodes = [];
-    let x = group.x - Node.defaultWidth - marginX;
-    let y = group.y + group.height / 2 - Node.defaultHeight / 2;
-    nodes.left.forEach((data: any) => {
+
+    nodes.left.forEach((data: any, i: number) => {
+      const w = data.node.rect.w;
+      const h = data.node.rect.h;
+      const total = nodes.left.length;
+      const p = i * (h + 20) - ((total - 1) * (h + 20)) / 2;
+      const x = group.x - w - marginX;
+      const y = group.y + group.height / 2 - h / 2 + p;
       const node = this.addConnectedNode(data, x, y);
       this.addConnection(data, node, group);
       addedNodes.push(node);
     });
 
-    x = group.x + group.width / 2 - Node.defaultWidth / 2;
-    y = group.y - Node.defaultHeight - marginY;
-    nodes.top.forEach((data: any) => {
+    nodes.top.forEach((data: any, i: number) => {
+      //const w = Node.defaultWidth
+      const w = data.node.rect.w;
+      const h = data.node.rect.h;
+      const total = nodes.top.length;
+      const p = i * (w + 20) - ((total - 1) * (w + 20)) / 2;
+      const x = group.x + group.width / 2 - w / 2 + p;
+      const y = group.y - h - marginY;
       const node = this.addConnectedNode(data, x, y);
       this.addConnection(data, node, group);
       addedNodes.push(node);
     });
 
-    x = group.x + group.width + marginX;
-    y = group.y + group.height / 2 - Node.defaultHeight / 2;
-    nodes.right.forEach((data: any) => {
+    nodes.right.forEach((data: any, i: number) => {
+      const h = data.node.rect.h;
+      const total = nodes.right.length;
+      const p = i * (h + 20) - ((total - 1) * (h + 20)) / 2;
+      const x = group.x + group.width + marginX;
+      const y = group.y + group.height / 2 - h / 2 + p;
       const node = this.addConnectedNode(data, x, y);
       this.addConnection(data, group, node);
       addedNodes.push(node);
     });
 
-    x = group.x + group.width / 2 - Node.defaultWidth / 2;
-    y = group.y + group.height + marginY;
-    nodes.bottom.forEach((data: any) => {
+    nodes.bottom.forEach((data: any, i: number) => {
+      const w = data.node.rect.w;
+      const total = nodes.bottom.length;
+      const p = i * (w + 20) - ((total - 1) * (w + 20)) / 2;
+      const x = group.x + group.width / 2 - w / 2 + p;
+      const y = group.y + group.height + marginY;
       const node = this.addConnectedNode(data, x, y);
       this.addConnection(data, group, node);
       addedNodes.push(node);
@@ -382,12 +414,12 @@ export default class InnerDiagramCanvas {
       // Node needs to be created and added
       node = Node.deserialize(data.node);
       node.attr({
-        width: Node.defaultWidth,
-        height: Node.defaultHeight,
+        width: node.width,
+        height: node.height,
         alpha: alpha,
         resizeable: false,
       });
-      this.canvas.addAtApproximately(node, x, y);
+      this.canvas.add(node, x, y);
     }
 
     node.isConnected = true;

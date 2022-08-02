@@ -12,8 +12,8 @@ const defaultCanvasData = (name: string) => {
   // Group node with one node in the center of that group
   const gx = DiagramCanvas.defaultWidth / 2;
   const gy = DiagramCanvas.defaultHeight / 2;
-  const nx = gx + Group.defaultWidth / 2 - Node.defaultWidth / 2;
-  const ny = gy + Group.defaultHeight / 2 - Node.defaultHeight / 2;
+  const nx = gx + 1000 / 2 - 230 / 2;
+  const ny = gy + 1000 / 2 - 230 / 2;
 
   return {
     zoom: 1,
@@ -22,16 +22,16 @@ const defaultCanvasData = (name: string) => {
         type: Group.groupType,
         x: gx,
         y: gy,
-        w: Group.defaultWidth,
-        h: Group.defaultHeight,
+        w: 1000,
+        h: 1000,
         name: name,
       },
       {
         type: Node.nodeType,
         x: nx,
         y: ny,
-        w: Node.defaultWidth,
-        h: Node.defaultHeight,
+        w: 230,
+        h: 150,
         name: "Node",
         color: "DeepPurple",
         hasGroup: true,
@@ -47,7 +47,7 @@ export default class InnerDiagramFigure extends draw2d.SetFigure {
 
   parent: Node;
 
-  constructor(parent: Node, canvasData: CanvasDto) {
+  constructor(parent: Node) {
     super({
       width: parent.width - InnerDiagramFigure.innerPadding * 2,
       height: parent.height - InnerDiagramFigure.innerPadding * 2,
@@ -58,10 +58,10 @@ export default class InnerDiagramFigure extends draw2d.SetFigure {
     });
 
     console.log("parent", parent);
-    console.log("data", canvasData);
+    // console.log("data", canvasData);
 
     this.parent = parent;
-    this.canvasData = canvasData ?? defaultCanvasData(parent.getName());
+    this.canvasData = defaultCanvasData(parent.getName());
   }
 
   setCanvas(canvas: Canvas2d) {

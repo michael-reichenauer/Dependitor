@@ -62,9 +62,9 @@ export default class DiagramCanvas {
   init() {
     this.loadInitialDiagram();
 
-    this.handleDoubleClick(this.canvas);
+    this.registerDoubleClickHandler(this.canvas);
     this.handleEditChanges(this.canvas);
-    this.handleSelect(this.canvas);
+    this.registerSelectHandler(this.canvas);
     this.handleCommands();
   }
 
@@ -254,10 +254,11 @@ export default class DiagramCanvas {
   }
 
   commandEditInnerDiagram = (_msg: string, figure: any) => {
+    console.log("commandEdotInner");
     this.inner.editInnerDiagram(figure);
-    this.callbacks.setTitle(this.diagramName);
-    this.updateToolbarButtonsStates();
-    this.save();
+    // this.callbacks.setTitle(this.diagramName);
+    // this.updateToolbarButtonsStates();
+    // this.save();
   };
 
   commandTuneSelected = (x: number, y: number) => {
@@ -463,9 +464,10 @@ export default class DiagramCanvas {
     this.callbacks.setCanRedo(this.canvas.getCommandStack().canRedo());
   }
 
-  handleDoubleClick(canvas: Canvas2d) {
+  registerDoubleClickHandler(canvas: Canvas2d) {
     canvas.on("dblclick", (_emitter: any, event: any) => {
       if (event.figure !== null) {
+        this.handleFigureDoubleClick(event.figure);
         return;
       }
 
@@ -478,7 +480,7 @@ export default class DiagramCanvas {
     });
   }
 
-  handleSelect(canvas: Canvas2d) {
+  registerSelectHandler(canvas: Canvas2d) {
     canvas.on("select", (_emitter: any, event: any) => {
       if (event.figure !== null) {
         this.callbacks.setSelectMode(true);
@@ -486,6 +488,15 @@ export default class DiagramCanvas {
         this.callbacks.setSelectMode(false);
       }
     });
+  }
+
+  private handleFigureDoubleClick(figure: any): void {
+    for (let f = figure; f; f = f.parent) {
+      if (f.handleDoubleClick instanceof Function) {
+        f.handleDoubleClick();
+        return;
+      }
+    }
   }
 
   // withWorkingIndicator(action: any) {
