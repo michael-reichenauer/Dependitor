@@ -40,3 +40,5 @@ export class CustomError extends Error {
     }
   }
 }
+
+export class NotFoundError extends CustomError {}

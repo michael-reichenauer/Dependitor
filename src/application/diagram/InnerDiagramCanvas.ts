@@ -8,20 +8,20 @@ import Canvas from "./Canvas";
 import CanvasStack from "./CanvasStack";
 import { IStore } from "./Store";
 import { Figure2d } from "./draw2dTypes";
+import { isError } from "../../common/Result";
 
 export default class InnerDiagramCanvas {
-  canvas: Canvas;
-  canvasStack: CanvasStack;
-  store: IStore;
+  private canvas: Canvas;
+  private canvasStack: CanvasStack;
+  private store: IStore;
 
-  constructor(canvas: Canvas, canvasStack: CanvasStack, store: IStore) {
+  public constructor(canvas: Canvas, canvasStack: CanvasStack, store: IStore) {
     this.canvas = canvas;
     this.canvasStack = canvasStack;
     this.store = store;
   }
 
-  editInnerDiagram = (node: Node): void => {
-    console.log("inner node", node);
+  public editInnerDiagram = (node: Node): void => {
     const t = timing();
     const innerDiagram = node.innerDiagram;
     if (innerDiagram == null) {
@@ -31,51 +31,36 @@ export default class InnerDiagramCanvas {
 
     // Remember the current outer zoom, which is used when zooming inner diagram
     const outerZoom = this.canvas.zoomFactor;
-    console.log("outer zoom", outerZoom);
 
     // Get the view coordinates of the inner diagram image where the inner diagram should
     // positioned after the switch
     const innerDiagramViewPos = innerDiagram.getDiagramViewCoordinate();
-    console.log("innerDiagramViewPos", innerDiagramViewPos);
 
     // Get nodes connected to outer node so they can be re-added in the inner diagram after push
     const connectedNodes = this.getNodesConnectedToOuterNode(node);
-    console.log("connectedNodes", connectedNodes);
 
     // Hide the inner diagram image from node (will be updated and shown when popping)
     node.hideInnerDiagram();
 
     // Push current diagram to make room for new inner diagram
     this.canvasStack.pushDiagram();
-    console.log("pushed diagram", t());
 
-    // Load inner diagram or a default group node if first time
+    // Load inner diagram canvas or a default diagram canvas
     if (!this.load(node.id)) {
-      console.log("failed to load", node.id);
       this.canvas.canvasId = node.id;
-      addDefaultInnerDiagram(
-        this.canvas,
-        node.getName(),
-        node.getDescription()
-      );
+      addDefaultInnerDiagram(this.canvas, node);
     }
 
     console.log("loaded diagram", t());
-    const groupNode = this.canvas.getFigure(this.canvas.mainNodeId);
-    console.log("groupNode", groupNode);
+    const groupNode = this.canvas.getFigure(Group.mainId);
     this.updateGroup(groupNode, node);
     this.addOrUpdateConnectedNodes(groupNode, connectedNodes);
     console.log("added connected nodes", t());
 
     // Zoom inner diagram to correspond to inner diagram image size in the outer node
     // @ts-ignore
-    this.canvas.setZoom(outerZoom / innerDiagram.innerZoom);
-    console.log(
-      "setZoom",
-      outerZoom,
-      innerDiagram.innerZoom,
-      outerZoom / innerDiagram.innerZoom
-    );
+    const targetZoom = outerZoom / innerDiagram.innerZoom;
+    this.canvas.setZoom(targetZoom);
 
     // Scroll inner diagram to correspond to where the inner diagram image in the outer node was
     const innerDiagramRect = this.getInnerDiagramRect(groupNode);
@@ -83,15 +68,14 @@ export default class InnerDiagramCanvas {
       innerDiagramRect.x - innerDiagramViewPos.left * this.canvas.zoomFactor;
     const top =
       innerDiagramRect.y - innerDiagramViewPos.top * this.canvas.zoomFactor;
-    console.log("setScroll", left, top);
     this.setScrollInCanvasCoordinate(left, top);
 
     console.log("editInnerDiagram", t());
   };
 
-  popFromInnerDiagram = (): void => {
+  public popFromInnerDiagram = (): void => {
     const t = timing();
-    const groupNode = this.canvas.getFigure(this.canvas.mainNodeId);
+    const groupNode = this.canvas.getFigure(Group.mainId);
 
     // Get the inner diagram zoom to use when zooming outer diagram
     const postInnerZoom = this.canvas.zoomFactor;
@@ -106,7 +90,7 @@ export default class InnerDiagramCanvas {
     // Show outer diagram (closing the inner diagram) (same id as group)
     const outerNodeId = this.canvas.canvasId;
 
-    const externalNodes = this.getNodesExternalToGroup(groupNode);
+    // const externalNodes = this.getNodesExternalToGroup(groupNode);
     this.canvasStack.popDiagram();
 
     // Update the nodes inner diagram image in the outer node
@@ -129,12 +113,12 @@ export default class InnerDiagramCanvas {
       node.y + 2 + imy - innerDiagramViewPos.y * this.canvas.zoomFactor;
     this.setScrollInCanvasCoordinate(sx, sy);
 
-    this.addOrUpdateExternalNodes(externalNodes, node);
+    // this.addOrUpdateExternalNodes(externalNodes, node);
 
     console.log("popFromInnerDiagram", t());
   };
 
-  getNodesExternalToGroup(group: Group): any {
+  private getNodesExternalToGroup(group: Group): any {
     const internalNodes = group.getAboardFigures(true).asArray();
     const externalNodes = this.canvas
       .getFigures()
@@ -156,7 +140,7 @@ export default class InnerDiagramCanvas {
     };
   }
 
-  serializeExternalConnections(node: Node) {
+  private serializeExternalConnections(node: Node) {
     const ports = node.getPorts().asArray();
     return ports.flatMap((p: any) =>
       p
@@ -166,7 +150,7 @@ export default class InnerDiagramCanvas {
     );
   }
 
-  addOrUpdateExternalNodes(data: any, outerNode: any) {
+  private addOrUpdateExternalNodes(data: any, outerNode: any) {
     outerNode.setName(data.group.name);
     outerNode.setDescription(data.group.description);
 
@@ -264,7 +248,7 @@ export default class InnerDiagramCanvas {
     });
   }
 
-  getNodesConnectedToOuterNode(figure: Figure2d) {
+  private getNodesConnectedToOuterNode(figure: Figure2d) {
     const left = figure
       .getPort("input0")
       .getConnections()
@@ -321,12 +305,12 @@ export default class InnerDiagramCanvas {
     return { left: left, top: top, right: right, bottom: bottom };
   }
 
-  updateGroup(group: any, node: any) {
+  private updateGroup(group: any, node: any) {
     group.setName(node.getName());
     group.setDescription(node.getDescription());
   }
 
-  addOrUpdateConnectedNodes(group: any, nodes: any) {
+  private addOrUpdateConnectedNodes(group: any, nodes: any) {
     const marginX = 150;
     const marginY = 100;
 
@@ -400,7 +384,7 @@ export default class InnerDiagramCanvas {
     });
   }
 
-  addConnectedNode(data: any, x: number, y: number) {
+  private addConnectedNode(data: any, x: number, y: number) {
     const alpha = 0.6;
     let node = this.canvas.getFigure(data.node.id);
     if (node != null) {
@@ -408,7 +392,6 @@ export default class InnerDiagramCanvas {
       node.setName(data.node.name);
       node.setDescription(data.node.description);
       node.setIcon(data.node.icon);
-      node.setNodeColor(data.node.color);
       node.attr({ alpha: alpha, resizeable: false });
     } else {
       // Node needs to be created and added
@@ -424,10 +407,11 @@ export default class InnerDiagramCanvas {
 
     node.isConnected = true;
     node.setDeleteable(false);
+    node.setBlur();
     return node;
   }
 
-  addConnection(data: any, src: any, trg: any) {
+  private addConnection(data: any, src: any, trg: any) {
     const id = data.connection.id;
     const name = data.connection.name;
     const description = data.connection.description;
@@ -453,50 +437,49 @@ export default class InnerDiagramCanvas {
       this.canvas.add(connection);
     }
 
-    //connection.setDashArray("--")
-    connection.setStroke(4);
+    connection.setDashArray(".");
+    connection.setStroke(2);
     connection.setDeleteable(false);
   }
 
-  fromCanvasToViewCoordinate = (x: number, y: number) => {
+  private fromCanvasToViewCoordinate = (x: number, y: number) => {
     return new draw2d.geo.Point(
       x * (1 / this.canvas.zoomFactor) - this.canvas.getScrollLeft(),
       y * (1 / this.canvas.zoomFactor) - this.canvas.getScrollTop()
     );
   };
 
-  setScrollInCanvasCoordinate = (left: number, top: number) => {
+  private setScrollInCanvasCoordinate = (left: number, top: number) => {
     const area = this.canvas.getScrollArea();
     area.scrollLeft(left / this.canvas.zoomFactor);
     area.scrollTop(top / this.canvas.zoomFactor);
   };
 
-  getInnerDiagramRect(groupNode: any) {
+  private getInnerDiagramRect(groupNode: any) {
     const g = groupNode;
     return { x: g.x, y: g.y, w: g.width, h: g.heigh };
   }
 
-  load = (canvasId: string): boolean => {
+  private load(canvasId: string): boolean {
     console.log("load", canvasId);
     // // @ts-ignore
-    // const canvasDto = this.store.tryGetCanvas(this.canvas.diagramId, canvasId);
-    // if (isError(canvasDto)) {
-    //   return false;
-    // }
+    const canvasDto = this.store.tryGetCanvas(canvasId);
+    if (isError(canvasDto)) {
+      return false;
+    }
 
-    return false;
-    // // Deserialize canvas
-    // this.canvas.deserialize(canvasDto);
-    // return true;
-  };
+    // Deserialize canvas
+    this.canvas.deserialize(canvasDto);
+    return true;
+  }
 
-  sortNodesOnX(nodes: any) {
+  private sortNodesOnX(nodes: any) {
     nodes.sort((d1: any, d2: any) =>
       d1.node.x < d2.node.x ? -1 : d1.node.x > d2.node.x ? 1 : 0
     );
   }
 
-  sortNodesOnY(nodes: any) {
+  private sortNodesOnY(nodes: any) {
     nodes.sort((d1: any, d2: any) =>
       d1.node.y < d2.node.y ? -1 : d1.node.y > d2.node.y ? 1 : 0
     );

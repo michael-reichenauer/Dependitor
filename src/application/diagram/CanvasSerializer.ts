@@ -10,15 +10,16 @@ import { Figure2d, Line2d, Box } from "./draw2dTypes";
 import { CanvasDto, ConnectionDto, FigureDto } from "./StoreDtos";
 
 export default class CanvasSerializer {
-  canvas: Canvas;
+  private canvas: Canvas;
 
-  constructor(canvas: Canvas) {
+  public constructor(canvas: Canvas) {
     this.canvas = canvas;
   }
 
-  serialize(): CanvasDto {
+  public serialize(): CanvasDto {
+    console.log("serialize", this.canvas.canvasId);
     // If canvas is a group, mark all nodes within the group as group to be included in data
-    const node = this.canvas.getFigure(this.canvas.mainNodeId);
+    const node = this.canvas.getFigure(Group.mainId);
     if (node instanceof Group) {
       node
         .getAboardFigures(true)
@@ -38,8 +39,8 @@ export default class CanvasSerializer {
     return canvasDto;
   }
 
-  deserialize(canvasDto: CanvasDto): void {
-    // console.log('data', canvasData)
+  public deserialize(canvasDto: CanvasDto): void {
+    console.log("deserialize", canvasDto.id);
     this.canvas.canvasId = canvasDto.id;
 
     // const figures = this.deserializeFigures(canvasData.figures)
@@ -52,7 +53,7 @@ export default class CanvasSerializer {
     this.canvas.addAll(this.deserializeConnections(canvasDto.connections));
   }
 
-  export(
+  public export(
     rect: Box,
     width: number,
     height: number,
@@ -103,7 +104,7 @@ export default class CanvasSerializer {
     });
   }
 
-  serializeFigures = (): FigureDto[] => {
+  private serializeFigures = (): FigureDto[] => {
     const figures = this.canvas.getFigures().clone();
     figures.sort((a: Figure2d, b: Figure2d) => {
       // return 1  if a before b
@@ -116,13 +117,13 @@ export default class CanvasSerializer {
       .map((figure: Figure2d): FigureDto => figure.serialize());
   };
 
-  deserializeFigures = (figures: FigureDto[]): Figure2d[] => {
+  private deserializeFigures = (figures: FigureDto[]): Figure2d[] => {
     return figures
       .map((f: FigureDto): Figure2d => this.deserializeFigure(f))
       .filter((f: Figure2d) => f != null);
   };
 
-  deserializeFigure = (f: FigureDto): Figure2d => {
+  private deserializeFigure = (f: FigureDto): Figure2d => {
     let figure;
     if (f.type === Group.groupType) {
       figure = Group.deserialize(f);
@@ -139,14 +140,14 @@ export default class CanvasSerializer {
     return figure;
   };
 
-  serializeConnections(): ConnectionDto[] {
+  private serializeConnections(): ConnectionDto[] {
     return this.canvas
       .getLines()
       .asArray()
       .map((connection: Line2d) => connection.serialize());
   }
 
-  deserializeConnections(connections: ConnectionDto[]): Line2d[] {
+  private deserializeConnections(connections: ConnectionDto[]): Line2d[] {
     return connections
       .map((c: ConnectionDto) => Connection.deserialize(this.canvas, c))
       .filter((c: Line2d) => c != null);

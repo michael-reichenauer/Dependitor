@@ -19,7 +19,6 @@ export default class Canvas extends draw2d.Canvas {
   private coronaDecorationPolicy: any = null;
 
   public canvasId: string = "";
-  public mainNodeId: string = "";
 
   constructor(
     htmlElementId: string,
@@ -228,7 +227,7 @@ export default class Canvas extends draw2d.Canvas {
     return this;
   }
 
-  getFiguresRect() {
+  getFiguresRect(filter: (f: any) => boolean = (f) => true) {
     const d = this.getDimension();
     let minX = d.getWidth();
     let minY = d.getHeight();
@@ -236,6 +235,9 @@ export default class Canvas extends draw2d.Canvas {
     let maxY = 0;
 
     this.getFigures().each((i: number, f: Figure2d) => {
+      if (!filter(f)) {
+        return;
+      }
       let fx = f.getAbsoluteX();
       let fy = f.getAbsoluteY();
       let fx2 = fx + f.getWidth();

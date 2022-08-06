@@ -5,6 +5,7 @@ import Group from "./Group";
 import Node from "./Node";
 import { CanvasDto } from "./StoreDtos";
 import { Canvas2d, Figure2d } from "./draw2dTypes";
+import { defaultIconKey } from "../../common/icons";
 
 const groupColor = "#" + Colors.canvasText.hex();
 
@@ -32,7 +33,8 @@ const defaultCanvasData = (name: string) => {
         y: ny,
         w: 230,
         h: 150,
-        name: "Node",
+        name: defaultIconKey,
+        icon: defaultIconKey,
         color: "DeepPurple",
         hasGroup: true,
       },

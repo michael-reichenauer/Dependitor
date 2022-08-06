@@ -201,7 +201,11 @@ export default class Connection extends draw2d.Connection {
     this.getCanvas().getCommandStack().execute(cmd);
   }
 
-  setDescription(description: string): void {
+  public setName(name: string): void {
+    this.nameLabel?.setText(name);
+  }
+
+  public setDescription(description: string): void {
     this.descriptionLabel?.setText(description);
   }
 

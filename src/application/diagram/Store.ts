@@ -15,6 +15,7 @@ import {
 } from "./StoreDtos";
 import { LocalEntity } from "../../common/db/LocalDB";
 import { RemoteEntity } from "../../common/db/RemoteDB";
+import { NotFoundError } from "../../common/CustomError";
 
 export interface Configuration {
   onRemoteChanged: (keys: string[]) => void;
@@ -35,6 +36,7 @@ export interface IStore {
   exportDiagram(): DiagramDto; // Used for print or export
 
   getRootCanvas(): CanvasDto;
+  tryGetCanvas(canvasId: string): Result<CanvasDto>;
   getCanvas(canvasId: string): CanvasDto;
   writeCanvas(canvas: CanvasDto): void;
 
@@ -155,6 +157,19 @@ export class Store implements IStore {
 
     const canvasDto = diagramDto.canvases[canvasId];
     assert(canvasDto);
+
+    return canvasDto;
+  }
+
+  public tryGetCanvas(canvasId: string): Result<CanvasDto> {
+    const diagramDto = this.getDiagramDto();
+
+    const canvasDto = diagramDto.canvases[canvasId];
+    if (!canvasDto) {
+      return new NotFoundError(
+        `Canvas  ${canvasDto} not in diagram ${diagramDto.id}`
+      );
+    }
 
     return canvasDto;
   }

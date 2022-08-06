@@ -194,6 +194,10 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     this.nameLabel?.setText(name);
   }
 
+  setDescription(name: string) {
+    this.descriptionLabel?.setText(name);
+  }
+
   setDefaultSize() {
     this.setWidth(NodeGroup.defaultWidth);
     this.setHeight(NodeGroup.defaultHeight);

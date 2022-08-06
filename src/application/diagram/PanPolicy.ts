@@ -1,6 +1,9 @@
 import draw2d from "draw2d";
 import Canvas from "./Canvas";
 import { Figure2d, Line2d } from "./draw2dTypes";
+import Group from "./Group";
+
+const margin = 30;
 
 export default class PanPolicy extends draw2d.policy.canvas
   .SingleSelectionPolicy {
@@ -148,6 +151,10 @@ export default class PanPolicy extends draw2d.policy.canvas
         this.isResizeHandle = true;
       }
 
+      if (figure !== null && figure.id === Group.mainId) {
+        figure = null;
+      }
+
       if (
         figure !== null &&
         figure.isSelectable() === false &&
@@ -267,7 +274,6 @@ export default class PanPolicy extends draw2d.policy.canvas
     shiftKey: boolean,
     ctrlKey: boolean
   ) {
-    // console.log('onMouseDrag')
     if (this.isReadOnly && !this.isPort && !this.isResizeHandle) {
       // Read only mode and not dragging a port, let pan the canvas
       this.isReadOnlySelect = false;
@@ -322,6 +328,7 @@ export default class PanPolicy extends draw2d.policy.canvas
         });
         this.boundingBoxFigure2.setCanvas(canvas);
       }
+
       let abs = Math.abs;
       if (this.boundingBoxFigure1 !== null) {
         this.boundingBoxFigure1.setDimension(abs(dx), abs(dy));

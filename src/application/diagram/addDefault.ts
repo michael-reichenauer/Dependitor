@@ -39,23 +39,31 @@ export const addDefaultNewDiagram = (canvas: Canvas) => {
   zoomAndMoveShowTotalDiagram(canvas);
 };
 
-export const addDefaultInnerDiagram = (
-  canvas: Canvas,
-  name: string,
-  description: string
-) => {
-  console.log("canvas", canvas);
+export const addDefaultInnerDiagram = (canvas: Canvas, outerNode: Node) => {
   // Add a default group at the center of the canvas
-  const group = new Group(name, description);
+  const group = new Group({
+    id: Group.mainId,
+    icon: outerNode.iconName,
+    name: outerNode.getName(),
+    description: outerNode.getDescription(),
+    sticky: true,
+  });
   const d = canvas.getDimension();
-  const gx = d.getWidth() / 2 + (canvas.getWidth() - 1000) / 2;
-  const gy = d.getHeight() / 2 + 250;
+  const gx = d.getWidth() / 2 - group.getWidth() / 2;
+  const gy = d.getHeight() / 2 - group.getHeight() / 2;
   canvas.add(group, gx, gy);
 
   // Add a default node in the center of the group
-  const node = new Node(Node.nodeType);
+  const node = new Node(Node.nodeType, {
+    id: outerNode.id,
+    icon: outerNode.iconName,
+    name: outerNode.getName(),
+    description: outerNode.getDescription(),
+  });
+
   const nx = gx + group.getWidth() / 2 - node.getWidth() / 2;
   const ny = gy + group.getHeight() / 2 - node.getHeight() / 2;
+  node.parentGroup = group;
   canvas.add(node, nx, ny);
 };
 

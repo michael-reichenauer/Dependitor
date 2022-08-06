@@ -15,8 +15,6 @@ import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
 import { NodeToolbar } from "./NodeToolbar";
 import InnerDiagramFigure from "./InnerDiagramFigure";
-import { CanvasData } from "./CanvasStack";
-import { clickHandler } from "../../common/mouseClicks";
 
 const defaultIconKey = "Azure/General/Module";
 
@@ -110,11 +108,11 @@ export default class Node extends draw2d.shape.node.Between {
     this.on("dblclick", (_s: any, _e: any) => {});
     this.on("resize", (_s: any, _e: any) => this.handleResize());
 
-    const nodeToolBar = new NodeToolbar(this, [
+    this.nodeToolBar = new NodeToolbar(this, [
       { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
     ]);
-    this.on("select", () => nodeToolBar.show());
-    this.on("unselect", () => nodeToolBar.hide());
+    this.on("select", () => this.nodeToolBar.show());
+    this.on("unselect", () => this.unSelect());
 
     // Adjust selection handle sizes
     this.installEditPolicy(new NodeSelectionFeedbackPolicy());
@@ -266,6 +264,11 @@ export default class Node extends draw2d.shape.node.Between {
     this.repaint();
   }
 
+  private unSelect() {
+    console.log("this", this);
+    this.nodeToolBar.hide();
+  }
+
   private showInnerDiagram(): void {
     console.log("showInnerDiagram");
 
@@ -288,10 +291,10 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   public hideInnerDiagram(): void {
-   // return;
+    // return;
     const t = timing();
     if (this.innerDiagram == null) {
-      return; 
+      return;
     }
 
     this.setChildrenVisible(true);
@@ -361,6 +364,10 @@ export default class Node extends draw2d.shape.node.Between {
     this.add(this.descriptionLabel, this.descriptionLabel.labelLocator);
   };
 
+  setBlur() {
+    this.icon?.setAlpha(0.5);
+  }
+
   addIcon(iconKey: string): void {
     //console.log('add icon key', iconKey)
     if (iconKey == null) {
@@ -407,7 +414,7 @@ export default class Node extends draw2d.shape.node.Between {
 
     // Make ports larger to support touch
     this.getPorts().each((_i: number, p: Figure2d) => {
-      p.setCoronaWidth(15);
+      p.setCoronaWidth(5);
       p.setDiameter(10);
     });
   }

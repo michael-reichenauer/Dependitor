@@ -24,11 +24,14 @@ import { Canvas2d } from "./draw2dTypes";
 import { isError } from "../../common/Result";
 import { DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
+import stopwatch from "../../common/stopwatch";
+import Group from "./Group";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
 const a4Margin = 50;
 const imgMargin = 5;
+const doubleClickInterval = 500;
 
 export default class DiagramCanvas {
   static defaultWidth = 100000;
@@ -39,6 +42,7 @@ export default class DiagramCanvas {
   inner: InnerDiagramCanvas;
   diagramId: string = "";
   diagramName: string = "";
+  clicked = stopwatch();
 
   canvas: Canvas;
   callbacks: any;
@@ -254,11 +258,11 @@ export default class DiagramCanvas {
   }
 
   commandEditInnerDiagram = (_msg: string, figure: any) => {
-    console.log("commandEdotInner");
     this.inner.editInnerDiagram(figure);
-    // this.callbacks.setTitle(this.diagramName);
-    // this.updateToolbarButtonsStates();
-    // this.save();
+    this.callbacks.setTitle(this.diagramName);
+    this.updateToolbarButtonsStates();
+    this.showTotalDiagram();
+    this.save();
   };
 
   commandTuneSelected = (x: number, y: number) => {
@@ -279,10 +283,12 @@ export default class DiagramCanvas {
   };
 
   commandPopFromInnerDiagram = () => {
+    this.save();
     this.inner.popFromInnerDiagram();
     this.callbacks.setTitle(this.diagramName);
     this.updateToolbarButtonsStates();
     this.save();
+    this.showTotalDiagram();
   };
 
   onEditMode = (isEditMode: boolean) => {
@@ -365,6 +371,7 @@ export default class DiagramCanvas {
 
   save() {
     // Serialize canvas figures and connections into canvas data object
+    console.log("save canvas", this.canvas.canvasId);
     const canvasData = this.canvas.serialize();
     this.store.writeCanvas(canvasData);
   }
@@ -465,18 +472,40 @@ export default class DiagramCanvas {
   }
 
   registerDoubleClickHandler(canvas: Canvas2d) {
-    canvas.on("dblclick", (_emitter: any, event: any) => {
-      if (event.figure !== null) {
-        this.handleFigureDoubleClick(event.figure);
-        return;
-      }
+    // The dblClick event handler reacts often also for click and drag, so here is workaround
+    canvas.on("click", (_emitter: any, e: any) => {
+      const clickedInterval = this.clicked.time();
+      this.clicked = stopwatch();
 
-      if (!this.canvasStack.isRoot()) {
-        // double click out side group node in inner diagram lets pop
-        this.commandPopFromInnerDiagram();
-        return;
+      if (clickedInterval < doubleClickInterval) {
+        // Double click detected
+        if (e.figure?.id === Group.mainId) {
+          // Double click on group node
+          this.showAddNodeDialog(e.x, e.y);
+        }
+
+        if (e.figure) {
+          this.handleFigureDoubleClick(e.figure);
+          return;
+        }
+
+        if (!this.canvasStack.isRoot()) {
+          // double click out side group node in inner diagram lets pop canvas to parent canvas
+          this.commandPopFromInnerDiagram();
+          return;
+        }
+
+        // Double click on root canvas
+        this.showAddNodeDialog(e.x, e.y);
       }
-      PubSub.publish("nodes.showDialog", { add: true, x: event.x, y: event.y });
+    });
+  }
+
+  showAddNodeDialog(x: number, y: number) {
+    PubSub.publish("nodes.showDialog", {
+      add: true,
+      x: x,
+      y: y,
     });
   }
 

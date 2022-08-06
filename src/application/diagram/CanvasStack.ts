@@ -4,7 +4,6 @@ import { ArrayList2d, CommandStack2d, Figure2d, Line2d } from "./draw2dTypes";
 
 export interface CanvasData {
   // diagramId: string;
-  mainNodeId: string;
   canvasId: string;
   commandStack: CommandStack2d;
   commonPorts: any;
@@ -68,7 +67,6 @@ export default class CanvasStack {
     canvas.linesToRepaintAfterDragDrop = new draw2d.util.ArrayList();
     canvas.lineIntersections = new draw2d.util.ArrayList();
     canvas.commandStack = new draw2d.command.CommandStack();
-    canvas.mainNodeId = "";
     canvas.canvasId = "";
   }
 
@@ -76,7 +74,6 @@ export default class CanvasStack {
     const area = canvas.getScrollArea();
     return {
       canvasId: canvas.canvasId ?? "",
-      mainNodeId: canvas.mainNodeId ?? "",
       zoom: canvas.zoomFactor,
       x: area.scrollLeft(),
       y: area.scrollTop(),
@@ -94,8 +91,6 @@ export default class CanvasStack {
     canvas.diagramId = canvasData.diagramId;
     // @ts-ignore
     canvas.canvasId = canvasData.canvasId;
-    // @ts-ignore
-    canvas.mainNodeId = canvasData.mainNodeId;
 
     canvas.setZoom(canvasData.zoom);
     const area = canvas.getScrollArea();
