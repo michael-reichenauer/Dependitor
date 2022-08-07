@@ -15,6 +15,7 @@ import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
 import { NodeToolbar } from "./NodeToolbar";
 import InnerDiagramFigure from "./InnerDiagramFigure";
+import { clickHandler } from "../../common/mouseClicks";
 
 const defaultIconKey = "Azure/General/Module";
 
@@ -57,8 +58,8 @@ export default class Node extends draw2d.shape.node.Between {
   static systemType = "system";
   static userType = "user";
   static externalType = "external";
-  static defaultWidth = 230;
-  static defaultHeight = 150;
+  static defaultWidth = 60;
+  static defaultHeight = 60;
 
   nodeIcons: NodeIcons = new NodeIcons();
   figure: Figure2d = null;
@@ -76,8 +77,8 @@ export default class Node extends draw2d.shape.node.Between {
   constructor(type: string = Node.nodeType, options?: any) {
     super({
       id: options?.id ?? cuid(),
-      width: 60,
-      height: 60,
+      width: Node.defaultWidth,
+      height: Node.defaultHeight,
       stroke: 0.1,
       bgColor: "none",
       color: "none",
@@ -174,10 +175,8 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   public handleDoubleClick() {
-    console.log("Double click on", this.getName());
-
     this.showInnerDiagram();
-    PubSub.publish("canvas.EditInnerDiagram", this);
+    //PubSub.publish("canvas.EditInnerDiagram", this);
   }
 
   public toBack(figure: Figure2d) {
@@ -273,19 +272,12 @@ export default class Node extends draw2d.shape.node.Between {
     console.log("showInnerDiagram");
 
     this.setChildrenVisible(false);
-    // const canvasDto = undefined;
-    // const canvasDto = store.tryGetCanvas(
-    //   this.getCanvas().diagramId,
-    //   this.getId()
-    // );
-    // if (isError(canvasDto)) {
-    //   return;
-    // }
+
     this.innerDiagram = new InnerDiagramFigure(this);
-    // this.innerDiagram.onClick = clickHandler(
-    //   () => this.hideInnerDiagram(),
-    //   () => this.editInnerDiagram()
-    // );
+    this.innerDiagram.onClick = clickHandler(
+      () => this.hideInnerDiagram(),
+      () => this.editInnerDiagram()
+    );
     this.add(this.innerDiagram, new InnerDiagramLocator());
     this.repaint();
   }
@@ -304,10 +296,6 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   editInnerDiagram(): void {
-    if (this.diagramIcon == null) {
-      return;
-    }
-
     if (this.innerDiagram == null) {
       this.showInnerDiagram();
     }
@@ -330,10 +318,10 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   setChildrenVisible(isVisible: boolean): void {
-    this.nameLabel?.setVisible(isVisible);
-    this.descriptionLabel?.setVisible(isVisible);
+    // this.nameLabel?.setVisible(isVisible);
+    // this.descriptionLabel?.setVisible(isVisible);
     this.icon?.setVisible(isVisible);
-    this.diagramIcon?.setVisible(isVisible);
+    // this.diagramIcon?.setVisible(isVisible);
   }
 
   addLabels = (name: string, description: string): void => {

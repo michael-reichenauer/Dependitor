@@ -26,8 +26,8 @@ const defaultOptions = () => {
 export default class Group extends draw2d.shape.composite.Raft {
   static mainId = "mainId";
   static nodeType = "nodeGroup";
-  static defaultWidth = 500;
-  static defaultHeight = 500;
+  static defaultWidth = 400;
+  static defaultHeight = 400;
 
   type = Group.nodeType;
   nameLabel: Figure2d;

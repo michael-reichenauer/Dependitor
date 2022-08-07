@@ -1,21 +1,29 @@
 import { Tweenable } from "shifty";
 import Canvas from "./Canvas";
-import { Figure2d, Point } from "./draw2dTypes";
+import { Figure2d } from "./draw2dTypes";
 
-export const zoomAndMoveShowTotalDiagram = (canvas: Canvas): void => {
+export const zoomAndMoveShowTotalDiagram = (
+  canvas: Canvas,
+  duration: number = 500
+): void => {
   if (!canvas.selection.all.isEmpty()) {
     // Deselect items, since zooming with selected figures is slow
     canvas.selection.getAll().each((_: number, f: Figure2d) => f.unselect());
     canvas.selection.clear();
   }
 
-  moveToShowTotalDiagram(canvas, () =>
-    zoomToShowTotalDiagram(canvas, () => {})
+  moveToShowTotalDiagram(canvas, duration, () =>
+    zoomToShowTotalDiagram(canvas, duration, () => {})
   );
 };
 
-const moveToShowTotalDiagram = (canvas: Canvas, done: () => void) => {
+const moveToShowTotalDiagram = (
+  canvas: Canvas,
+  duration: number,
+  done: () => void
+) => {
   const area = canvas.getScrollArea();
+  const sp = { x: area.scrollLeft(), y: area.scrollTop() };
 
   const { x, y, w, h } = canvas.getFiguresRect();
 
@@ -25,17 +33,17 @@ const moveToShowTotalDiagram = (canvas: Canvas, done: () => void) => {
 
   const tp = { x: fc.x - cc.x, y: fc.y - cc.y };
 
-  let tweenable = new Tweenable();
+  const tweenable = new Tweenable();
   tweenable.tween({
-    from: { x: area.scrollLeft(), y: area.scrollTop() },
+    from: { x: sp.x, y: sp.y },
     to: { x: tp.x, y: tp.y },
-    duration: 500,
+    duration: duration,
     easing: "easeOutSine",
-    step: (state: Point) => {
+    step: (state: any) => {
       area.scrollLeft(state.x);
       area.scrollTop(state.y);
     },
-    finish: (_: Point) => {
+    finish: (_: any) => {
       if (done != null) {
         done();
       }
@@ -43,8 +51,13 @@ const moveToShowTotalDiagram = (canvas: Canvas, done: () => void) => {
   });
 };
 
-const zoomToShowTotalDiagram = (canvas: Canvas, done: () => void) => {
+const zoomToShowTotalDiagram = (
+  canvas: Canvas,
+  duration: number,
+  done: () => void
+) => {
   const area = canvas.getScrollArea();
+  const sourceZoom = canvas.zoomFactor;
 
   const { x, y, w, h } = canvas.getFiguresRect();
 
@@ -57,13 +70,15 @@ const zoomToShowTotalDiagram = (canvas: Canvas, done: () => void) => {
     h / (canvas.getHeight() - 100)
   );
 
-  let tweenable = new Tweenable();
+  console.log("start zoom", sourceZoom);
+  const tweenable = new Tweenable();
   tweenable.tween({
-    from: { zoom: canvas.zoomFactor },
+    from: { zoom: sourceZoom },
     to: { zoom: targetZoom },
-    duration: 500,
+    duration: duration,
     easing: "easeOutSine",
     step: (state: any) => {
+      console.log("zoom", state.zoom);
       canvas.setZoom(state.zoom, false);
 
       // Adjust scroll to center, since canvas zoom lacks zoom at center point

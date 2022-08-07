@@ -53,18 +53,18 @@ export const addDefaultInnerDiagram = (canvas: Canvas, outerNode: Node) => {
   const gy = d.getHeight() / 2 - group.getHeight() / 2;
   canvas.add(group, gx, gy);
 
-  // Add a default node in the center of the group
-  const node = new Node(Node.nodeType, {
-    id: outerNode.id,
-    icon: outerNode.iconName,
-    name: outerNode.getName(),
-    description: outerNode.getDescription(),
-  });
+  // // Add a default node in the center of the group
+  // const node = new Node(Node.nodeType, {
+  //   id: outerNode.id,
+  //   icon: outerNode.iconName,
+  //   name: outerNode.getName(),
+  //   description: outerNode.getDescription(),
+  // });
 
-  const nx = gx + group.getWidth() / 2 - node.getWidth() / 2;
-  const ny = gy + group.getHeight() / 2 - node.getHeight() / 2;
-  node.parentGroup = group;
-  canvas.add(node, nx, ny);
+  // const nx = gx + group.getWidth() / 2 - node.getWidth() / 2;
+  // const ny = gy + group.getHeight() / 2 - node.getHeight() / 2;
+  // node.parentGroup = group;
+  // canvas.add(node, nx, ny);
 };
 
 const addNode = (canvas: Canvas, node: Node, p: Point) => {

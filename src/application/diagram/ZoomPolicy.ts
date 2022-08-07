@@ -3,6 +3,9 @@ import { Tweenable } from "shifty";
 import Canvas from "./Canvas";
 import { Figure2d } from "./draw2dTypes";
 
+const minZoom = 6; // small figures/zoomed out
+const maxZoom = 0.05; // large figures/zoomed in
+
 export default class ZoomPolicy extends draw2d.policy.canvas.ZoomPolicy {
   NAME: string = "ZoomPolicy";
 
@@ -42,7 +45,10 @@ export default class ZoomPolicy extends draw2d.policy.canvas.ZoomPolicy {
     }
 
     let newZoom =
-      ((Math.min(10, Math.max(0.1, this.canvas.zoomFactor + wheelDelta)) *
+      ((Math.min(
+        minZoom,
+        Math.max(maxZoom, this.canvas.zoomFactor + wheelDelta)
+      ) *
         10000) |
         0) /
       10000;
@@ -67,6 +73,7 @@ export default class ZoomPolicy extends draw2d.policy.canvas.ZoomPolicy {
       };
     }
 
+    console.log("zoom", newZoom);
     this._zoom(newZoom, this.center);
     this.debouncedZoomedCallback();
 

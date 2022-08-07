@@ -6,8 +6,10 @@ import ConnectionCreatePolicy from "./ConnectionCreatePolicy";
 import Colors from "./Colors";
 import { random } from "../../utils/utils";
 import CanvasSerializer from "./CanvasSerializer";
-import { Canvas2d, Command2d, Figure2d, Line2d } from "./draw2dTypes";
+import { Box, Canvas2d, Command2d, Figure2d, Line2d } from "./draw2dTypes";
 import { CanvasDto } from "./StoreDtos";
+
+import DiagramCanvas from "./DiagramCanvas";
 
 const randomDist = 30;
 
@@ -88,36 +90,31 @@ export default class Canvas extends draw2d.Canvas {
     this.serializer.deserialize(canvasDto);
   }
 
-  exportAsSvg(
-    canvasData: CanvasDto,
-    width: number,
-    height: number,
-    margin: number
-  ): string {
-    const canvasWidth = this.getDimension().getWidth();
-    const canvasHeight = this.getDimension().getHeight();
-    let svgResult: string = "";
-
-    const canvas = new Canvas(
-      "canvasPrint",
-      () => {},
-      canvasWidth,
-      canvasHeight
-    );
-    canvas.deserialize(canvasData);
-    canvas.export(width, height, margin, (svg: string) => (svgResult = svg));
-    canvas.destroy();
-    return svgResult;
-  }
-
-  export(
+  public static exportAsSvg(
+    canvasDto: CanvasDto,
     width: number,
     height: number,
     margin: number,
-    resultHandler: (svgText: string) => void
-  ): void {
-    const rect = this.getFiguresRect();
-    this.serializer.export(rect, width, height, margin, resultHandler);
+    box?: Box
+  ): string {
+    const canvas = new Canvas(
+      "canvasPrint",
+      () => {},
+      DiagramCanvas.defaultWidth,
+      DiagramCanvas.defaultHeight
+    );
+
+    canvas.deserialize(canvasDto);
+    const svg = canvas.export(width, height, margin, box);
+    canvas.destroy();
+    return svg;
+  }
+
+  export(width: number, height: number, margin: number, box?: Box): string {
+    if (!box) {
+      box = this.getFiguresRect();
+    }
+    return this.serializer.export(box, width, height, margin);
   }
 
   clearDiagram = (): void => {

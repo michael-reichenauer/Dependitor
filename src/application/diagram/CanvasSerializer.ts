@@ -17,7 +17,6 @@ export default class CanvasSerializer {
   }
 
   public serialize(): CanvasDto {
-    console.log("serialize", this.canvas.canvasId);
     // If canvas is a group, mark all nodes within the group as group to be included in data
     const node = this.canvas.getFigure(Group.mainId);
     if (node instanceof Group) {
@@ -40,7 +39,6 @@ export default class CanvasSerializer {
   }
 
   public deserialize(canvasDto: CanvasDto): void {
-    console.log("deserialize", canvasDto.id);
     this.canvas.canvasId = canvasDto.id;
 
     // const figures = this.deserializeFigures(canvasData.figures)
@@ -57,10 +55,10 @@ export default class CanvasSerializer {
     rect: Box,
     width: number,
     height: number,
-    margin: number,
-    resultHandler: (svgText: string) => void
-  ): void {
-    var writer = new draw2d.io.svg.Writer();
+    margin: number
+  ): string {
+    const writer = new draw2d.io.svg.Writer();
+    let svgText = "";
     writer.marshal(this.canvas, (svg: string) => {
       // console.log('svg org:', svg)
 
@@ -100,8 +98,9 @@ export default class CanvasSerializer {
       // Remove org view box (if it exists)
       res = res.replace('viewBox="0 0 10000 10000"', "");
 
-      resultHandler(res);
+      svgText = res;
     });
+    return svgText;
   }
 
   private serializeFigures = (): FigureDto[] => {

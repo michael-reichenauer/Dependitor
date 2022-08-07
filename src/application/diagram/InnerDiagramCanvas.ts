@@ -60,14 +60,22 @@ export default class InnerDiagramCanvas {
     // Zoom inner diagram to correspond to inner diagram image size in the outer node
     // @ts-ignore
     const targetZoom = outerZoom / innerDiagram.innerZoom;
+
+    console.log("zoom", targetZoom);
     this.canvas.setZoom(targetZoom);
 
     // Scroll inner diagram to correspond to where the inner diagram image in the outer node was
     const innerDiagramRect = this.getInnerDiagramRect(groupNode);
+    console.log("innerDiagramRect", innerDiagramRect);
+    console.log("this.canvas.zoomFactor", this.canvas.zoomFactor);
+    console.log("innerDiagramViewPos", innerDiagramViewPos);
+
     const left =
       innerDiagramRect.x - innerDiagramViewPos.left * this.canvas.zoomFactor;
     const top =
       innerDiagramRect.y - innerDiagramViewPos.top * this.canvas.zoomFactor;
+
+    console.log("scroll x, y", left, top);
     this.setScrollInCanvasCoordinate(left, top);
 
     console.log("editInnerDiagram", t());
@@ -457,7 +465,7 @@ export default class InnerDiagramCanvas {
 
   private getInnerDiagramRect(groupNode: any) {
     const g = groupNode;
-    return { x: g.x, y: g.y, w: g.width, h: g.heigh };
+    return { x: g.x, y: g.y, w: g.width, h: g.height };
   }
 
   private load(canvasId: string): boolean {

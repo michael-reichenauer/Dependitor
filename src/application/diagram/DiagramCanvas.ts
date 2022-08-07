@@ -1,6 +1,7 @@
 import "import-jquery";
 import "jquery-ui-bundle";
 import "jquery-ui-bundle/jquery-ui.css";
+import * as draw2d from "draw2d";
 import PubSub from "pubsub-js";
 import {
   imgDataUrlToPngDataUrl,
@@ -26,6 +27,7 @@ import { DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
 import stopwatch from "../../common/stopwatch";
 import Group from "./Group";
+import { logName } from "../../common/log";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
@@ -173,7 +175,7 @@ export default class DiagramCanvas {
   commandPrint = () => {
     const diagram = this.store.exportDiagram();
     const pages: string[] = Object.values(diagram.canvases).map((d) =>
-      this.canvas.exportAsSvg(d, a4Width, a4Height, a4Margin)
+      Canvas.exportAsSvg(d, a4Width, a4Height, a4Margin)
     );
 
     const printer = new Printer();
@@ -190,11 +192,13 @@ export default class DiagramCanvas {
     let pages: string[] = Object.values(diagram.canvases).map((d) =>
       this.canvas.exportAsSvg(d, imgWidth, imgHeight, imgMargin)
     );
+    console.log("pages", pages);
     let svgText = pages[0];
 
     // Since icons are nested svg with external links, the links must be replaced with
     // the actual icon image as an dataUrl. Let pars unique urls
     const nestedSvgPaths = this.parseNestedSvgPaths(svgText);
+    console.log("nestedPaths", nestedSvgPaths);
 
     // Fetch the actual icon svg files
     fetchFiles(nestedSvgPaths, (files) => {
@@ -261,7 +265,7 @@ export default class DiagramCanvas {
     this.inner.editInnerDiagram(figure);
     this.callbacks.setTitle(this.diagramName);
     this.updateToolbarButtonsStates();
-    this.showTotalDiagram();
+    this.showTotalDiagramSlow();
     this.save();
   };
 
@@ -288,7 +292,7 @@ export default class DiagramCanvas {
     this.callbacks.setTitle(this.diagramName);
     this.updateToolbarButtonsStates();
     this.save();
-    this.showTotalDiagram();
+    this.showTotalDiagramSlow();
   };
 
   onEditMode = (isEditMode: boolean) => {
@@ -305,6 +309,7 @@ export default class DiagramCanvas {
   };
 
   showTotalDiagram = () => zoomAndMoveShowTotalDiagram(this.canvas);
+  showTotalDiagramSlow = () => zoomAndMoveShowTotalDiagram(this.canvas, 2000);
 
   addNode = (data: any) => {
     if (data.group) {
