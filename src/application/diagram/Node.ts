@@ -2,7 +2,6 @@ import draw2d from "draw2d";
 import PubSub from "pubsub-js";
 import cuid from "cuid";
 import { menuItem } from "../../common/Menus";
-import timing from "../../common/timing";
 import Colors from "./Colors";
 import CommandChangeIcon from "./CommandChangeIcon";
 import NodeIcons from "./NodeIcons";
