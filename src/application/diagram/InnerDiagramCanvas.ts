@@ -7,8 +7,9 @@ import Node from "./Node";
 import Canvas from "./Canvas";
 import CanvasStack from "./CanvasStack";
 import { IStore } from "./Store";
-import { Figure2d } from "./draw2dTypes";
+import { Box, Figure2d } from "./draw2dTypes";
 import { isError } from "../../common/Result";
+import { Tweenable } from "shifty";
 
 export default class InnerDiagramCanvas {
   private canvas: Canvas;
@@ -21,13 +22,17 @@ export default class InnerDiagramCanvas {
     this.store = store;
   }
 
-  public editInnerDiagram = (node: Node): void => {
+  public async editInnerDiagram(node: Node): Promise<void> {
     const t = timing();
     const innerDiagram = node.innerDiagram;
     if (innerDiagram == null) {
       // Figure has no inner diagram, thus nothing to edit
       return;
     }
+
+    this.canvas.unselectAll();
+    await this.moveToShowNodeInCenter(node);
+    await this.zoomToShowEditableNode(node, node.innerDiagram.canvasDto?.rect);
 
     // Remember the current outer zoom, which is used when zooming inner diagram
     const outerZoom = this.canvas.zoomFactor;
@@ -78,10 +83,15 @@ export default class InnerDiagramCanvas {
     console.log("scroll x, y", left, top);
     this.setScrollInCanvasCoordinate(left, top);
 
+    //await this.zoomToShowTotalDiagram();
+    //zoomAndMoveShowTotalDiagram(this.canvas, 2000);
+
     console.log("editInnerDiagram", t());
-  };
+  }
 
   public popFromInnerDiagram = (): void => {
+    this.canvas.unselectAll();
+
     const t = timing();
     const groupNode = this.canvas.getFigure(Group.mainId);
 
@@ -122,6 +132,8 @@ export default class InnerDiagramCanvas {
     this.setScrollInCanvasCoordinate(sx, sy);
 
     // this.addOrUpdateExternalNodes(externalNodes, node);
+
+    //this.zoomToShowTotalDiagram(this.canvas, 2000);
 
     console.log("popFromInnerDiagram", t());
   };
@@ -492,4 +504,231 @@ export default class InnerDiagramCanvas {
       d1.node.y < d2.node.y ? -1 : d1.node.y > d2.node.y ? 1 : 0
     );
   }
+
+  private moveToShowNodeInCenter(node: Node): Promise<void> {
+    return new Promise((resolve) => {
+      const area = this.canvas.getScrollArea();
+      const sp = { x: area.scrollLeft(), y: area.scrollTop() };
+
+      //const { x, y, w, h } = this.canvas.getFiguresRect();
+      const { x, y, w, h } = {
+        x: node.x,
+        y: node.y,
+        w: node.width,
+        h: node.height,
+      };
+
+      const zoom = this.canvas.zoomFactor;
+      const fc = { x: (x + w / 2) / zoom, y: (y + h / 2) / zoom };
+      const cc = {
+        x: this.canvas.getWidth() / 2,
+        y: this.canvas.getHeight() / 2,
+      };
+
+      const tp = { x: fc.x - cc.x, y: fc.y - cc.y };
+
+      const tweenable = new Tweenable();
+      tweenable.tween({
+        from: { x: sp.x, y: sp.y },
+        to: { x: tp.x, y: tp.y },
+        duration: 1000,
+        easing: "easeOutSine",
+        step: (state: any) => {
+          area.scrollLeft(state.x);
+          area.scrollTop(state.y);
+        },
+        finish: (_: any) => {
+          resolve();
+        },
+      });
+    });
+  }
+
+  private zoomToShowEditableNode(node: Node, targetRect: Box): Promise<void> {
+    return new Promise((resolve) => {
+      const area = this.canvas.getScrollArea();
+      const sourceZoom = this.canvas.zoomFactor;
+
+      const { x, y, w, h } = {
+        x: node.x,
+        y: node.y,
+        w: node.width,
+        h: node.height,
+      };
+
+      const fc = { x: x + w / 2, y: y + h / 2 };
+      const cc = {
+        x: this.canvas.getWidth() / 2,
+        y: this.canvas.getHeight() / 2,
+      };
+
+      if (!targetRect) {
+        targetRect = {
+          x: 0,
+          y: 0,
+          w: Group.defaultWidth + 400,
+          h: Group.defaultHeight + 300,
+        };
+      }
+      const targetZoom = Math.max(
+        node.innerDiagram.innerZoom,
+        (targetRect.w * node.innerDiagram.innerZoom) /
+          (this.canvas.getWidth() - 100),
+        (targetRect.h * node.innerDiagram.innerZoom) /
+          (this.canvas.getHeight() - 100)
+      );
+
+      const tweenable = new Tweenable();
+      tweenable.tween({
+        from: { zoom: sourceZoom },
+        to: { zoom: targetZoom },
+        duration: 2000,
+        easing: "easeOutSine",
+        step: (state: any) => {
+          this.canvas.setZoom(state.zoom, false);
+
+          // Adjust scroll to center, since canvas zoom lacks zoom at center point
+          const tp = {
+            x: fc.x - cc.x * state.zoom,
+            y: fc.y - cc.y * state.zoom,
+          };
+          area.scrollLeft(tp.x / state.zoom);
+          area.scrollTop(tp.y / state.zoom);
+        },
+        finish: (_: any) => {
+          resolve();
+        },
+      });
+    });
+  }
+
+  zoomToShowTotalDiagram = (
+    canvas: Canvas,
+    duration: number,
+    done: () => void
+  ) => {
+    const area = canvas.getScrollArea();
+    const sourceZoom = canvas.zoomFactor;
+
+    const { x, y, w, h } = canvas.getFiguresRect();
+
+    const fc = { x: x + w / 2, y: y + h / 2 };
+    const cc = { x: canvas.getWidth() / 2, y: canvas.getHeight() / 2 };
+
+    const targetZoom = Math.max(
+      1,
+      w / (canvas.getWidth() - 100),
+      h / (canvas.getHeight() - 100)
+    );
+
+    console.log("total source zoom", sourceZoom);
+    console.log("total target zooom", targetZoom);
+
+    const tweenable = new Tweenable();
+    tweenable.tween({
+      from: { zoom: sourceZoom },
+      to: { zoom: targetZoom },
+      duration: duration,
+      easing: "easeOutSine",
+      step: (state: any) => {
+        canvas.setZoom(state.zoom, false);
+
+        // Adjust scroll to center, since canvas zoom lacks zoom at center point
+        const tp = { x: fc.x - cc.x * state.zoom, y: fc.y - cc.y * state.zoom };
+        area.scrollLeft(tp.x / state.zoom);
+        area.scrollTop(tp.y / state.zoom);
+      },
+      finish: (_: any) => {
+        if (done != null) {
+          done();
+        }
+      },
+    });
+  };
+
+  // private zoomAndMoveShowTotalDiagram(
+  //   canvas: Canvas,
+  //   duration: number = 500
+  // ): void {
+  //   this.moveToShowTotalDiagram(canvas, duration, () =>
+  //     this.zoomToShowTotalDiagram(canvas, duration, () => {})
+  //   );
+  // }
+
+  // private moveToShowTotalDiagram(
+  //   canvas: Canvas,
+  //   duration: number,
+  //   done: () => void
+  // ) {
+  //   const area = canvas.getScrollArea();
+  //   const sp = { x: area.scrollLeft(), y: area.scrollTop() };
+
+  //   const { x, y, w, h } = canvas.getFiguresRect();
+
+  //   const zoom = canvas.zoomFactor;
+  //   const fc = { x: (x + w / 2) / zoom, y: (y + h / 2) / zoom };
+  //   const cc = { x: canvas.getWidth() / 2, y: canvas.getHeight() / 2 };
+
+  //   const tp = { x: fc.x - cc.x, y: fc.y - cc.y };
+
+  //   const tweenable = new Tweenable();
+  //   tweenable.tween({
+  //     from: { x: sp.x, y: sp.y },
+  //     to: { x: tp.x, y: tp.y },
+  //     duration: duration,
+  //     easing: "easeOutSine",
+  //     step: (state: any) => {
+  //       area.scrollLeft(state.x);
+  //       area.scrollTop(state.y);
+  //     },
+  //     finish: (_: any) => {
+  //       if (done != null) {
+  //         done();
+  //       }
+  //     },
+  //   });
+  // }
+
+  // private zoomToShowTotalDiagram(
+  //   canvas: Canvas,
+  //   duration: number,
+  //   done: () => void
+  // ) {
+  //   const area = canvas.getScrollArea();
+  //   const sourceZoom = canvas.zoomFactor;
+
+  //   const { x, y, w, h } = canvas.getFiguresRect();
+
+  //   const fc = { x: x + w / 2, y: y + h / 2 };
+  //   const cc = { x: canvas.getWidth() / 2, y: canvas.getHeight() / 2 };
+
+  //   const targetZoom = Math.max(
+  //     1,
+  //     w / (canvas.getWidth() - 100),
+  //     h / (canvas.getHeight() - 100)
+  //   );
+
+  //   console.log("start zoom", sourceZoom);
+  //   const tweenable = new Tweenable();
+  //   tweenable.tween({
+  //     from: { zoom: sourceZoom },
+  //     to: { zoom: targetZoom },
+  //     duration: duration,
+  //     easing: "easeOutSine",
+  //     step: (state: any) => {
+  //       console.log("zoom", state.zoom);
+  //       canvas.setZoom(state.zoom, false);
+
+  //       // Adjust scroll to center, since canvas zoom lacks zoom at center point
+  //       const tp = { x: fc.x - cc.x * state.zoom, y: fc.y - cc.y * state.zoom };
+  //       area.scrollLeft(tp.x / state.zoom);
+  //       area.scrollTop(tp.y / state.zoom);
+  //     },
+  //     finish: (_: any) => {
+  //       if (done != null) {
+  //         done();
+  //       }
+  //     },
+  //   });
+  // }
 }

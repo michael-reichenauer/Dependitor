@@ -22,7 +22,7 @@ export default class Canvas extends draw2d.Canvas {
 
   public canvasId: string = "";
 
-  constructor(
+  public constructor(
     htmlElementId: string,
     onEditMode: (isEdit: boolean) => void,
     width: number,
@@ -82,11 +82,11 @@ export default class Canvas extends draw2d.Canvas {
     this.enableTouchSupport();
   }
 
-  serialize(): CanvasDto {
+  public serialize(): CanvasDto {
     return this.serializer.serialize();
   }
 
-  deserialize(canvasDto: CanvasDto): void {
+  public deserialize(canvasDto: CanvasDto): void {
     this.serializer.deserialize(canvasDto);
   }
 
@@ -108,6 +108,14 @@ export default class Canvas extends draw2d.Canvas {
     const svg = canvas.export(width, height, margin, box);
     canvas.destroy();
     return svg;
+  }
+
+  public unselectAll() {
+    if (!this.selection.all.isEmpty()) {
+      // Deselect items, since zooming with selected figures is slow
+      this.selection.getAll().each((_: number, f: Figure2d) => f.unselect());
+      this.selection.clear();
+    }
   }
 
   export(width: number, height: number, margin: number, box?: Box): string {

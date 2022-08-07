@@ -70,7 +70,9 @@ const zoomToShowTotalDiagram = (
     h / (canvas.getHeight() - 100)
   );
 
-  console.log("start zoom", sourceZoom);
+  console.log("total source zoom", sourceZoom);
+  console.log("total target zooom", targetZoom);
+
   const tweenable = new Tweenable();
   tweenable.tween({
     from: { zoom: sourceZoom },
@@ -78,7 +80,6 @@ const zoomToShowTotalDiagram = (
     duration: duration,
     easing: "easeOutSine",
     step: (state: any) => {
-      console.log("zoom", state.zoom);
       canvas.setZoom(state.zoom, false);
 
       // Adjust scroll to center, since canvas zoom lacks zoom at center point

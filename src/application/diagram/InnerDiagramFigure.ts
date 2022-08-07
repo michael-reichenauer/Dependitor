@@ -83,6 +83,7 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
     if (isError(canvasDto)) {
       return canvasDto;
     }
+    this.canvasDto = canvasDto;
 
     const group = canvasDto.figures.find((f) => f.id === Group.mainId);
 

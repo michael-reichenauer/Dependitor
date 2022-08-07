@@ -263,7 +263,6 @@ export default class DiagramCanvas {
     this.inner.editInnerDiagram(figure);
     this.callbacks.setTitle(this.diagramName);
     this.updateToolbarButtonsStates();
-    this.showTotalDiagramSlow();
     this.save();
   };
 
