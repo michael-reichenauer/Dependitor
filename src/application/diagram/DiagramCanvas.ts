@@ -1,7 +1,6 @@
 import "import-jquery";
 import "jquery-ui-bundle";
 import "jquery-ui-bundle/jquery-ui.css";
-import * as draw2d from "draw2d";
 import PubSub from "pubsub-js";
 import {
   imgDataUrlToPngDataUrl,
@@ -27,7 +26,6 @@ import { DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
 import stopwatch from "../../common/stopwatch";
 import Group from "./Group";
-import { logName } from "../../common/log";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
