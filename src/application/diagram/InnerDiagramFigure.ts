@@ -16,8 +16,39 @@ import Group from "./Group";
 
 const imgMargin = 0;
 
+const defaultFigure = (node: Node) => ({
+  id: node.id,
+  rect: {
+    x: 49800,
+    y: 49800,
+    w: 400,
+    h: 400,
+    x2: 50200,
+    y2: 50200,
+  },
+  figures: [
+    {
+      type: "nodeGroup",
+      id: "mainId",
+      rect: {
+        x: 49800,
+        y: 49800,
+        w: 400,
+        h: 400,
+      },
+      name: node.getName(),
+      description: node.getDescription(),
+      color: "None",
+      icon: node.iconName,
+      sticky: true,
+    },
+  ],
+  connections: [],
+});
+
 export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
   private static innerPadding = 2;
+  private parent: Node;
 
   public constructor(parent: Node, private store = di(IStoreKey)) {
     super({
@@ -29,6 +60,8 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
       radius: 5,
     });
 
+    this.innerZoom = 0.14; // calculate real !!!!
+    this.parent = parent;
     this.setDiagram(parent.id);
     this.marginX = 0;
     this.marginY = 0;
@@ -48,15 +81,12 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
     const imx = this.marginX * this.innerZoom;
     const imy = this.marginY * this.innerZoom;
 
-    console.log("imx", imx, imy);
     // get the inner diagram pos in canvas view coordinates
     const outerScrollPos = this.getScrollInCanvasCoordinate();
-    console.log("outerScrollPos", outerScrollPos);
-    console.log("canvasZoom", canvasZoom);
-    console.log("absolute", this.getAbsoluteX(), this.getAbsoluteY());
+
     const vx = (this.getAbsoluteX() + imx - outerScrollPos.left) / canvasZoom;
     const vy = (this.getAbsoluteY() + imy - outerScrollPos.top) / canvasZoom;
-    console.log("diagramcoord", vx, vy);
+
     return { left: vx, top: vy };
   }
 
@@ -68,10 +98,13 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
     };
   }
 
+  public handleDoubleClick() {
+    PubSub.publish("canvas.EditInnerDiagram", this.parent);
+  }
+
   private async setDiagram(id: string): Promise<void> {
     const url = await this.getDiagramUrl(id);
     if (isError(url)) {
-      console.log("Error", url);
       return;
     }
 
@@ -79,10 +112,11 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
   }
 
   private async getDiagramUrl(id: string): Promise<Result<string>> {
-    const canvasDto = this.store.tryGetCanvas(id);
+    let canvasDto = this.store.tryGetCanvas(id);
     if (isError(canvasDto)) {
-      return canvasDto;
+      canvasDto = defaultFigure(this.parent);
     }
+
     this.canvasDto = canvasDto;
 
     const group = canvasDto.figures.find((f) => f.id === Group.mainId);
@@ -98,9 +132,6 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
 
     const innerWidth = group?.rect.w ?? Group.defaultWidth;
     this.innerZoom = this.width / innerWidth;
-
-    // this.marginX = (diagramWidth - diagramBox.w) / 2;
-    // this.marginY = (diagramHeight - diagramBox.h) / 2;
 
     // Since icons are nested svg with external links, the links must be replaced with
     // the actual icon image as an dataUrl. Let pars unique urls

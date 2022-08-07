@@ -167,7 +167,7 @@ export class Store implements IStore {
     const canvasDto = diagramDto.canvases[canvasId];
     if (!canvasDto) {
       return new NotFoundError(
-        `Canvas  ${canvasDto} not in diagram ${diagramDto.id}`
+        `Canvas ${canvasId} not in diagram ${diagramDto.id}`
       );
     }
 

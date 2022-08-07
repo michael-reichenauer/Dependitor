@@ -269,14 +269,12 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   private showInnerDiagram(): void {
-    console.log("showInnerDiagram");
-
     this.setChildrenVisible(false);
 
     this.innerDiagram = new InnerDiagramFigure(this);
     this.innerDiagram.onClick = clickHandler(
       () => this.hideInnerDiagram(),
-      () => this.editInnerDiagram()
+      () => {}
     );
     this.add(this.innerDiagram, new InnerDiagramLocator());
     this.repaint();
@@ -293,14 +291,6 @@ export default class Node extends draw2d.shape.node.Between {
     this.remove(this.innerDiagram);
     this.innerDiagram = null;
     console.log("hideInnerDiagram", t());
-  }
-
-  editInnerDiagram(): void {
-    if (this.innerDiagram == null) {
-      this.showInnerDiagram();
-    }
-
-    PubSub.publish("canvas.EditInnerDiagram", this);
   }
 
   handleResize(): void {
@@ -375,19 +365,19 @@ export default class Node extends draw2d.shape.node.Between {
     this.add(icon, new NodeIconLocator());
   }
 
-  addInnerDiagramIcon(): void {
-    const iconColor = Colors.getNodeFontColor(this.colorName);
-    this.diagramIcon = new draw2d.shape.icon.Diagram({
-      width: 15,
-      height: 15,
-      color: iconColor,
-      bgColor: "none",
-    });
+  // addInnerDiagramIcon(): void {
+  //   const iconColor = Colors.getNodeFontColor(this.colorName);
+  //   this.diagramIcon = new draw2d.shape.icon.Diagram({
+  //     width: 15,
+  //     height: 15,
+  //     color: iconColor,
+  //     bgColor: "none",
+  //   });
 
-    this.diagramIcon.on("click", () => this.showInnerDiagram());
+  //   this.diagramIcon.on("click", () => this.showInnerDiagram());
 
-    this.add(this.diagramIcon, new InnerDiagramIconLocator());
-  }
+  //   this.add(this.diagramIcon, new InnerDiagramIconLocator());
+  // }
 
   addPorts(): void {
     this.createPort("input", new draw2d.layout.locator.XYRelPortLocator(50, 0));
@@ -433,12 +423,12 @@ class NodeIconLocator extends draw2d.layout.locator.Locator {
   }
 }
 
-class InnerDiagramIconLocator extends draw2d.layout.locator.PortLocator {
-  relocate(_index: number, figure: Figure2d) {
-    const parent = figure.getParent();
-    this.applyConsiderRotation(figure, 3, parent.getHeight() - 18);
-  }
-}
+// class InnerDiagramIconLocator extends draw2d.layout.locator.PortLocator {
+//   relocate(_index: number, figure: Figure2d) {
+//     const parent = figure.getParent();
+//     this.applyConsiderRotation(figure, 3, parent.getHeight() - 18);
+//   }
+// }
 
 // class ConfigIconLocator extends draw2d.layout.locator.Locator {
 //   relocate(_index: number, figure: Figure2d) {
