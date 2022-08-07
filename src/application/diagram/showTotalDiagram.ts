@@ -70,9 +70,6 @@ const zoomToShowTotalDiagram = (
     h / (canvas.getHeight() - 100)
   );
 
-  console.log("total source zoom", sourceZoom);
-  console.log("total target zooom", targetZoom);
-
   const tweenable = new Tweenable();
   tweenable.tween({
     from: { zoom: sourceZoom },

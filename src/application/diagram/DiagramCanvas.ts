@@ -289,7 +289,6 @@ export default class DiagramCanvas {
     this.callbacks.setTitle(this.diagramName);
     this.updateToolbarButtonsStates();
     this.save();
-    this.showTotalDiagramSlow();
   };
 
   onEditMode = (isEditMode: boolean) => {
@@ -373,7 +372,6 @@ export default class DiagramCanvas {
 
   save() {
     // Serialize canvas figures and connections into canvas data object
-    console.log("save canvas", this.canvas.canvasId);
     const canvasData = this.canvas.serialize();
     this.store.writeCanvas(canvasData);
   }

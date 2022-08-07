@@ -60,7 +60,6 @@ export default class ZoomPolicy extends draw2d.policy.canvas.ZoomPolicy {
       )
     );
 
-    // console.log('zoom', this.canvas.zoomFactor, newZoom)
     // Center zoom around mouse pointer
     if (this.center === null) {
       let client = this.canvas.fromCanvasToDocumentCoordinate(x, y);
@@ -73,7 +72,6 @@ export default class ZoomPolicy extends draw2d.policy.canvas.ZoomPolicy {
       };
     }
 
-    console.log("zoom", newZoom);
     this._zoom(newZoom, this.center);
     this.debouncedZoomedCallback();
 

@@ -264,7 +264,6 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   private unSelect() {
-    console.log("this", this);
     this.nodeToolBar.hide();
   }
 
@@ -281,8 +280,6 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   public hideInnerDiagram(): void {
-    // return;
-    const t = timing();
     if (this.innerDiagram == null) {
       return;
     }
@@ -290,7 +287,6 @@ export default class Node extends draw2d.shape.node.Between {
     this.setChildrenVisible(true);
     this.remove(this.innerDiagram);
     this.innerDiagram = null;
-    console.log("hideInnerDiagram", t());
   }
 
   handleResize(): void {

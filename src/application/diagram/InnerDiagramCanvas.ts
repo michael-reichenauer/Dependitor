@@ -1,5 +1,4 @@
 import draw2d from "draw2d";
-import timing from "../../common/timing";
 import Connection from "./Connection";
 import Group from "./Group";
 import Node from "./Node";
@@ -8,6 +7,8 @@ import CanvasStack from "./CanvasStack";
 import { IStore } from "./Store";
 import { Box, Figure2d } from "./draw2dTypes";
 import { Tweenable } from "shifty";
+
+const zoomMoveDuration = 1000;
 
 export default class InnerDiagramCanvas {
   private canvas: Canvas;
@@ -21,13 +22,15 @@ export default class InnerDiagramCanvas {
   }
 
   public async editInnerDiagram(node: Node): Promise<void> {
-    const t = timing();
     const innerDiagram = node.innerDiagram;
     if (innerDiagram == null) {
       // Figure has no inner diagram, thus nothing to edit
       return;
     }
     const canvasDto = node.innerDiagram.canvasDto;
+    node.getPorts().each((i: number, p: any) => {
+      p.setAlpha(0.0);
+    });
 
     this.canvas.unselectAll();
     await this.moveToShowNodeInCenter(node);
@@ -52,11 +55,9 @@ export default class InnerDiagramCanvas {
     // Load inner diagram canvas or a default diagram canvas
     this.canvas.deserialize(canvasDto);
 
-    console.log("loaded diagram", t());
     const groupNode = this.canvas.getFigure(Group.mainId);
     this.updateGroup(groupNode, node);
     this.addOrUpdateConnectedNodes(groupNode, connectedNodes);
-    console.log("added connected nodes", t());
 
     // Zoom inner diagram to correspond to inner diagram image size in the outer node
     // @ts-ignore
@@ -73,13 +74,11 @@ export default class InnerDiagramCanvas {
       innerDiagramRect.y - innerDiagramViewPos.top * this.canvas.zoomFactor;
 
     this.setScrollInCanvasCoordinate(left, top);
-    console.log("editInnerDiagram", t());
   }
 
-  public popFromInnerDiagram = (): void => {
+  public async popFromInnerDiagram(): Promise<void> {
     this.canvas.unselectAll();
 
-    const t = timing();
     const groupNode = this.canvas.getFigure(Group.mainId);
 
     // Get the inner diagram zoom to use when zooming outer diagram
@@ -118,12 +117,12 @@ export default class InnerDiagramCanvas {
       node.y + 2 + imy - innerDiagramViewPos.y * this.canvas.zoomFactor;
     this.setScrollInCanvasCoordinate(sx, sy);
 
-    // this.addOrUpdateExternalNodes(externalNodes, node);
+    node.getPorts().each((i: number, p: any) => {
+      p.setAlpha(0.0);
+    });
 
-    //this.zoomToShowTotalDiagram(this.canvas, 2000);
-
-    console.log("popFromInnerDiagram", t());
-  };
+    await this.zoomToShowNormalNode(node, 1);
+  }
 
   private getNodesExternalToGroup(group: Group): any {
     const internalNodes = group.getAboardFigures(true).asArray();
@@ -505,7 +504,7 @@ export default class InnerDiagramCanvas {
       tweenable.tween({
         from: { x: sp.x, y: sp.y },
         to: { x: tp.x, y: tp.y },
-        duration: 1000,
+        duration: zoomMoveDuration,
         easing: "easeOutSine",
         step: (state: any) => {
           area.scrollLeft(state.x);
@@ -556,7 +555,7 @@ export default class InnerDiagramCanvas {
       tweenable.tween({
         from: { zoom: sourceZoom },
         to: { zoom: targetZoom },
-        duration: 2000,
+        duration: zoomMoveDuration,
         easing: "easeOutSine",
         step: (state: any) => {
           this.canvas.setZoom(state.zoom, false);
@@ -576,47 +575,44 @@ export default class InnerDiagramCanvas {
     });
   }
 
-  zoomToShowTotalDiagram = (
-    canvas: Canvas,
-    duration: number,
-    done: () => void
-  ) => {
-    const area = canvas.getScrollArea();
-    const sourceZoom = canvas.zoomFactor;
+  private zoomToShowNormalNode(node: Node, targetZoom: number): Promise<void> {
+    return new Promise((resolve) => {
+      const area = this.canvas.getScrollArea();
+      const sourceZoom = this.canvas.zoomFactor;
+      const { x, y, w, h } = {
+        x: node.x,
+        y: node.y,
+        w: node.width,
+        h: node.height,
+      };
 
-    const { x, y, w, h } = canvas.getFiguresRect();
+      const fc = { x: x + w / 2, y: y + h / 2 };
+      const cc = {
+        x: this.canvas.getWidth() / 2,
+        y: this.canvas.getHeight() / 2,
+      };
 
-    const fc = { x: x + w / 2, y: y + h / 2 };
-    const cc = { x: canvas.getWidth() / 2, y: canvas.getHeight() / 2 };
+      const tweenable = new Tweenable();
+      tweenable.tween({
+        from: { zoom: sourceZoom },
+        to: { zoom: targetZoom },
+        duration: zoomMoveDuration * 2,
+        easing: "easeOutSine",
+        step: (state: any) => {
+          this.canvas.setZoom(state.zoom, false);
 
-    const targetZoom = Math.max(
-      1,
-      w / (canvas.getWidth() - 100),
-      h / (canvas.getHeight() - 100)
-    );
-
-    console.log("total source zoom", sourceZoom);
-    console.log("total target zooom", targetZoom);
-
-    const tweenable = new Tweenable();
-    tweenable.tween({
-      from: { zoom: sourceZoom },
-      to: { zoom: targetZoom },
-      duration: duration,
-      easing: "easeOutSine",
-      step: (state: any) => {
-        canvas.setZoom(state.zoom, false);
-
-        // Adjust scroll to center, since canvas zoom lacks zoom at center point
-        const tp = { x: fc.x - cc.x * state.zoom, y: fc.y - cc.y * state.zoom };
-        area.scrollLeft(tp.x / state.zoom);
-        area.scrollTop(tp.y / state.zoom);
-      },
-      finish: (_: any) => {
-        if (done != null) {
-          done();
-        }
-      },
+          // Adjust scroll to center, since canvas zoom lacks zoom at center point
+          const tp = {
+            x: fc.x - cc.x * state.zoom,
+            y: fc.y - cc.y * state.zoom,
+          };
+          area.scrollLeft(tp.x / state.zoom);
+          area.scrollTop(tp.y / state.zoom);
+        },
+        finish: (_: any) => {
+          resolve();
+        },
+      });
     });
-  };
+  }
 }

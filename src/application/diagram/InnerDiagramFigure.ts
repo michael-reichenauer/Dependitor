@@ -121,7 +121,6 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
 
     const group = canvasDto.figures.find((f) => f.id === Group.mainId);
 
-    console.log("svg", canvasDto);
     const svg = Canvas.exportAsSvg(
       canvasDto,
       Node.defaultWidth,
