@@ -9,7 +9,8 @@ import { LabelEditor } from "./LabelEditor";
 import CommandChangeColor from "./CommandChangeColor";
 import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
-import { NodeToolbar } from "./NodeToolbar";
+import { Toolbar } from "./Toolbar";
+import { logName } from "../../common/log";
 
 const defaultOptions = () => {
   return {
@@ -33,6 +34,7 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
   descriptionLabel: Figure2d;
   colorName: string;
   getAboardFiguresOrg: boolean;
+  private toolBar: Toolbar;
 
   getName = () => this.nameLabel?.text ?? "";
   getDescription = () => this.descriptionLabel?.text ?? "";
@@ -69,15 +71,9 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     this.on("dblclick", (_s: any, _e: any) => {});
     this.on("resize", (_s: any, _e: any) => {});
 
-    const nodeToolBar = new NodeToolbar(this, [
-      { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
-      {
-        icon: draw2d.shape.icon.Pallete,
-        menu: () => this.getBackgroundColorMenuItems(),
-      },
-    ]);
-    this.on("select", () => nodeToolBar.show());
-    this.on("unselect", () => nodeToolBar.hide());
+    this.toolBar = new Toolbar(this);
+    this.on("select", () => this.selectNodeGroup());
+    this.on("unselect", () => this.unSelectNodeGroup());
 
     // Adjust selection handle sizes
     const selectionPolicy = this.editPolicy.find(
@@ -127,6 +123,20 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
       icon: this.iconName,
       sticky: sticky,
     };
+  }
+
+  private selectNodeGroup() {
+    this.toolBar.show([
+      { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
+      {
+        icon: draw2d.shape.icon.Pallete,
+        menu: () => this.getBackgroundColorMenuItems(),
+      },
+    ]);
+  }
+
+  private unSelectNodeGroup() {
+    this.toolBar.hide();
   }
 
   toggleGroupSubItems() {
@@ -333,6 +343,16 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     this.iconName = iconKey;
     this.icon = icon;
     this.add(icon, new NodeIconLocator());
+  }
+
+  showToolbar(): void {
+    logName();
+    this.toolBar.show([
+      {
+        icon: draw2d.shape.icon.Contract,
+        action: () => PubSub.publish("canvas.PopInnerDiagram"),
+      },
+    ]);
   }
 
   showConfigMenu = (): void => {

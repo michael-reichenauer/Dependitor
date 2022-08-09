@@ -6,7 +6,6 @@ import Colors from "./Colors";
 import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
 import { icons, noImageIconKey } from "../../common/icons";
-import { NodeToolbar } from "./NodeToolbar";
 import CommandChangeIcon from "./CommandChangeIcon";
 import CommandChangeColor from "./CommandChangeColor";
 import { LabelEditor } from "./LabelEditor";
@@ -65,20 +64,14 @@ export default class Group extends draw2d.shape.composite.Raft {
     this.addIcon(o.icon);
     this.addLabels(o.name, o.description);
     this.addPorts();
+    //this.toolBar.show()
 
     // this.on("click", (s, e) => console.log('click node'))
     this.on("dblclick", (_s: any, _e: any) => {});
     this.on("resize", (_s: any, _e: any) => {});
 
-    const nodeToolBar = new NodeToolbar(this, [
-      { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
-      {
-        icon: draw2d.shape.icon.Pallete,
-        menu: () => this.getBackgroundColorMenuItems(),
-      },
-    ]);
-    this.on("select", () => nodeToolBar.show());
-    this.on("unselect", () => nodeToolBar.hide());
+    this.on("select", () => {});
+    this.on("unselect", () => {});
 
     // Adjust selection handle sizes
     const selectionPolicy = this.editPolicy.find(

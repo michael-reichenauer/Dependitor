@@ -74,6 +74,7 @@ export default class InnerDiagramCanvas {
       innerDiagramRect.y - innerDiagramViewPos.top * this.canvas.zoomFactor;
 
     this.setScrollInCanvasCoordinate(left, top);
+    groupNode.showToolbar();
   }
 
   public async popFromInnerDiagram(): Promise<void> {
@@ -121,6 +122,7 @@ export default class InnerDiagramCanvas {
       p.setAlpha(0.0);
     });
 
+    this.canvas.unselectAll();
     await this.zoomToShowNormalNode(node, 1);
   }
 
@@ -479,6 +481,7 @@ export default class InnerDiagramCanvas {
   }
 
   private moveToShowNodeInCenter(node: Node): Promise<void> {
+    this.canvas.unselectAll();
     return new Promise((resolve) => {
       const area = this.canvas.getScrollArea();
       const sp = { x: area.scrollLeft(), y: area.scrollTop() };
@@ -518,6 +521,8 @@ export default class InnerDiagramCanvas {
   }
 
   private zoomToShowEditableNode(node: Node, targetRect: Box): Promise<void> {
+    this.canvas.unselectAll();
+
     return new Promise((resolve) => {
       const area = this.canvas.getScrollArea();
       const sourceZoom = this.canvas.zoomFactor;

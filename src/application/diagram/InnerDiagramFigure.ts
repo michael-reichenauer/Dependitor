@@ -98,6 +98,10 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
     };
   }
 
+  public handleSingleClick() {
+    this.parent.hideInnerDiagram();
+  }
+
   public handleDoubleClick() {
     PubSub.publish("canvas.EditInnerDiagram", this.parent);
   }

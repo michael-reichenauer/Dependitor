@@ -24,14 +24,12 @@ import { Canvas2d } from "./draw2dTypes";
 import { isError } from "../../common/Result";
 import { DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
-import stopwatch from "../../common/stopwatch";
 import Group from "./Group";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
 const a4Margin = 50;
 const imgMargin = 5;
-const doubleClickInterval = 500;
 
 export default class DiagramCanvas {
   static defaultWidth = 100000;
@@ -42,7 +40,6 @@ export default class DiagramCanvas {
   inner: InnerDiagramCanvas;
   diagramId: string = "";
   diagramName: string = "";
-  clicked = stopwatch();
 
   canvas: Canvas;
   callbacks: any;
@@ -66,7 +63,7 @@ export default class DiagramCanvas {
   init() {
     this.loadInitialDiagram();
 
-    this.registerDoubleClickHandler(this.canvas);
+    this.registerClickHandler(this.canvas);
     this.handleEditChanges(this.canvas);
     this.registerSelectHandler(this.canvas);
     this.handleCommands();
@@ -471,34 +468,36 @@ export default class DiagramCanvas {
     this.callbacks.setCanRedo(this.canvas.getCommandStack().canRedo());
   }
 
-  registerDoubleClickHandler(canvas: Canvas2d) {
+  registerClickHandler(canvas: Canvas2d) {
     // The dblClick event handler reacts often also for click and drag, so here is workaround
-    canvas.on("click", (_emitter: any, e: any) => {
-      const clickedInterval = this.clicked.time();
-      this.clicked = stopwatch();
+    canvas.on(
+      "click",
+      this.clickHandler(
+        (_src: any, e: any) => this.handleSingleClick(e),
+        (_src: any, e: any) => this.handleDoubleClick(e)
+      )
+    );
+  }
 
-      if (clickedInterval < doubleClickInterval) {
-        // Double click detected
-        if (e.figure?.id === Group.mainId) {
-          // Double click on group node
-          this.showAddNodeDialog(e.x, e.y);
-        }
+  private handleSingleClick(e: any) {
+    if (this.handleFigureSingleClick(e.figure)) {
+      return;
+    }
+  }
 
-        if (e.figure) {
-          this.handleFigureDoubleClick(e.figure);
-          return;
-        }
+  private handleDoubleClick(e: any) {
+    if (e.figure?.id === Group.mainId) {
+      // Double click on group node
+      this.showAddNodeDialog(e.x, e.y);
+      return;
+    }
 
-        if (!this.canvasStack.isRoot()) {
-          // double click out side group node in inner diagram lets pop canvas to parent canvas
-          this.commandPopFromInnerDiagram();
-          return;
-        }
+    if (this.handleFigureDoubleClick(e.figure)) {
+      return;
+    }
 
-        // Double click on root canvas
-        this.showAddNodeDialog(e.x, e.y);
-      }
-    });
+    // Double click on root canvas
+    this.showAddNodeDialog(e.x, e.y);
   }
 
   showAddNodeDialog(x: number, y: number) {
@@ -519,19 +518,56 @@ export default class DiagramCanvas {
     });
   }
 
-  private handleFigureDoubleClick(figure: any): void {
+  private handleFigureDoubleClick(figure: any): boolean {
+    if (!figure) {
+      return false;
+    }
     for (let f = figure; f; f = f.parent) {
       if (f.handleDoubleClick instanceof Function) {
         f.handleDoubleClick();
-        return;
+        return true;
       }
     }
+    return false;
   }
 
-  // withWorkingIndicator(action: any) {
-  //   setProgress(true);
-  //   setTimeout(() => {
-  //     action();
-  //   }, 20);
-  // }
+  private handleFigureSingleClick(figure: any): boolean {
+    if (!figure) {
+      return false;
+    }
+    for (let f = figure; f; f = f.parent) {
+      if (f.handleSingleClick instanceof Function) {
+        f.handleSingleClick();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private clickHandler(
+    onSingleClick: ((src: any, e: any) => void) | null,
+    onDoubleClick?: (src?: any, e?: any) => void
+  ) {
+    let clickTimeout: any = null;
+    let clicks = 0;
+
+    return (src: any, e: any) => {
+      clearTimeout(clickTimeout);
+      clicks++;
+      //console.log('click #', clicks)
+      if (clicks === 1) {
+        clickTimeout = setTimeout(() => {
+          // single click
+          clearTimeout(clickTimeout);
+          clicks = 0;
+          onSingleClick?.(src, e);
+        }, 300);
+      } else if (clicks === 2) {
+        // Double click
+        // console.log('click time ', (performance.now() - this.clickTime).toFixed(1))
+        clicks = 0;
+        onDoubleClick?.(src, e);
+      }
+    };
+  }
 }

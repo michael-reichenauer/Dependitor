@@ -4,14 +4,17 @@ import Colors from "./Colors";
 import { Figure2d, Icon2d } from "./draw2dTypes";
 import Connection from "./Connection";
 
-export interface INodeToolbar {
-  show(): void;
+export interface IToolbar {
+  show(buttons: Button[]): void;
   hide(): void;
+  isShowing(): boolean;
 }
 
 export interface Button {
   icon: Icon2d;
-  menu: () => any;
+  menu?: () => any;
+  action?: () => void;
+  pushed?:boolean
 }
 
 interface IconButton {
@@ -20,17 +23,25 @@ interface IconButton {
 }
 
 //
-export class NodeToolbar implements INodeToolbar {
-  IconButtons: IconButton[] = [];
+export class Toolbar implements IToolbar {
+  private iconButtons: IconButton[] = [];
 
-  constructor(private figure: Figure2d, private buttons: Button[]) {}
+  public constructor(private figure: Figure2d) {}
 
-  public show(): void {
-    this.IconButtons = this.buttons.map((button, index) =>
+  public isShowing(): boolean {
+    return this.iconButtons.length > 0;
+  }
+
+  public show(buttons: Button[]): void {
+    if (this.isShowing()) {
+      this.hide();
+    }
+
+    this.iconButtons = buttons.map((button, index) =>
       this.toIconButton(button, index)
     );
 
-    this.IconButtons.forEach((buttonIcon) => {
+    this.iconButtons.forEach((buttonIcon) => {
       this.figure.add(buttonIcon.button, buttonIcon.button.locator);
       this.figure.add(buttonIcon.icon, buttonIcon.icon.locator);
     });
@@ -39,11 +50,11 @@ export class NodeToolbar implements INodeToolbar {
   }
 
   public hide(): void {
-    this.IconButtons.forEach((buttonIcon) => {
+    this.iconButtons.forEach((buttonIcon) => {
       this.figure.remove(buttonIcon.icon);
       this.figure.remove(buttonIcon.button);
     });
-    this.IconButtons = [];
+    this.iconButtons = [];
 
     this.figure.repaint();
   }
@@ -52,8 +63,10 @@ export class NodeToolbar implements INodeToolbar {
     const x = index * 23;
     const y = 0;
 
+    const bgColor = button.pushed? Colors.buttonPushedBackground: Colors.buttonBackground
+
     const buttonRect = new draw2d.shape.basic.Rectangle({
-      bgColor: Colors.buttonBackground,
+      bgColor: bgColor,
       alpha: 1,
       width: 20,
       height: 20,
@@ -61,9 +74,14 @@ export class NodeToolbar implements INodeToolbar {
       stroke: 0.1,
     });
     buttonRect.locator = this.makeLocator(x, y);
-    buttonRect.on("click", () =>
-      this.showButtonMenu(x + 6, y + 5, button.menu)
-    );
+    buttonRect.on("click", () => {
+      if (button.menu) {
+        this.showButtonMenu(x + 6, y + 5, button.menu);
+      }
+      if (button.action) {
+        button.action();
+      }
+    });
 
     const icon = new button.icon({
       width: 16,
