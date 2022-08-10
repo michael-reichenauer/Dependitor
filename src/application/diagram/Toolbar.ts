@@ -3,6 +3,7 @@ import PubSub from "pubsub-js";
 import Colors from "./Colors";
 import { Figure2d, Icon2d } from "./draw2dTypes";
 import Connection from "./Connection";
+import { Tooltip } from "./Tooltip";
 
 export interface IToolbar {
   show(buttons: Button[]): void;
@@ -14,7 +15,8 @@ export interface Button {
   icon: Icon2d;
   menu?: () => any;
   action?: () => void;
-  pushed?:boolean
+  pushed?: boolean;
+  tooltip?: string;
 }
 
 interface IconButton {
@@ -63,7 +65,9 @@ export class Toolbar implements IToolbar {
     const x = index * 23;
     const y = 0;
 
-    const bgColor = button.pushed? Colors.buttonPushedBackground: Colors.buttonBackground
+    const bgColor = button.pushed
+      ? Colors.buttonPushedBackground
+      : Colors.buttonBackground;
 
     const buttonRect = new draw2d.shape.basic.Rectangle({
       bgColor: bgColor,
@@ -82,6 +86,9 @@ export class Toolbar implements IToolbar {
         button.action();
       }
     });
+    if (button.tooltip) {
+      buttonRect.tooltip = new Tooltip(buttonRect, button.tooltip);
+    }
 
     const icon = new button.icon({
       width: 16,

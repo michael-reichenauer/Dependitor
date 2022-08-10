@@ -10,7 +10,6 @@ import CommandChangeColor from "./CommandChangeColor";
 import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
 import { Toolbar } from "./Toolbar";
-import { logName } from "../../common/log";
 
 const defaultOptions = () => {
   return {
@@ -346,7 +345,6 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
   }
 
   showToolbar(): void {
-    logName();
     this.toolBar.show([
       {
         icon: draw2d.shape.icon.Contract,

@@ -202,14 +202,10 @@ export default class Node extends draw2d.shape.node.Between {
 
   public toFront(figure?: Figure2d) {
     super.toFront(figure);
-
-    // When node is moved back, all groups should be moved back as well
-    this.moveAllGroupsToBack();
   }
 
   public toBack(figure?: Figure2d) {
     super.toBack(figure);
-
     // When node is moved back, all groups should be moved back as well
     this.moveAllGroupsToBack();
   }
@@ -296,23 +292,34 @@ export default class Node extends draw2d.shape.node.Between {
     let toolButtons;
     if (this.innerDiagram) {
       toolButtons = [
-        { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
+        {
+          icon: draw2d.shape.icon.Run,
+          menu: () => this.getConfigMenuItems(),
+          tooltip: "Settings",
+        },
         {
           icon: draw2d.shape.icon.Diagram,
           action: () => this.toggleInnerDiagram(),
           pushed: true,
+          tooltip: "Toggle inner diagram",
         },
         {
           icon: draw2d.shape.icon.Expand,
           action: () => this.editInnerDiagram(),
+          tooltip: "Edit inner diagram",
         },
       ];
     } else {
       toolButtons = [
-        { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
+        {
+          icon: draw2d.shape.icon.Run,
+          menu: () => this.getConfigMenuItems(),
+          tooltip: "Settings",
+        },
         {
           icon: draw2d.shape.icon.Diagram,
           action: () => this.toggleInnerDiagram(),
+          tooltip: "Toggle inner diagram",
         },
       ];
     }
