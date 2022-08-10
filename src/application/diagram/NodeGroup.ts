@@ -126,10 +126,15 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
 
   private selectNodeGroup() {
     this.toolBar.show([
-      { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
+      {
+        icon: draw2d.shape.icon.Run,
+        menu: () => this.getConfigMenuItems(),
+        tooltip: "Settings",
+      },
       {
         icon: draw2d.shape.icon.Pallete,
         menu: () => this.getBackgroundColorMenuItems(),
+        tooltip: "Set background color",
       },
     ]);
   }
