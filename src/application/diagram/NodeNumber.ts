@@ -5,7 +5,6 @@ import { menuItem } from "../../common/Menus";
 import Colors from "./Colors";
 import Label from "./Label";
 import { LabelEditor } from "./LabelEditor";
-import NodeGroup from "./NodeGroup";
 import NodeSelectionFeedbackPolicy from "./NodeSelectionFeedbackPolicy";
 import { Figure2d } from "./draw2dTypes";
 import Canvas from "./Canvas";
@@ -78,6 +77,7 @@ export default class NodeNumber extends draw2d.shape.basic.Circle {
       name: this.getName(),
       description: this.getDescription(),
       color: this.colorName,
+      zOrder: this.getZOrder(),
     };
   }
 
@@ -120,37 +120,17 @@ export default class NodeNumber extends draw2d.shape.basic.Circle {
 
   toBack(figure: Figure2d) {
     super.toBack(figure);
-
-    // When node is moved back, all groups should be moved back as well
-    this.moveAllGroupsToBack();
-    // const group = this.getCanvas()?.group
-    // group?.toBack()
-  }
-
-  moveAllGroupsToBack() {
-    // Get all figures in z order
-    const figures = this.canvas.getFigures().clone();
-    figures.sort((a: Figure2d, b: Figure2d) => {
-      // return 1  if a before b
-      // return -1 if b before a
-      return a.getZOrder() > b.getZOrder() ? -1 : 1;
-    });
-
-    // move all group nodes to back to be behind all nodes
-    figures.asArray().forEach((f: Figure2d) => {
-      if (f instanceof NodeGroup) {
-        f.toBack();
-      }
-    });
   }
 
   moveToBack() {
     this.toBack(this);
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 
   moveToFront() {
     this.toFront();
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 

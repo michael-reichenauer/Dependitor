@@ -10,6 +10,10 @@ import { Box, Canvas2d, Command2d, Figure2d, Line2d } from "./draw2dTypes";
 import { CanvasDto } from "./StoreDtos";
 
 import DiagramCanvas from "./DiagramCanvas";
+import Node from "./Node";
+import NodeGroup from "./NodeGroup";
+import NodeNumber from "./NodeNumber";
+import Group from "./Group";
 
 const randomDist = 30;
 
@@ -116,6 +120,43 @@ export default class Canvas extends draw2d.Canvas {
       this.selection.getAll().each((_: number, f: Figure2d) => f.unselect());
       this.selection.clear();
     }
+  }
+
+  public adjustZOrder() {
+    // Get all figures in z order
+    const figures = this.getFigures().clone();
+    figures.sort((a: Figure2d, b: Figure2d) => {
+      // return -1 if a over b
+      // return 1 if b under a
+      if (this.figureTypeZOrder(a) > this.figureTypeZOrder(b)) {
+        return -1;
+      }
+      if (this.figureTypeZOrder(a) < this.figureTypeZOrder(b)) {
+        return 1;
+      }
+      return a.getZOrder() > b.getZOrder() ? -1 : 1;
+    });
+
+    figures.asArray().forEach((f: Figure2d) => {
+      f.toBack();
+    });
+  }
+
+  private figureTypeZOrder(figure: Figure2d): number {
+    if (figure instanceof Group) {
+      return 10;
+    }
+    if (figure instanceof NodeGroup) {
+      return 20;
+    }
+    if (figure instanceof Node) {
+      return 30;
+    }
+    if (figure instanceof NodeNumber) {
+      return 40;
+    }
+
+    return 100;
   }
 
   export(width: number, height: number, margin: number, box?: Box): string {

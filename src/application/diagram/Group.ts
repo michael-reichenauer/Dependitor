@@ -118,6 +118,7 @@ export default class Group extends draw2d.shape.composite.Raft {
       name: this.getName(),
       description: this.getDescription(),
       color: this.colorName,
+      zOrder: this.getZOrder(),
       icon: this.iconName,
       sticky: sticky,
     };
@@ -176,11 +177,13 @@ export default class Group extends draw2d.shape.composite.Raft {
 
   moveToBack() {
     this.toBack();
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 
   moveToFront() {
     this.toFront();
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 
@@ -227,42 +230,17 @@ export default class Group extends draw2d.shape.composite.Raft {
   toBack() {
     if (this.isSetCanvas) {
       // Since parent type is a composite, the parent called toBack() when setCanvas() was called.
-      // However, we do not want that, just be back behind all figures, but in front of all groups
-      this.moveAllFiguresToFront();
+      // However, we do not want that
       return;
     }
 
     super.toBack();
-    // const group = this.getCanvas()?.group
-    // group?.toBack()
-  }
-
-  toFront() {
-    super.toFront();
-
-    // When moving group to front, move all figures to front as well to ensure groups are behind
-    this.moveAllFiguresToFront();
   }
 
   setNodeColor(colorName: string) {
     this.colorName = colorName;
     const color = Colors.getBackgroundColor(colorName);
     this.setBackgroundColor(color);
-  }
-
-  moveAllFiguresToFront() {
-    // Get all figures in z order
-    const figures = this.canvas.getFigures().clone();
-    figures.sort((a: Figure2d, b: Figure2d) => {
-      return a.getZOrder() > b.getZOrder() ? 1 : -1;
-    });
-
-    // move all group nodes to back to be behind all nodes
-    figures.asArray().forEach((f: Figure2d) => {
-      if (!(f instanceof Group)) {
-        f.toFront();
-      }
-    });
   }
 
   handleResize(): void {

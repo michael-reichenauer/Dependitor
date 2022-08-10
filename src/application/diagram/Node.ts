@@ -8,7 +8,6 @@ import NodeIcons from "./NodeIcons";
 import Label from "./Label";
 import { icons } from "../../common/icons";
 import { LabelEditor } from "./LabelEditor";
-import NodeGroup from "./NodeGroup";
 import NodeSelectionFeedbackPolicy from "./NodeSelectionFeedbackPolicy";
 import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
@@ -150,6 +149,7 @@ export default class Node extends draw2d.shape.node.Between {
       name: this.getName(),
       description: this.getDescription(),
       color: this.colorName,
+      zOrder: this.getZOrder(),
       icon: this.iconName,
     };
   }
@@ -200,40 +200,15 @@ export default class Node extends draw2d.shape.node.Between {
     this.showInnerDiagram();
   }
 
-  public toFront(figure?: Figure2d) {
-    super.toFront(figure);
-  }
-
-  public toBack(figure?: Figure2d) {
-    super.toBack(figure);
-    // When node is moved back, all groups should be moved back as well
-    this.moveAllGroupsToBack();
-  }
-
-  private moveAllGroupsToBack() {
-    // Get all figures in z order
-    const figures = this.canvas.getFigures().clone();
-    figures.sort((a: Figure2d, b: Figure2d) => {
-      // return 1  if a before b
-      // return -1 if b before a
-      return a.getZOrder() > b.getZOrder() ? -1 : 1;
-    });
-
-    // move all group nodes to back to be behind all nodes
-    figures.asArray().forEach((f: Figure2d) => {
-      if (f instanceof NodeGroup) {
-        f.toBack();
-      }
-    });
-  }
-
   public moveToBack(): void {
     this.toBack(this);
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 
   public moveToFront(): void {
     this.toFront();
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 

@@ -14,6 +14,7 @@ export const addFigureToCanvas = (
   y: number
 ): void => {
   canvas.runCmd(new draw2d.command.CommandAdd(canvas, figure, x, y));
+  canvas.adjustZOrder();
 };
 
 export const addDefaultNewDiagram = (canvas: Canvas) => {

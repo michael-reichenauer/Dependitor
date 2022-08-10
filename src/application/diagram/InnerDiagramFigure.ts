@@ -39,6 +39,7 @@ const defaultFigure = (node: Node) => ({
       name: node.getName(),
       description: node.getDescription(),
       color: "None",
+      zOrder: 0,
       icon: node.iconName,
       sticky: true,
     },
