@@ -109,6 +109,7 @@ export default class PanPolicy extends draw2d.policy.canvas
     shiftKey: boolean,
     ctrlKey: boolean
   ) {
+    this.isMoved = false;
     // console.log('onMouseDown')
     try {
       this.x = x;
@@ -274,6 +275,10 @@ export default class PanPolicy extends draw2d.policy.canvas
     shiftKey: boolean,
     ctrlKey: boolean
   ) {
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      this.isMoved = true;
+    }
+
     if (this.isReadOnly && !this.isPort && !this.isResizeHandle) {
       // Read only mode and not dragging a port, let pan the canvas
       this.isReadOnlySelect = false;
@@ -434,6 +439,10 @@ export default class PanPolicy extends draw2d.policy.canvas
         this.boundingBoxFigure1 = null;
         this.boundingBoxFigure2.setCanvas(null);
         this.boundingBoxFigure2 = null;
+      }
+      if (this.isMoved) {
+        const groupNode = this.canvas.getFigure(Group.mainId);
+        groupNode?.resizeToContainInnerIcons();
       }
     } catch (exc) {
       console.error(exc);

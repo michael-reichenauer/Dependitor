@@ -283,7 +283,10 @@ export default class Canvas extends draw2d.Canvas {
     return this;
   }
 
-  getFiguresRect(filter: (f: any) => boolean = (f) => true) {
+  getFiguresRect(
+    filter: (f: any) => boolean = (f) => true,
+    includeConnections: boolean = true
+  ) {
     const d = this.getDimension();
     let minX = d.getWidth();
     let minY = d.getHeight();
@@ -294,6 +297,7 @@ export default class Canvas extends draw2d.Canvas {
       if (!filter(f)) {
         return;
       }
+
       let fx = f.getAbsoluteX();
       let fy = f.getAbsoluteY();
       let fx2 = fx + f.getWidth();
@@ -326,14 +330,20 @@ export default class Canvas extends draw2d.Canvas {
       });
     });
 
-    this.getLines().each((_: number, l: Line2d) => {
-      l.vertices.each((_: number, v: any) => {
-        minX = v.x < minX ? v.x : minX;
-        minY = v.y < minY ? v.y : minY;
-        maxX = v.x > maxX ? v.x : maxX;
-        maxY = v.y > maxY ? v.y : maxY;
+    if (includeConnections) {
+      this.getLines().each((_: number, l: Line2d) => {
+        if (!filter(l.sourcePort.parent) || !filter(l.targetPort.parent)) {
+          return;
+        }
+
+        l.vertices.each((_: number, v: any) => {
+          minX = v.x < minX ? v.x : minX;
+          minY = v.y < minY ? v.y : minY;
+          maxX = v.x > maxX ? v.x : maxX;
+          maxY = v.y > maxY ? v.y : maxY;
+        });
       });
-    });
+    }
 
     const w = Math.max(maxX - minX, 0);
     const h = Math.max(maxY - minY, 0);

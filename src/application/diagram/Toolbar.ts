@@ -9,6 +9,7 @@ export interface IToolbar {
   show(buttons: Button[]): void;
   hide(): void;
   isShowing(): boolean;
+  repaint(): void;
 }
 
 export interface Button {
@@ -27,8 +28,16 @@ interface IconButton {
 //
 export class Toolbar implements IToolbar {
   private iconButtons: IconButton[] = [];
+  private buttons: Button[] = [];
 
   public constructor(private figure: Figure2d) {}
+
+  public repaint(): void {
+    if (!this.isShowing()) {
+      return;
+    }
+    this.show(this.buttons);
+  }
 
   public isShowing(): boolean {
     return this.iconButtons.length > 0;
@@ -39,6 +48,7 @@ export class Toolbar implements IToolbar {
       this.hide();
     }
 
+    this.buttons = buttons;
     this.iconButtons = buttons.map((button, index) =>
       this.toIconButton(button, index)
     );
@@ -57,6 +67,7 @@ export class Toolbar implements IToolbar {
       this.figure.remove(buttonIcon.button);
     });
     this.iconButtons = [];
+    this.buttons = [];
 
     this.figure.repaint();
   }

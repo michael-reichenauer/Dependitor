@@ -3,7 +3,6 @@ import cuid from "cuid";
 import { menuItem } from "../../common/Menus";
 import Colors from "./Colors";
 import { icons, noImageIconKey } from "../../common/icons";
-import CommandChangeIcon from "./CommandChangeIcon";
 import PubSub from "pubsub-js";
 import { LabelEditor } from "./LabelEditor";
 import CommandChangeColor from "./CommandChangeColor";
@@ -23,7 +22,7 @@ const defaultOptions = () => {
   };
 };
 
-export default class Group extends draw2d.shape.composite.Raft {
+export default class Group extends draw2d.shape.basic.Rectangle {
   static mainId = "mainId";
   static nodeType = "group";
   static defaultWidth = 400;
@@ -33,7 +32,6 @@ export default class Group extends draw2d.shape.composite.Raft {
   nameLabel: Figure2d;
   descriptionLabel: Figure2d;
   colorName: string;
-  getAboardFiguresOrg: boolean;
   private toolBar: Toolbar;
 
   getName = () => this.nameLabel?.text ?? "";
@@ -89,11 +87,6 @@ export default class Group extends draw2d.shape.composite.Raft {
         });
       };
     }
-
-    this.getAboardFiguresOrg = this.getAboardFigures;
-    if (!o.sticky) {
-      this.getAboardFigures = () => new draw2d.util.ArrayList();
-    }
   }
 
   static deserialize(data: FigureDto) {
@@ -125,37 +118,8 @@ export default class Group extends draw2d.shape.composite.Raft {
     };
   }
 
-  toggleGroupSubItems() {
-    if (this.getAboardFigures === this.getAboardFiguresOrg) {
-      this.getAboardFigures = () => new draw2d.util.ArrayList();
-    } else {
-      this.getAboardFigures = this.getAboardFiguresOrg;
-    }
-    PubSub.publish("canvas.Save");
-  }
-
-  changeIcon(iconKey: string) {
-    this.canvas.runCmd(new CommandChangeIcon(this, iconKey));
-  }
-
   getConfigMenuItems() {
-    const groupText =
-      this.getAboardFigures === this.getAboardFiguresOrg
-        ? "Don't move items with container"
-        : "Move items with container";
-
     return [
-      menuItem("To front", () => this.moveToFront()),
-      menuItem("To back", () => this.moveToBack()),
-      menuItem("Edit label ...", () => this.nameLabel.editor.start(this)),
-      menuItem("Change icon ...", () =>
-        PubSub.publish("nodes.showDialog", {
-          add: false,
-          group: true,
-          action: (iconKey: string) => this.changeIcon(iconKey),
-        })
-      ),
-      menuItem(groupText, () => this.toggleGroupSubItems()),
       menuItem(
         "Delete node",
         () => this.canvas.runCmd(new draw2d.command.CommandDelete(this)),
@@ -176,18 +140,6 @@ export default class Group extends draw2d.shape.composite.Raft {
     return { x: 0, y: -35 };
   }
 
-  moveToBack() {
-    this.toBack();
-    this.canvas.adjustZOrder();
-    PubSub.publish("canvas.Save");
-  }
-
-  moveToFront() {
-    this.toFront();
-    this.canvas.adjustZOrder();
-    PubSub.publish("canvas.Save");
-  }
-
   setName(name: string) {
     this.nameLabel?.setText(name);
   }
@@ -196,9 +148,58 @@ export default class Group extends draw2d.shape.composite.Raft {
     this.descriptionLabel?.setText(name);
   }
 
-  setDefaultSize() {
-    this.setWidth(Group.defaultWidth);
-    this.setHeight(Group.defaultHeight);
+  resizeToContainInnerIcons() {
+    // Get the original bounding box for the inner diagram container node
+    const o = this.getBoundingBox();
+
+    // Get the rect which contains all inner icons (exclude external and container node)
+    const r = this.canvas.getFiguresRect(
+      (f: Figure2d) => !f.isConnected && !(f instanceof Group)
+    );
+
+    // Make rect a square form (with default minimal size)
+    const mwh = Math.max(Group.defaultHeight, Group.defaultWidth, r.h, r.w);
+
+    // New bounding box for the inner diagram container node
+    const margin = 10;
+    const w = mwh + margin * 2;
+    const h = mwh + margin * 2;
+
+    let x = o.x;
+    let y = o.y;
+
+    if (x > r.x) {
+      x = r.x;
+    } else if (o.x + w < r.x + r.w) {
+      x = o.x + (r.x + r.w) - (o.x + w);
+    }
+
+    if (y > r.y) {
+      y = r.y;
+    } else if (o.y + h < r.y + r.h) {
+      y = o.y + (r.y + r.h) - (o.y + h);
+    }
+
+    const n = { x: x, y: y, w: w, h: h };
+    this.setBoundingBox(n);
+    this.repaintAll();
+
+    // Adjust external nodes to follow moved/resized container node
+    this.canvas
+      .getFigures()
+      .asArray()
+      .forEach((f: Figure2d) => {
+        if (f.isLeft || f.isTop) {
+          f.setPosition(f.x + n.x - o.x, f.y + n.y - o.y);
+        } else if (f.isRight || f.isBottom) {
+          f.setPosition(
+            f.x + (n.x + n.w) - (o.x + o.w),
+            f.y + (n.y + n.h - (o.y + o.h))
+          );
+        }
+      });
+
+    PubSub.publish("canvas.Save");
   }
 
   setCanvas(canvas: Canvas2d) {
@@ -308,12 +309,25 @@ export default class Group extends draw2d.shape.composite.Raft {
     this.add(icon, new NodeIconLocator());
   }
 
+  repaintAll() {
+    this.toolBar?.repaint();
+    this.icon?.repaint();
+    this.nameLabel?.repaint();
+    this.descriptionLabel?.repaint();
+    this.repaint();
+  }
+
   showToolbar(): void {
     this.toolBar.show([
       {
         icon: draw2d.shape.icon.Contract,
         action: () => PubSub.publish("canvas.PopInnerDiagram"),
         tooltip: "Pop up to outer diagram",
+      },
+      {
+        icon: draw2d.shape.icon.Resize2,
+        action: () => this.resizeToContainInnerIcons(),
+        tooltip: "Resize to contain all inner icons",
       },
     ]);
   }
@@ -326,31 +340,6 @@ export default class Group extends draw2d.shape.composite.Raft {
 
     PubSub.publish("canvas.TuneSelected", { x: x - 20, y: y - 20 });
   };
-
-  showConfig(): void {
-    const iconColor = Colors.getNodeFontColor(this.colorName);
-    this.configIcon = new draw2d.shape.icon.Run({
-      width: 16,
-      height: 16,
-      color: iconColor,
-      bgColor: Colors.buttonBackground,
-    });
-    //this.configIcon.on("click", () => { console.log('click') })
-
-    this.configBkr = new draw2d.shape.basic.Rectangle({
-      bgColor: Colors.buttonBackground,
-      alpha: 1,
-      width: 20,
-      height: 20,
-      radius: 3,
-      stroke: 0.1,
-    });
-    this.configBkr.on("click", this.showConfigMenu);
-
-    this.add(this.configBkr, new ConfigBackgroundLocator());
-    this.add(this.configIcon, new ConfigIconLocator());
-    this.repaint();
-  }
 
   hideConfig(): void {
     this.remove(this.configIcon);
@@ -380,19 +369,5 @@ class NodeGroupDescriptionLocator extends draw2d.layout.locator.Locator {
 class NodeIconLocator extends draw2d.layout.locator.Locator {
   relocate(_index: number, icon: Figure2d) {
     icon.setPosition(3, 3);
-  }
-}
-
-class ConfigIconLocator extends draw2d.layout.locator.Locator {
-  relocate(_index: number, figure: Figure2d) {
-    const parent = figure.getParent();
-    figure.setPosition(parent.getWidth() - 19, -32);
-  }
-}
-
-class ConfigBackgroundLocator extends draw2d.layout.locator.Locator {
-  relocate(_index: number, figure: Figure2d) {
-    const parent = figure.getParent();
-    figure.setPosition(parent.getWidth() - 21, -34);
   }
 }

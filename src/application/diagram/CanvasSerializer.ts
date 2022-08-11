@@ -18,12 +18,12 @@ export default class CanvasSerializer {
 
   public serialize(): CanvasDto {
     // If canvas is a group, mark all nodes within the group as group to be included in data
-    const node = this.canvas.getFigure(Group.mainId);
-    if (node instanceof Group) {
-      node
-        .getAboardFigures(true)
-        .each((_: number, f: Figure2d) => (f.group = node));
-    }
+    // const node = this.canvas.getFigure(Group.mainId);
+    // if (node instanceof Group) {
+    //   node
+    //     .getAboardFigures(true)
+    //     .each((_: number, f: Figure2d) => (f.group = node));
+    // }
 
     const canvasDto: CanvasDto = {
       id: this.canvas.canvasId ?? "",
@@ -33,7 +33,7 @@ export default class CanvasSerializer {
     };
 
     // Unmark all nodes
-    this.canvas.getFigures().each((_: number, f: Figure2d) => (f.group = null));
+    // this.canvas.getFigures().each((_: number, f: Figure2d) => (f.group = null));
     // console.log('data', canvasData)
     return canvasDto;
   }

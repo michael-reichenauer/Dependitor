@@ -430,7 +430,7 @@ export default class DiagramCanvas {
         this.canvas.getScrollLeft()) *
       this.canvas.getZoom();
     let y =
-      (100 + random(-10, 10) + this.canvas.getScrollTop()) *
+      (400 + random(-10, 10) + this.canvas.getScrollTop()) *
       this.canvas.getZoom();
 
     return { x: x, y: y };
