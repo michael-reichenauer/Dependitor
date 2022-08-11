@@ -94,13 +94,20 @@ export default class Canvas extends draw2d.Canvas {
     this.serializer.deserialize(canvasDto);
   }
 
-  public static exportAsSvg(
+  public static exportDtoAsSvg(
     canvasDto: CanvasDto,
     width: number,
     height: number,
     margin: number,
     box?: Box
   ): string {
+    const canvas = Canvas.deserializeInnerCanvas(canvasDto);
+    const svg = canvas.export(width, height, margin, box);
+    canvas.destroy();
+    return svg;
+  }
+
+  public static deserializeInnerCanvas(canvasDto: CanvasDto): Canvas {
     const canvas = new Canvas(
       "canvasPrint",
       () => {},
@@ -109,9 +116,7 @@ export default class Canvas extends draw2d.Canvas {
     );
 
     canvas.deserialize(canvasDto);
-    const svg = canvas.export(width, height, margin, box);
-    canvas.destroy();
-    return svg;
+    return canvas;
   }
 
   public unselectAll() {
@@ -159,7 +164,12 @@ export default class Canvas extends draw2d.Canvas {
     return 100;
   }
 
-  export(width: number, height: number, margin: number, box?: Box): string {
+  public export(
+    width: number,
+    height: number,
+    margin: number,
+    box?: Box
+  ): string {
     if (!box) {
       box = this.getFiguresRect();
     }

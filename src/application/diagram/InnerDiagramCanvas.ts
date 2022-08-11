@@ -314,9 +314,16 @@ export default class InnerDiagramCanvas {
     return { left: left, top: top, right: right, bottom: bottom };
   }
 
-  private updateGroup(group: any, node: any) {
+  private updateGroup(group: Figure2d, node: Figure2d) {
+    // Update inner diagram container with outer node info
     group.setName(node.getName());
     group.setDescription(node.getDescription());
+    group.setIcon(node.iconName);
+
+    // Tone down container bounding box appearance
+    group.setStroke(0.5);
+    group.setAlpha(0.1);
+    group.setDashArray("--..");
   }
 
   private addOrUpdateConnectedNodes(group: any, nodes: any) {

@@ -16,7 +16,7 @@ import Group from "./Group";
 
 const imgMargin = 0;
 
-const defaultFigure = (node: Node) => ({
+const defaultIcon = (node: Node) => ({
   id: node.id,
   rect: {
     x: 49800,
@@ -47,15 +47,15 @@ const defaultFigure = (node: Node) => ({
   connections: [],
 });
 
-export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
+export default class InnerDiagramIcon extends draw2d.shape.basic.Image {
   private static innerPadding = 2;
   private parent: Node;
 
   public constructor(parent: Node, private store = di(IStoreKey)) {
     super({
       path: "",
-      width: parent.width - InnerDiagramFigure.innerPadding * 2,
-      height: parent.height - InnerDiagramFigure.innerPadding * 2,
+      width: parent.width - InnerDiagramIcon.innerPadding * 2,
+      height: parent.height - InnerDiagramIcon.innerPadding * 2,
       color: Colors.canvasText,
       bgColor: Colors.canvasBackground,
       radius: 5,
@@ -119,20 +119,22 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
   private async getDiagramUrl(id: string): Promise<Result<string>> {
     let canvasDto = this.store.tryGetCanvas(id);
     if (isError(canvasDto)) {
-      canvasDto = defaultFigure(this.parent);
+      canvasDto = defaultIcon(this.parent);
     }
 
     this.canvasDto = canvasDto;
 
     const group = canvasDto.figures.find((f) => f.id === Group.mainId);
 
-    const svg = Canvas.exportAsSvg(
-      canvasDto,
+    const canvas = Canvas.deserializeInnerCanvas(canvasDto);
+    this.updateGroupInfo(canvas);
+    const svg = canvas.export(
       Node.defaultWidth,
       Node.defaultHeight,
       imgMargin,
       group?.rect
     );
+    canvas.destroy();
 
     const innerWidth = group?.rect.w ?? Group.defaultWidth;
     this.innerZoom = this.width / innerWidth;
@@ -151,5 +153,12 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
     const svgData = replacePathsWithSvgDataUrls(svg, nestedSvgPaths, files);
     // Make one svgDataUrl of the diagram
     return svgToSvgDataUrl(svgData);
+  }
+
+  private updateGroupInfo(canvas: Canvas): void {
+    const group = canvas.getFigure(Group.mainId);
+    group.setName(this.parent.getName());
+    group.setDescription(this.parent.getDescription());
+    group.setIcon(this.parent.iconName);
   }
 }

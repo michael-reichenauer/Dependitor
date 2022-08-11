@@ -42,12 +42,11 @@ export default class Group extends draw2d.shape.composite.Raft {
   constructor(options?: any) {
     super({
       id: options?.id ?? cuid(),
-      stroke: 0.5,
-      alpha: 0.1,
+      stroke: 2,
+      alpha: 1,
       color: Colors.canvasText,
       radius: 5,
       glow: true,
-      dasharray: "--..",
     });
     const o = { ...defaultOptions(), ...options };
     const color = Colors.getBackgroundColor(o.colorName);
