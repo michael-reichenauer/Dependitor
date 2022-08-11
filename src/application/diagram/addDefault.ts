@@ -19,9 +19,18 @@ export const addFigureToCanvas = (
 
 export const addDefaultNewDiagram = (canvas: Canvas) => {
   // Add a system node with a connected external user and external system
-  const system = new Node(Node.systemType);
-  const user = new Node(Node.userType);
-  const external = new Node(Node.externalType);
+  const system = new Node({
+    icon: "Azure/Compute/CloudServices(Classic)",
+    name: "System",
+  });
+  const user = new Node({
+    icon: "Azure/Management+Governance/MyCustomers",
+    name: "External Users",
+  });
+  const external = new Node({
+    icon: "Azure/Databases/VirtualClusters",
+    name: "External Systems",
+  });
 
   // Add nodes at the center of the canvas
   const cx = canvas.getDimension().getWidth() / 2;

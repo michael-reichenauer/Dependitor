@@ -45,6 +45,7 @@ export default class InnerDiagramCanvas {
 
     // Get nodes connected to outer node so they can be re-added in the inner diagram after push
     const connectedNodes = this.getNodesConnectedToOuterNode(node);
+    console.log("connected", connectedNodes);
 
     // Hide the inner diagram image from node (will be updated and shown when popping)
     node.hideInnerDiagram();
@@ -261,7 +262,7 @@ export default class InnerDiagramCanvas {
       .getPort("input0")
       .getConnections()
       .asArray()
-      .filter((c: any) => c.sourcePort.parent.type !== Group.groupType)
+      .filter((c: any) => c.sourcePort.parent.type !== Group.nodeType)
       .map((c: any) => {
         return {
           node: c.sourcePort.parent.serialize(),
@@ -273,7 +274,7 @@ export default class InnerDiagramCanvas {
       .getPort("input1")
       .getConnections()
       .asArray()
-      .filter((c: any) => c.sourcePort.parent.type !== Group.groupType)
+      .filter((c: any) => c.sourcePort.parent.type !== Group.nodeType)
       .map((c: any) => {
         return {
           node: c.sourcePort.parent.serialize(),
@@ -285,7 +286,7 @@ export default class InnerDiagramCanvas {
       .getPort("output0")
       .getConnections()
       .asArray()
-      .filter((c: any) => c.targetPort.parent.type !== Group.groupType)
+      .filter((c: any) => c.targetPort.parent.type !== Group.nodeType)
       .map((c: any) => {
         return {
           node: c.targetPort.parent.serialize(),
@@ -297,7 +298,7 @@ export default class InnerDiagramCanvas {
       .getPort("output1")
       .getConnections()
       .asArray()
-      .filter((c: any) => c.targetPort.parent.type !== Group.groupType)
+      .filter((c: any) => c.targetPort.parent.type !== Group.nodeType)
       .map((c: any) => {
         return {
           node: c.targetPort.parent.serialize(),
@@ -371,25 +372,21 @@ export default class InnerDiagramCanvas {
       addedNodes.push(node);
     });
 
-    const internalNodes = group.getAboardFigures(true).asArray();
-    const externalNodes = this.canvas
-      .getFigures()
-      .asArray()
-      .filter(
-        (f: any) =>
-          f !== group && null == internalNodes.find((i: any) => i.id === f.id)
-      );
+    // const externalNodes = this.canvas
+    //   .getFigures()
+    //   .asArray()
+    //   .filter((f: any) => f.isConnected);
 
-    externalNodes.forEach((n: any) => {
-      if (n.isConnected) {
-        // Node is connected from the outside
-        return;
-      }
+    // externalNodes.forEach((n: any) => {
+    //   if (n.isConnected) {
+    //     // Node is connected from the outside
+    //     return;
+    //   }
 
-      // Node is not connected from the outside, remove all node connections and the node
-      n.getAllConnections().forEach((c: any) => this.canvas.remove(c));
-      this.canvas.remove(n);
-    });
+    //   // Node is not connected from the outside, remove all node connections and the node
+    //   n.getAllConnections().forEach((c: any) => this.canvas.remove(c));
+    //   this.canvas.remove(n);
+    // });
   }
 
   private addConnectedNode(data: any, x: number, y: number) {

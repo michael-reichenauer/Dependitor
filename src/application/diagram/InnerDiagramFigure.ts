@@ -28,7 +28,7 @@ const defaultFigure = (node: Node) => ({
   },
   figures: [
     {
-      type: "nodeGroup",
+      type: "group",
       id: "mainId",
       rect: {
         x: 49800,
@@ -100,7 +100,7 @@ export default class InnerDiagramFigure extends draw2d.shape.basic.Image {
   }
 
   public handleSingleClick() {
-    this.parent.hideInnerDiagram();
+    //this.parent.hideInnerDiagram();
   }
 
   public handleDoubleClick() {

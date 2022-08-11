@@ -327,13 +327,10 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     this.add(icon, new NodeIconLocator());
   }
 
-  showToolbar(): void {
-    this.toolBar.show([
-      {
-        icon: draw2d.shape.icon.Contract,
-        action: () => PubSub.publish("canvas.PopInnerDiagram"),
-      },
-    ]);
+  getAllConnections() {
+    return this.getPorts()
+      .asArray()
+      .flatMap((p: any) => p.getConnections().asArray());
   }
 
   showConfigMenu = (): void => {

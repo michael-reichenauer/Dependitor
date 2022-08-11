@@ -1,14 +1,15 @@
 import draw2d from "draw2d";
-import PubSub from "pubsub-js";
 import cuid from "cuid";
 import { menuItem } from "../../common/Menus";
 import Colors from "./Colors";
-import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
-import { FigureDto } from "./StoreDtos";
 import { icons, noImageIconKey } from "../../common/icons";
 import CommandChangeIcon from "./CommandChangeIcon";
-import CommandChangeColor from "./CommandChangeColor";
+import PubSub from "pubsub-js";
 import { LabelEditor } from "./LabelEditor";
+import CommandChangeColor from "./CommandChangeColor";
+import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
+import { FigureDto } from "./StoreDtos";
+import { Toolbar } from "./Toolbar";
 
 const defaultOptions = () => {
   return {
@@ -24,7 +25,7 @@ const defaultOptions = () => {
 
 export default class Group extends draw2d.shape.composite.Raft {
   static mainId = "mainId";
-  static nodeType = "nodeGroup";
+  static nodeType = "group";
   static defaultWidth = 400;
   static defaultHeight = 400;
 
@@ -33,6 +34,7 @@ export default class Group extends draw2d.shape.composite.Raft {
   descriptionLabel: Figure2d;
   colorName: string;
   getAboardFiguresOrg: boolean;
+  private toolBar: Toolbar;
 
   getName = () => this.nameLabel?.text ?? "";
   getDescription = () => this.descriptionLabel?.text ?? "";
@@ -41,11 +43,11 @@ export default class Group extends draw2d.shape.composite.Raft {
     super({
       id: options?.id ?? cuid(),
       stroke: 0.5,
-      alpha: 0.2,
+      alpha: 0.1,
       color: Colors.canvasText,
       radius: 5,
       glow: true,
-      dasharray: "- ",
+      dasharray: "--..",
     });
     const o = { ...defaultOptions(), ...options };
     const color = Colors.getBackgroundColor(o.colorName);
@@ -64,12 +66,12 @@ export default class Group extends draw2d.shape.composite.Raft {
     this.addIcon(o.icon);
     this.addLabels(o.name, o.description);
     this.addPorts();
-    //this.toolBar.show()
 
     // this.on("click", (s, e) => console.log('click node'))
     this.on("dblclick", (_s: any, _e: any) => {});
     this.on("resize", (_s: any, _e: any) => {});
 
+    this.toolBar = new Toolbar(this);
     this.on("select", () => {});
     this.on("unselect", () => {});
 
@@ -305,6 +307,16 @@ export default class Group extends draw2d.shape.composite.Raft {
     this.iconName = iconKey;
     this.icon = icon;
     this.add(icon, new NodeIconLocator());
+  }
+
+  showToolbar(): void {
+    this.toolBar.show([
+      {
+        icon: draw2d.shape.icon.Contract,
+        action: () => PubSub.publish("canvas.PopInnerDiagram"),
+        tooltip: "Pop up to outer diagram",
+      },
+    ]);
   }
 
   showConfigMenu = (): void => {

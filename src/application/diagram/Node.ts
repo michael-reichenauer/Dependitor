@@ -17,51 +17,59 @@ import { logName } from "../../common/log";
 
 const defaultIconKey = "Azure/General/Module";
 
-const defaultOptions = (type: string) => {
-  const dv = {
-    id: cuid(),
-    width: Node.defaultWidth,
-    height: Node.defaultHeight,
-    description: "",
-  };
-
-  switch (type) {
-    case Node.nodeType:
-      return { ...dv, icon: defaultIconKey };
-    case Node.systemType:
-      return {
-        ...dv,
-        name: "System",
-        icon: "Azure/Compute/CloudServices(Classic)",
-      };
-    case Node.userType:
-      return {
-        ...dv,
-        name: "External Users",
-        icon: "Azure/Management+Governance/MyCustomers",
-      };
-    case Node.externalType:
-      return {
-        ...dv,
-        name: "External Systems",
-        icon: "Azure/Databases/VirtualClusters",
-      };
-    default:
-      throw new Error("Unknown type: " + type);
-  }
+const defaultOptions = {
+  id: cuid(),
+  width: 60,
+  height: 60,
+  description: "",
+  icon: defaultIconKey,
 };
+
+// const defaultOptions = () => {
+//   const dv = {
+//     id: cuid(),
+//     width: Node.defaultWidth,
+//     height: Node.defaultHeight,
+//     description: "",
+//     icon:
+//   };
+
+//   switch (type) {
+//     case Node.nodeType:
+//       return { ...dv, icon: defaultIconKey };
+//     case Node.systemType:
+//       return {
+//         ...dv,
+//         name: "System",
+//         icon: "Azure/Compute/CloudServices(Classic)",
+//       };
+//     case Node.userType:
+//       return {
+//         ...dv,
+//         name: "External Users",
+//         icon: "Azure/Management+Governance/MyCustomers",
+//       };
+//     case Node.externalType:
+//       return {
+//         ...dv,
+//         name: "External Systems",
+//         icon: "Azure/Databases/VirtualClusters",
+//       };
+//     default:
+//       throw new Error("Unknown type: " + type);
+//   }
+// };
 
 export default class Node extends draw2d.shape.node.Between {
   static nodeType = "node";
-  static systemType = "system";
-  static userType = "user";
-  static externalType = "external";
+  // static systemType = "system";
+  // static userType = "user";
+  // static externalType = "external";
   static defaultWidth = 60;
   static defaultHeight = 60;
 
   nodeIcons: NodeIcons = new NodeIcons();
   figure: Figure2d = null;
-  type: string;
   colorName: string;
   nameLabel: Figure2d;
   descriptionLabel: Figure2d;
@@ -74,7 +82,7 @@ export default class Node extends draw2d.shape.node.Between {
   getName = () => this.nameLabel?.text ?? "";
   getDescription = () => this.descriptionLabel?.text ?? "";
 
-  constructor(type: string = Node.nodeType, options?: any) {
+  constructor(options?: any) {
     super({
       id: options?.id ?? cuid(),
       width: Node.defaultWidth,
@@ -87,7 +95,7 @@ export default class Node extends draw2d.shape.node.Between {
       resizeable: false,
     });
 
-    const o = { ...defaultOptions(type), ...options };
+    const o = { ...defaultOptions, ...options };
     if (o.name === undefined || o.name === null) {
       const ic = icons.getIcon(o.icon);
       o.name = ic.name;
@@ -95,7 +103,6 @@ export default class Node extends draw2d.shape.node.Between {
 
     // const icon = new draw2d.shape.basic.Image({ path: ic.src, width: 22, height: 22, bgColor: 'none' })
 
-    this.type = type;
     this.colorName = o.colorName;
 
     this.addLabels(o.name, o.description);
@@ -130,7 +137,7 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   public static deserialize(data: FigureDto) {
-    return new Node(data.type, {
+    return new Node({
       id: data.id,
       width: data.rect.w,
       height: data.rect.h,
@@ -143,8 +150,8 @@ export default class Node extends draw2d.shape.node.Between {
 
   public serialize(): FigureDto {
     return {
-      type: this.type,
       id: this.id,
+      type: Node.nodeType,
       rect: { x: this.x, y: this.y, w: this.width, h: this.height },
       name: this.getName(),
       description: this.getDescription(),

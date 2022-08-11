@@ -124,7 +124,7 @@ export default class CanvasSerializer {
 
   private deserializeFigure = (f: FigureDto): Figure2d => {
     let figure;
-    if (f.type === Group.groupType) {
+    if (f.type === Group.nodeType) {
       figure = Group.deserialize(f);
     } else if (f.type === NodeGroup.nodeType) {
       figure = NodeGroup.deserialize(f);

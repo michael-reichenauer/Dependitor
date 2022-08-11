@@ -324,7 +324,7 @@ export default class DiagramCanvas {
       options = { icon: icon };
     }
 
-    const node = new Node(Node.nodeType, options);
+    const node = new Node(options);
     const x = position.x - node.width / 2;
     const y = position.y - node.height / 2;
 

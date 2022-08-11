@@ -93,6 +93,12 @@ export default class NodeNumber extends draw2d.shape.basic.Circle {
     }
   }
 
+  getAllConnections() {
+    return this.getPorts()
+      .asArray()
+      .flatMap((p: any) => p.getConnections().asArray());
+  }
+
   generateName() {
     for (let i = 1; i < 100; i++) {
       const name = i.toString();
