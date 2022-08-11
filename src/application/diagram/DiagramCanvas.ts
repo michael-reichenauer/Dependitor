@@ -13,7 +13,7 @@ import Canvas from "./Canvas";
 import CanvasStack from "./CanvasStack";
 import { zoomAndMoveShowTotalDiagram } from "./showTotalDiagram";
 import { addDefaultNewDiagram, addFigureToCanvas } from "./addDefault";
-import InnerDiagramCanvas from "./InnerDiagramCanvas";
+import InnerDiagram from "./InnerDiagram";
 import Printer from "../../common/Printer";
 import { setErrorMessage, setInfoMessage } from "../../common/MessageSnackbar";
 import NodeGroup from "./NodeGroup";
@@ -37,7 +37,7 @@ export default class DiagramCanvas {
 
   canvasStack: CanvasStack;
   private store: IStore = di(IStoreKey);
-  inner: InnerDiagramCanvas;
+  inner: InnerDiagram;
   diagramId: string = "";
   diagramName: string = "";
 
@@ -53,11 +53,7 @@ export default class DiagramCanvas {
       DiagramCanvas.defaultHeight
     );
     this.canvasStack = new CanvasStack(this.canvas);
-    this.inner = new InnerDiagramCanvas(
-      this.canvas,
-      this.canvasStack,
-      this.store
-    );
+    this.inner = new InnerDiagram(this.canvas, this.canvasStack);
   }
 
   init() {

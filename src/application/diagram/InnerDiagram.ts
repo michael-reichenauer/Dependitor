@@ -4,21 +4,18 @@ import Group from "./Group";
 import Node from "./Node";
 import Canvas from "./Canvas";
 import CanvasStack from "./CanvasStack";
-import { IStore } from "./Store";
 import { Box, Figure2d } from "./draw2dTypes";
 import { Tweenable } from "shifty";
 
 const zoomMoveDuration = 1000;
 
-export default class InnerDiagramCanvas {
+export default class InnerDiagram {
   private canvas: Canvas;
   private canvasStack: CanvasStack;
-  private store: IStore;
 
-  public constructor(canvas: Canvas, canvasStack: CanvasStack, store: IStore) {
+  public constructor(canvas: Canvas, canvasStack: CanvasStack) {
     this.canvas = canvas;
     this.canvasStack = canvasStack;
-    this.store = store;
   }
 
   public async editInnerDiagram(node: Node): Promise<void> {

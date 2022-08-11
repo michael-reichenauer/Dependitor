@@ -3,7 +3,6 @@ import Canvas from "./Canvas";
 import { ArrayList2d, CommandStack2d, Figure2d, Line2d } from "./draw2dTypes";
 
 export interface CanvasData {
-  // diagramId: string;
   canvasId: string;
   commandStack: CommandStack2d;
   commonPorts: any;
@@ -17,18 +16,15 @@ export interface CanvasData {
 }
 
 export default class CanvasStack {
-  diagramStack: CanvasData[] = [];
-  canvas: Canvas;
+  private diagramStack: CanvasData[] = [];
 
-  constructor(canvas: Canvas) {
-    this.canvas = canvas;
+  public constructor(private canvas: Canvas) {}
+
+  public isRoot(): boolean {
+    return this.diagramStack.length === 0;
   }
 
-  isRoot: () => boolean = () => this.diagramStack.length === 0;
-
-  getLevel: () => number = () => this.diagramStack.length;
-
-  pushDiagram(): void {
+  public pushDiagram(): void {
     const canvas = this.canvas;
     const canvasData = this.getCanvasData(canvas);
 
@@ -41,7 +37,7 @@ export default class CanvasStack {
     canvas.commandStack.eventListeners = canvasData.commandStack.eventListeners;
   }
 
-  popDiagram(): void {
+  public popDiagram(): void {
     if (this.diagramStack.length === 0) {
       return;
     }
@@ -54,7 +50,7 @@ export default class CanvasStack {
     this.restoreCanvasData(canvasData, canvas);
   }
 
-  clearCanvas(canvas: Canvas): void {
+  private clearCanvas(canvas: Canvas): void {
     // Remove all connections and nodes
     canvas.lines.each((_: number, e: Line2d) => e.setCanvas(null));
     canvas.figures.each((_: number, e: Figure2d) => e.setCanvas(null));
@@ -70,7 +66,7 @@ export default class CanvasStack {
     canvas.canvasId = "";
   }
 
-  getCanvasData(canvas: Canvas): CanvasData {
+  private getCanvasData(canvas: Canvas): CanvasData {
     const area = canvas.getScrollArea();
     return {
       canvasId: canvas.canvasId ?? "",
@@ -86,7 +82,7 @@ export default class CanvasStack {
     };
   }
 
-  restoreCanvasData(canvasData: CanvasData, canvas: Canvas): void {
+  private restoreCanvasData(canvasData: CanvasData, canvas: Canvas): void {
     // @ts-ignore
     canvas.diagramId = canvasData.diagramId;
     // @ts-ignore
