@@ -13,7 +13,7 @@ import Canvas from "./Canvas";
 import CanvasStack from "./CanvasStack";
 import { zoomAndMoveShowTotalDiagram } from "./showTotalDiagram";
 import { addDefaultNewDiagram, addFigureToCanvas } from "./addDefault";
-import InnerDiagramCanvas from "./InnerDiagramCanvas";
+import InnerDiagram from "./InnerDiagram";
 import Printer from "../../common/Printer";
 import { setErrorMessage, setInfoMessage } from "../../common/MessageSnackbar";
 import NodeGroup from "./NodeGroup";
@@ -24,6 +24,7 @@ import { Canvas2d } from "./draw2dTypes";
 import { isError } from "../../common/Result";
 import { DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
+import InnerDiagramContainer from "./InnerDiagramContainer";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
@@ -36,7 +37,7 @@ export default class DiagramCanvas {
 
   canvasStack: CanvasStack;
   private store: IStore = di(IStoreKey);
-  inner: InnerDiagramCanvas;
+  inner: InnerDiagram;
   diagramId: string = "";
   diagramName: string = "";
 
@@ -52,19 +53,15 @@ export default class DiagramCanvas {
       DiagramCanvas.defaultHeight
     );
     this.canvasStack = new CanvasStack(this.canvas);
-    this.inner = new InnerDiagramCanvas(
-      this.canvas,
-      this.canvasStack,
-      this.store
-    );
+    this.inner = new InnerDiagram(this.canvas, this.canvasStack);
   }
 
   init() {
     this.loadInitialDiagram();
 
-    this.handleDoubleClick(this.canvas);
+    this.registerClickHandler(this.canvas);
     this.handleEditChanges(this.canvas);
-    this.handleSelect(this.canvas);
+    this.registerSelectHandler(this.canvas);
     this.handleCommands();
   }
 
@@ -169,7 +166,7 @@ export default class DiagramCanvas {
   commandPrint = () => {
     const diagram = this.store.exportDiagram();
     const pages: string[] = Object.values(diagram.canvases).map((d) =>
-      this.canvas.exportAsSvg(d, a4Width, a4Height, a4Margin)
+      Canvas.exportDtoAsSvg(d, a4Width, a4Height, a4Margin)
     );
 
     const printer = new Printer();
@@ -186,11 +183,13 @@ export default class DiagramCanvas {
     let pages: string[] = Object.values(diagram.canvases).map((d) =>
       this.canvas.exportAsSvg(d, imgWidth, imgHeight, imgMargin)
     );
+    console.log("pages", pages);
     let svgText = pages[0];
 
     // Since icons are nested svg with external links, the links must be replaced with
     // the actual icon image as an dataUrl. Let pars unique urls
     const nestedSvgPaths = this.parseNestedSvgPaths(svgText);
+    console.log("nestedPaths", nestedSvgPaths);
 
     // Fetch the actual icon svg files
     fetchFiles(nestedSvgPaths, (files) => {
@@ -278,6 +277,7 @@ export default class DiagramCanvas {
   };
 
   commandPopFromInnerDiagram = () => {
+    this.save();
     this.inner.popFromInnerDiagram();
     this.callbacks.setTitle(this.diagramName);
     this.updateToolbarButtonsStates();
@@ -298,6 +298,7 @@ export default class DiagramCanvas {
   };
 
   showTotalDiagram = () => zoomAndMoveShowTotalDiagram(this.canvas);
+  showTotalDiagramSlow = () => zoomAndMoveShowTotalDiagram(this.canvas, 2000);
 
   addNode = (data: any) => {
     if (data.group) {
@@ -319,7 +320,7 @@ export default class DiagramCanvas {
       options = { icon: icon };
     }
 
-    const node = new Node(Node.nodeType, options);
+    const node = new Node(options);
     const x = position.x - node.width / 2;
     const y = position.y - node.height / 2;
 
@@ -429,7 +430,7 @@ export default class DiagramCanvas {
         this.canvas.getScrollLeft()) *
       this.canvas.getZoom();
     let y =
-      (100 + random(-10, 10) + this.canvas.getScrollTop()) *
+      (400 + random(-10, 10) + this.canvas.getScrollTop()) *
       this.canvas.getZoom();
 
     return { x: x, y: y };
@@ -463,22 +464,47 @@ export default class DiagramCanvas {
     this.callbacks.setCanRedo(this.canvas.getCommandStack().canRedo());
   }
 
-  handleDoubleClick(canvas: Canvas2d) {
-    canvas.on("dblclick", (_emitter: any, event: any) => {
-      if (event.figure !== null) {
-        return;
-      }
+  registerClickHandler(canvas: Canvas2d) {
+    // The dblClick event handler reacts often also for click and drag, so here is workaround
+    canvas.on(
+      "click",
+      this.clickHandler(
+        (_src: any, e: any) => this.handleSingleClick(e),
+        (_src: any, e: any) => this.handleDoubleClick(e)
+      )
+    );
+  }
 
-      if (!this.canvasStack.isRoot()) {
-        // double click out side group node in inner diagram lets pop
-        this.commandPopFromInnerDiagram();
-        return;
-      }
-      PubSub.publish("nodes.showDialog", { add: true, x: event.x, y: event.y });
+  private handleSingleClick(e: any) {
+    if (this.handleFigureSingleClick(e.figure)) {
+      return;
+    }
+  }
+
+  private handleDoubleClick(e: any) {
+    if (e.figure?.id === InnerDiagramContainer.mainId) {
+      // Double click on group node
+      this.showAddNodeDialog(e.x, e.y);
+      return;
+    }
+
+    if (this.handleFigureDoubleClick(e.figure)) {
+      return;
+    }
+
+    // Double click on root canvas
+    this.showAddNodeDialog(e.x, e.y);
+  }
+
+  showAddNodeDialog(x: number, y: number) {
+    PubSub.publish("nodes.showDialog", {
+      add: true,
+      x: x,
+      y: y,
     });
   }
 
-  handleSelect(canvas: Canvas2d) {
+  registerSelectHandler(canvas: Canvas2d) {
     canvas.on("select", (_emitter: any, event: any) => {
       if (event.figure !== null) {
         this.callbacks.setSelectMode(true);
@@ -488,10 +514,56 @@ export default class DiagramCanvas {
     });
   }
 
-  // withWorkingIndicator(action: any) {
-  //   setProgress(true);
-  //   setTimeout(() => {
-  //     action();
-  //   }, 20);
-  // }
+  private handleFigureDoubleClick(figure: any): boolean {
+    if (!figure) {
+      return false;
+    }
+    for (let f = figure; f; f = f.parent) {
+      if (f.handleDoubleClick instanceof Function) {
+        f.handleDoubleClick();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private handleFigureSingleClick(figure: any): boolean {
+    if (!figure) {
+      return false;
+    }
+    for (let f = figure; f; f = f.parent) {
+      if (f.handleSingleClick instanceof Function) {
+        f.handleSingleClick();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private clickHandler(
+    onSingleClick: ((src: any, e: any) => void) | null,
+    onDoubleClick?: (src?: any, e?: any) => void
+  ) {
+    let clickTimeout: any = null;
+    let clicks = 0;
+
+    return (src: any, e: any) => {
+      clearTimeout(clickTimeout);
+      clicks++;
+      //console.log('click #', clicks)
+      if (clicks === 1) {
+        clickTimeout = setTimeout(() => {
+          // single click
+          clearTimeout(clickTimeout);
+          clicks = 0;
+          onSingleClick?.(src, e);
+        }, 300);
+      } else if (clicks === 2) {
+        // Double click
+        // console.log('click time ', (performance.now() - this.clickTime).toFixed(1))
+        clicks = 0;
+        onDoubleClick?.(src, e);
+      }
+    };
+  }
 }

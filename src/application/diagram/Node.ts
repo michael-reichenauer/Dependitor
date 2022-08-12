@@ -2,81 +2,91 @@ import draw2d from "draw2d";
 import PubSub from "pubsub-js";
 import cuid from "cuid";
 import { menuItem } from "../../common/Menus";
-import timing from "../../common/timing";
 import Colors from "./Colors";
 import CommandChangeIcon from "./CommandChangeIcon";
 import NodeIcons from "./NodeIcons";
 import Label from "./Label";
 import { icons } from "../../common/icons";
 import { LabelEditor } from "./LabelEditor";
-import NodeGroup from "./NodeGroup";
 import NodeSelectionFeedbackPolicy from "./NodeSelectionFeedbackPolicy";
 import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
-import { NodeToolbar } from "./NodeToolbar";
+import { Toolbar } from "./Toolbar";
+import InnerDiagramIcon from "./InnerDiagramIcon";
+import { logName } from "../../common/log";
 
 const defaultIconKey = "Azure/General/Module";
 
-const defaultOptions = (type: string) => {
-  const dv = {
-    id: cuid(),
-    width: Node.defaultWidth,
-    height: Node.defaultHeight,
-    description: "",
-  };
-
-  switch (type) {
-    case Node.nodeType:
-      return { ...dv, icon: defaultIconKey };
-    case Node.systemType:
-      return {
-        ...dv,
-        name: "System",
-        icon: "Azure/Compute/CloudServices(Classic)",
-      };
-    case Node.userType:
-      return {
-        ...dv,
-        name: "External Users",
-        icon: "Azure/Management+Governance/MyCustomers",
-      };
-    case Node.externalType:
-      return {
-        ...dv,
-        name: "External Systems",
-        icon: "Azure/Databases/VirtualClusters",
-      };
-    default:
-      throw new Error("Unknown type: " + type);
-  }
+const defaultOptions = {
+  id: cuid(),
+  width: 60,
+  height: 60,
+  description: "",
+  icon: defaultIconKey,
 };
+
+// const defaultOptions = () => {
+//   const dv = {
+//     id: cuid(),
+//     width: Node.defaultWidth,
+//     height: Node.defaultHeight,
+//     description: "",
+//     icon:
+//   };
+
+//   switch (type) {
+//     case Node.nodeType:
+//       return { ...dv, icon: defaultIconKey };
+//     case Node.systemType:
+//       return {
+//         ...dv,
+//         name: "System",
+//         icon: "Azure/Compute/CloudServices(Classic)",
+//       };
+//     case Node.userType:
+//       return {
+//         ...dv,
+//         name: "External Users",
+//         icon: "Azure/Management+Governance/MyCustomers",
+//       };
+//     case Node.externalType:
+//       return {
+//         ...dv,
+//         name: "External Systems",
+//         icon: "Azure/Databases/VirtualClusters",
+//       };
+//     default:
+//       throw new Error("Unknown type: " + type);
+//   }
+// };
 
 export default class Node extends draw2d.shape.node.Between {
   static nodeType = "node";
-  static systemType = "system";
-  static userType = "user";
-  static externalType = "external";
-  static defaultWidth = 230;
-  static defaultHeight = 150;
+  // static systemType = "system";
+  // static userType = "user";
+  // static externalType = "external";
+  static defaultWidth = 60;
+  static defaultHeight = 60;
 
   nodeIcons: NodeIcons = new NodeIcons();
   figure: Figure2d = null;
-  type: string;
   colorName: string;
   nameLabel: Figure2d;
   descriptionLabel: Figure2d;
   icon: Figure2d;
   diagramIcon: Figure2d;
   canDelete: boolean = true;
+  private toolBar: Toolbar;
+  innerDiagram: Figure2d;
 
   getName = () => this.nameLabel?.text ?? "";
   getDescription = () => this.descriptionLabel?.text ?? "";
 
-  constructor(type: string = Node.nodeType, options?: any) {
+  constructor(options?: any) {
     super({
       id: options?.id ?? cuid(),
-      width: 60,
-      height: 60,
+      width: Node.defaultWidth,
+      height: Node.defaultHeight,
       stroke: 0.1,
       bgColor: "none",
       color: "none",
@@ -85,7 +95,7 @@ export default class Node extends draw2d.shape.node.Between {
       resizeable: false,
     });
 
-    const o = { ...defaultOptions(type), ...options };
+    const o = { ...defaultOptions, ...options };
     if (o.name === undefined || o.name === null) {
       const ic = icons.getIcon(o.icon);
       o.name = ic.name;
@@ -93,7 +103,6 @@ export default class Node extends draw2d.shape.node.Between {
 
     // const icon = new draw2d.shape.basic.Image({ path: ic.src, width: 22, height: 22, bgColor: 'none' })
 
-    this.type = type;
     this.colorName = o.colorName;
 
     this.addLabels(o.name, o.description);
@@ -107,11 +116,9 @@ export default class Node extends draw2d.shape.node.Between {
     this.on("dblclick", (_s: any, _e: any) => {});
     this.on("resize", (_s: any, _e: any) => this.handleResize());
 
-    const nodeToolBar = new NodeToolbar(this, [
-      { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
-    ]);
-    this.on("select", () => nodeToolBar.show());
-    this.on("unselect", () => nodeToolBar.hide());
+    this.toolBar = new Toolbar(this);
+    this.on("select", () => this.selectNode());
+    this.on("unselect", () => this.unSelectNode());
 
     // Adjust selection handle sizes
     this.installEditPolicy(new NodeSelectionFeedbackPolicy());
@@ -121,7 +128,7 @@ export default class Node extends draw2d.shape.node.Between {
     return { x: 0, y: -35 };
   }
 
-  setCanvas(canvas: Canvas2d) {
+  public setCanvas(canvas: Canvas2d) {
     super.setCanvas(canvas);
 
     if (canvas != null) {
@@ -129,8 +136,8 @@ export default class Node extends draw2d.shape.node.Between {
     }
   }
 
-  static deserialize(data: FigureDto) {
-    return new Node(data.type, {
+  public static deserialize(data: FigureDto) {
+    return new Node({
       id: data.id,
       width: data.rect.w,
       height: data.rect.h,
@@ -141,24 +148,43 @@ export default class Node extends draw2d.shape.node.Between {
     });
   }
 
-  serialize(): FigureDto {
+  public serialize(): FigureDto {
     return {
-      type: this.type,
       id: this.id,
+      type: Node.nodeType,
       rect: { x: this.x, y: this.y, w: this.width, h: this.height },
       name: this.getName(),
       description: this.getDescription(),
       color: this.colorName,
+      zOrder: this.getZOrder(),
       icon: this.iconName,
     };
   }
 
-  getConfigMenuItems() {
-    //const hasDiagramIcon = this.diagramIcon != null
+  public getConfigMenuItems() {
+    logName();
 
     return [
       menuItem("To front", () => this.moveToFront()),
       menuItem("To back", () => this.moveToBack()),
+      menuItem(
+        "Show inner diagram",
+        () => this.showInnerDiagram(),
+        true,
+        !this.innerDiagram
+      ),
+      menuItem(
+        "Hide inner diagram",
+        () => this.hideInnerDiagram(),
+        true,
+        !!this.innerDiagram
+      ),
+      menuItem(
+        "Edit inner diagram",
+        () => this.editInnerDiagram(),
+        true,
+        !!this.innerDiagram
+      ),
       menuItem("Edit label ...", () => this.nameLabel.editor.start(this)),
       menuItem("Edit icon ...", () =>
         PubSub.publish("nodes.showDialog", {
@@ -174,51 +200,33 @@ export default class Node extends draw2d.shape.node.Between {
     ];
   }
 
-  toBack(figure: Figure2d) {
-    super.toBack(figure);
+  public handleSingleClick() {}
 
-    // When node is moved back, all groups should be moved back as well
-    this.moveAllGroupsToBack();
-    // const group = this.getCanvas()?.group
-    // group?.toBack()
+  public handleDoubleClick() {
+    this.showInnerDiagram();
   }
 
-  moveAllGroupsToBack() {
-    // Get all figures in z order
-    const figures = this.canvas.getFigures().clone();
-    figures.sort((a: Figure2d, b: Figure2d) => {
-      // return 1  if a before b
-      // return -1 if b before a
-      return a.getZOrder() > b.getZOrder() ? -1 : 1;
-    });
-
-    // move all group nodes to back to be behind all nodes
-    figures.asArray().forEach((f: Figure2d) => {
-      if (f instanceof NodeGroup) {
-        f.toBack();
-      }
-    });
-  }
-
-  moveToBack(): void {
+  public moveToBack(): void {
     this.toBack(this);
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 
-  moveToFront(): void {
+  public moveToFront(): void {
     this.toFront();
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 
-  changeIcon(iconKey: string): void {
+  public changeIcon(iconKey: string): void {
     this.canvas.runCmd(new CommandChangeIcon(this, iconKey));
   }
 
-  setName(name: string): void {
+  public setName(name: string): void {
     this.nameLabel?.setText(name);
   }
 
-  setDescription(description: string): void {
+  public setDescription(description: string): void {
     this.descriptionLabel?.setText(description);
   }
 
@@ -228,12 +236,7 @@ export default class Node extends draw2d.shape.node.Between {
       .flatMap((p: any) => p.getConnections().asArray());
   }
 
-  setDefaultSize(): void {
-    this.setWidth(Node.defaultWidth);
-    this.setHeight(Node.defaultHeight);
-  }
-
-  setNodeColor(colorName: string): void {
+  public setNodeColor(colorName: string): void {
     this.colorName = colorName;
     const color = Colors.getNodeColor(colorName);
     const borderColor = Colors.getNodeBorderColor(colorName);
@@ -244,16 +247,15 @@ export default class Node extends draw2d.shape.node.Between {
 
     this.nameLabel?.setFontColor(fontColor);
     this.descriptionLabel?.setFontColor(fontColor);
-    // this.icon?.setColor(fontColor)
     this.diagramIcon?.setColor(fontColor);
   }
 
-  setDeleteable(flag: boolean) {
+  public setDeleteable(flag: boolean) {
     super.setDeleteable(flag);
     this.canDelete = flag;
   }
 
-  setIcon(name: string) {
+  public setIcon(name: string) {
     if (this.icon != null) {
       this.remove(this.icon);
       this.icon = null;
@@ -263,47 +265,89 @@ export default class Node extends draw2d.shape.node.Between {
     this.repaint();
   }
 
-  showInnerDiagram(): void {
-    // const t = timing();
-    // this.setChildrenVisible(false);
-    // const canvasDto = store.tryGetCanvas(
-    //   this.getCanvas().diagramId,
-    //   this.getId()
-    // );
-    // if (isError(canvasDto)) {
-    //   return;
-    // }
-    // this.innerDiagram = new InnerDiagramFigure(this, canvasDto);
-    // this.innerDiagram.onClick = clickHandler(
-    //   () => this.hideInnerDiagram(),
-    //   () => this.editInnerDiagram()
-    // );
-    // this.add(this.innerDiagram, new InnerDiagramLocator());
-    // this.repaint();
-    // t.log();
+  private selectNode() {
+    this.showAppropriateToolbar();
   }
 
-  hideInnerDiagram(): void {
-    const t = timing();
-    if (this.innerDiagram == null) {
+  private showAppropriateToolbar() {
+    let toolButtons;
+    if (this.innerDiagram) {
+      toolButtons = [
+        {
+          icon: draw2d.shape.icon.Run,
+          menu: () => this.getConfigMenuItems(),
+          tooltip: "Settings",
+        },
+        {
+          icon: draw2d.shape.icon.Diagram,
+          action: () => this.toggleInnerDiagram(),
+          pushed: true,
+          tooltip: "Toggle inner diagram",
+        },
+        {
+          icon: draw2d.shape.icon.Expand,
+          action: () => this.editInnerDiagram(),
+          tooltip: "Edit inner diagram",
+        },
+      ];
+    } else {
+      toolButtons = [
+        {
+          icon: draw2d.shape.icon.Run,
+          menu: () => this.getConfigMenuItems(),
+          tooltip: "Settings",
+        },
+        {
+          icon: draw2d.shape.icon.Diagram,
+          action: () => this.toggleInnerDiagram(),
+          tooltip: "Toggle inner diagram",
+        },
+      ];
+    }
+    this.toolBar.show(toolButtons);
+  }
+
+  private unSelectNode() {
+    this.toolBar.hide();
+  }
+
+  private toggleInnerDiagram(): void {
+    if (this.innerDiagram) {
+      this.hideInnerDiagram();
       return;
     }
 
-    this.setChildrenVisible(true);
+    this.showInnerDiagram();
+  }
+
+  private showInnerDiagram(): void {
+    this.setChildrenVisible(false);
+
+    this.innerDiagram = new InnerDiagramIcon(this);
+    this.add(this.innerDiagram, new InnerDiagramLocator());
+    this.repaint();
+
+    if (this.toolBar.isShowing()) {
+      this.showAppropriateToolbar();
+    }
+  }
+
+  public hideInnerDiagram(): void {
+    if (!this.innerDiagram) {
+      return;
+    }
+
     this.remove(this.innerDiagram);
     this.innerDiagram = null;
-    console.log("hideInnerDiagram", t());
+
+    this.setChildrenVisible(true);
+    if (this.toolBar.isShowing()) {
+      this.showAppropriateToolbar();
+    }
   }
 
-  editInnerDiagram(): void {
-    if (this.diagramIcon == null) {
-      return;
-    }
-
-    if (this.innerDiagram == null) {
-      this.showInnerDiagram();
-    }
-
+  public editInnerDiagram(): void {
+    this.toolBar.hide();
     PubSub.publish("canvas.EditInnerDiagram", this);
   }
 
@@ -322,10 +366,8 @@ export default class Node extends draw2d.shape.node.Between {
   }
 
   setChildrenVisible(isVisible: boolean): void {
-    this.nameLabel?.setVisible(isVisible);
-    this.descriptionLabel?.setVisible(isVisible);
     this.icon?.setVisible(isVisible);
-    this.diagramIcon?.setVisible(isVisible);
+    this.innerDiagram?.setVisible(isVisible);
   }
 
   addLabels = (name: string, description: string): void => {
@@ -356,6 +398,10 @@ export default class Node extends draw2d.shape.node.Between {
     this.add(this.descriptionLabel, this.descriptionLabel.labelLocator);
   };
 
+  setBlur() {
+    this.icon?.setAlpha(0.5);
+  }
+
   addIcon(iconKey: string): void {
     //console.log('add icon key', iconKey)
     if (iconKey == null) {
@@ -375,20 +421,6 @@ export default class Node extends draw2d.shape.node.Between {
     this.add(icon, new NodeIconLocator());
   }
 
-  addInnerDiagramIcon(): void {
-    const iconColor = Colors.getNodeFontColor(this.colorName);
-    this.diagramIcon = new draw2d.shape.icon.Diagram({
-      width: 15,
-      height: 15,
-      color: iconColor,
-      bgColor: "none",
-    });
-
-    this.diagramIcon.on("click", () => this.showInnerDiagram());
-
-    this.add(this.diagramIcon, new InnerDiagramIconLocator());
-  }
-
   addPorts(): void {
     this.createPort("input", new draw2d.layout.locator.XYRelPortLocator(50, 0));
     this.createPort(
@@ -396,13 +428,9 @@ export default class Node extends draw2d.shape.node.Between {
       new draw2d.layout.locator.XYRelPortLocator(50, 100)
     );
 
-    // this.getPorts().each(function (i, port) {
-    //     port.setConnectionAnchor(new draw2d.layout.anchor.FanConnectionAnchor(port));
-    // });
-
     // Make ports larger to support touch
     this.getPorts().each((_i: number, p: Figure2d) => {
-      p.setCoronaWidth(15);
+      p.setCoronaWidth(1);
       p.setDiameter(10);
     });
   }
@@ -433,12 +461,12 @@ class NodeIconLocator extends draw2d.layout.locator.Locator {
   }
 }
 
-class InnerDiagramIconLocator extends draw2d.layout.locator.PortLocator {
-  relocate(_index: number, figure: Figure2d) {
-    const parent = figure.getParent();
-    this.applyConsiderRotation(figure, 3, parent.getHeight() - 18);
-  }
-}
+// class InnerDiagramIconLocator extends draw2d.layout.locator.PortLocator {
+//   relocate(_index: number, figure: Figure2d) {
+//     const parent = figure.getParent();
+//     this.applyConsiderRotation(figure, 3, parent.getHeight() - 18);
+//   }
+// }
 
 // class ConfigIconLocator extends draw2d.layout.locator.Locator {
 //   relocate(_index: number, figure: Figure2d) {
@@ -454,8 +482,8 @@ class InnerDiagramIconLocator extends draw2d.layout.locator.PortLocator {
 //   }
 // }
 
-// class InnerDiagramLocator extends draw2d.layout.locator.Locator {
-//   relocate(_index: number, target: Figure2d) {
-//     target.setPosition(2, 2);
-//   }
-// }
+class InnerDiagramLocator extends draw2d.layout.locator.Locator {
+  relocate(_index: number, target: Figure2d) {
+    target.setPosition(2, 2);
+  }
+}

@@ -6,8 +6,14 @@ import ConnectionCreatePolicy from "./ConnectionCreatePolicy";
 import Colors from "./Colors";
 import { random } from "../../utils/utils";
 import CanvasSerializer from "./CanvasSerializer";
-import { Canvas2d, Command2d, Figure2d, Line2d } from "./draw2dTypes";
+import { Box, Canvas2d, Command2d, Figure2d, Line2d } from "./draw2dTypes";
 import { CanvasDto } from "./StoreDtos";
+
+import DiagramCanvas from "./DiagramCanvas";
+import Node from "./Node";
+import NodeGroup from "./NodeGroup";
+import NodeNumber from "./NodeNumber";
+import InnerDiagramContainer from "./InnerDiagramContainer";
 
 const randomDist = 30;
 
@@ -19,9 +25,8 @@ export default class Canvas extends draw2d.Canvas {
   private coronaDecorationPolicy: any = null;
 
   public canvasId: string = "";
-  public mainNodeId: string = "";
 
-  constructor(
+  public constructor(
     htmlElementId: string,
     onEditMode: (isEdit: boolean) => void,
     width: number,
@@ -81,44 +86,94 @@ export default class Canvas extends draw2d.Canvas {
     this.enableTouchSupport();
   }
 
-  serialize(): CanvasDto {
+  public serialize(): CanvasDto {
     return this.serializer.serialize();
   }
 
-  deserialize(canvasDto: CanvasDto): void {
+  public deserialize(canvasDto: CanvasDto): void {
     this.serializer.deserialize(canvasDto);
   }
 
-  exportAsSvg(
-    canvasData: CanvasDto,
-    width: number,
-    height: number,
-    margin: number
-  ): string {
-    const canvasWidth = this.getDimension().getWidth();
-    const canvasHeight = this.getDimension().getHeight();
-    let svgResult: string = "";
-
-    const canvas = new Canvas(
-      "canvasPrint",
-      () => {},
-      canvasWidth,
-      canvasHeight
-    );
-    canvas.deserialize(canvasData);
-    canvas.export(width, height, margin, (svg: string) => (svgResult = svg));
-    canvas.destroy();
-    return svgResult;
-  }
-
-  export(
+  public static exportDtoAsSvg(
+    canvasDto: CanvasDto,
     width: number,
     height: number,
     margin: number,
-    resultHandler: (svgText: string) => void
-  ): void {
-    const rect = this.getFiguresRect();
-    this.serializer.export(rect, width, height, margin, resultHandler);
+    box?: Box
+  ): string {
+    const canvas = Canvas.deserializeInnerCanvas(canvasDto);
+    const svg = canvas.export(width, height, margin, box);
+    canvas.destroy();
+    return svg;
+  }
+
+  public static deserializeInnerCanvas(canvasDto: CanvasDto): Canvas {
+    const canvas = new Canvas(
+      "canvasPrint",
+      () => {},
+      DiagramCanvas.defaultWidth,
+      DiagramCanvas.defaultHeight
+    );
+
+    canvas.deserialize(canvasDto);
+    return canvas;
+  }
+
+  public unselectAll() {
+    if (!this.selection.all.isEmpty()) {
+      // Deselect items, since zooming with selected figures is slow
+      this.selection.getAll().each((_: number, f: Figure2d) => f.unselect());
+      this.selection.clear();
+    }
+  }
+
+  public adjustZOrder() {
+    // Get all figures in z order
+    const figures = this.getFigures().clone();
+    figures.sort((a: Figure2d, b: Figure2d) => {
+      // return -1 if a over b
+      // return 1 if b under a
+      if (this.figureTypeZOrder(a) > this.figureTypeZOrder(b)) {
+        return -1;
+      }
+      if (this.figureTypeZOrder(a) < this.figureTypeZOrder(b)) {
+        return 1;
+      }
+      return a.getZOrder() > b.getZOrder() ? -1 : 1;
+    });
+
+    figures.asArray().forEach((f: Figure2d) => {
+      f.toBack();
+    });
+  }
+
+  private figureTypeZOrder(figure: Figure2d): number {
+    if (figure instanceof InnerDiagramContainer) {
+      return 10;
+    }
+    if (figure instanceof NodeGroup) {
+      return 20;
+    }
+    if (figure instanceof Node) {
+      return 30;
+    }
+    if (figure instanceof NodeNumber) {
+      return 40;
+    }
+
+    return 100;
+  }
+
+  public export(
+    width: number,
+    height: number,
+    margin: number,
+    box?: Box
+  ): string {
+    if (!box) {
+      box = this.getFiguresRect();
+    }
+    return this.serializer.export(box, width, height, margin);
   }
 
   clearDiagram = (): void => {
@@ -228,7 +283,10 @@ export default class Canvas extends draw2d.Canvas {
     return this;
   }
 
-  getFiguresRect() {
+  getFiguresRect(
+    filter: (f: any) => boolean = (f) => true,
+    includeConnections: boolean = true
+  ) {
     const d = this.getDimension();
     let minX = d.getWidth();
     let minY = d.getHeight();
@@ -236,6 +294,10 @@ export default class Canvas extends draw2d.Canvas {
     let maxY = 0;
 
     this.getFigures().each((i: number, f: Figure2d) => {
+      if (!filter(f)) {
+        return;
+      }
+
       let fx = f.getAbsoluteX();
       let fy = f.getAbsoluteY();
       let fx2 = fx + f.getWidth();
@@ -268,14 +330,20 @@ export default class Canvas extends draw2d.Canvas {
       });
     });
 
-    this.getLines().each((_: number, l: Line2d) => {
-      l.vertices.each((_: number, v: any) => {
-        minX = v.x < minX ? v.x : minX;
-        minY = v.y < minY ? v.y : minY;
-        maxX = v.x > maxX ? v.x : maxX;
-        maxY = v.y > maxY ? v.y : maxY;
+    if (includeConnections) {
+      this.getLines().each((_: number, l: Line2d) => {
+        if (!filter(l.sourcePort.parent) || !filter(l.targetPort.parent)) {
+          return;
+        }
+
+        l.vertices.each((_: number, v: any) => {
+          minX = v.x < minX ? v.x : minX;
+          minY = v.y < minY ? v.y : minY;
+          maxX = v.x > maxX ? v.x : maxX;
+          maxY = v.y > maxY ? v.y : maxY;
+        });
       });
-    });
+    }
 
     const w = Math.max(maxX - minX, 0);
     const h = Math.max(maxY - minY, 0);

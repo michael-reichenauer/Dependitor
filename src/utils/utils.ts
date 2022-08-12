@@ -81,6 +81,18 @@ export const fetchFiles = (
     });
 };
 
+export async function fetchFilesAsync(paths: string[]): Promise<string[]> {
+  try {
+    const responses = await Promise.all(paths.map((path) => fetch(path)));
+    const files = await Promise.all(
+      responses.map((response) => response.text())
+    );
+    return files;
+  } catch (error) {
+    return [];
+  }
+}
+
 export function arrayToString(array: Uint8Array, charactersSet: string) {
   let text = "";
   for (var i = 0; i < array.length; i++) {
@@ -92,6 +104,40 @@ export function arrayToString(array: Uint8Array, charactersSet: string) {
 export const svgToSvgDataUrl = (svg: string): string => {
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 };
+
+export function parseNestedSvgPaths(text: string) {
+  const regexp = new RegExp('xlink:href="/static/media[^"]*', "g");
+
+  let uniquePaths: string[] = [];
+
+  let match;
+  while ((match = regexp.exec(text)) !== null) {
+    const ref = `${match[0]}`;
+    const path = ref.substring(12);
+    if (!uniquePaths.includes(path)) {
+      uniquePaths.push(path);
+    }
+  }
+  return uniquePaths;
+}
+
+export function replacePathsWithSvgDataUrls(
+  svgText: string,
+  paths: string[],
+  svgImages: string[]
+) {
+  for (let i = 0; i < paths.length; i++) {
+    const path = paths[i];
+    const svgImage = svgImages[i];
+    const svgDataUrl =
+      "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgImage);
+    svgText = svgText.replaceAll(
+      `xlink:href="${path}"`,
+      `xlink:href="${svgDataUrl}"`
+    );
+  }
+  return svgText;
+}
 
 export const publishAsDownload = (dataUrl: string, name: string) => {
   var link = document.createElement("a");

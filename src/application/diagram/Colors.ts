@@ -61,6 +61,7 @@ export default class Colors {
   static labelColor = Colors.canvasText;
   static nodeBorderColor = Colors.canvasBackground.darker(0.1).rgba();
   static buttonBackground = new draw2d.util.Color(grey[50]);
+  static buttonPushedBackground = new draw2d.util.Color(grey[600]);
   static button = new draw2d.util.Color(grey[900]);
 
   static nodeColors: NodeColors = {
