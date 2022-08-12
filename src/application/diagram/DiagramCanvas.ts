@@ -24,7 +24,7 @@ import { Canvas2d } from "./draw2dTypes";
 import { isError } from "../../common/Result";
 import { DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
-import Group from "./Group";
+import InnerDiagramContainer from "./InnerDiagramContainer";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
@@ -482,7 +482,7 @@ export default class DiagramCanvas {
   }
 
   private handleDoubleClick(e: any) {
-    if (e.figure?.id === Group.mainId) {
+    if (e.figure?.id === InnerDiagramContainer.mainId) {
       // Double click on group node
       this.showAddNodeDialog(e.x, e.y);
       return;

@@ -12,7 +12,7 @@ import {
   svgToSvgDataUrl,
 } from "../../utils/utils";
 import Canvas from "./Canvas";
-import Group from "./Group";
+import InnerDiagramContainer from "./InnerDiagramContainer";
 
 const imgMargin = 0;
 
@@ -124,7 +124,9 @@ export default class InnerDiagramIcon extends draw2d.shape.basic.Image {
 
     this.canvasDto = canvasDto;
 
-    const group = canvasDto.figures.find((f) => f.id === Group.mainId);
+    const group = canvasDto.figures.find(
+      (f) => f.id === InnerDiagramContainer.mainId
+    );
 
     const canvas = Canvas.deserializeInnerCanvas(canvasDto);
     this.updateGroupInfo(canvas);
@@ -136,7 +138,7 @@ export default class InnerDiagramIcon extends draw2d.shape.basic.Image {
     );
     canvas.destroy();
 
-    const innerWidth = group?.rect.w ?? Group.defaultWidth;
+    const innerWidth = group?.rect.w ?? InnerDiagramContainer.defaultWidth;
     this.innerZoom = this.width / innerWidth;
 
     // Since icons are nested svg with external links, the links must be replaced with
@@ -156,7 +158,7 @@ export default class InnerDiagramIcon extends draw2d.shape.basic.Image {
   }
 
   private updateGroupInfo(canvas: Canvas): void {
-    const group = canvas.getFigure(Group.mainId);
+    const group = canvas.getFigure(InnerDiagramContainer.mainId);
     group.setName(this.parent.getName());
     group.setDescription(this.parent.getDescription());
     group.setIcon(this.parent.iconName);

@@ -13,7 +13,7 @@ import DiagramCanvas from "./DiagramCanvas";
 import Node from "./Node";
 import NodeGroup from "./NodeGroup";
 import NodeNumber from "./NodeNumber";
-import Group from "./Group";
+import InnerDiagramContainer from "./InnerDiagramContainer";
 
 const randomDist = 30;
 
@@ -148,7 +148,7 @@ export default class Canvas extends draw2d.Canvas {
   }
 
   private figureTypeZOrder(figure: Figure2d): number {
-    if (figure instanceof Group) {
+    if (figure instanceof InnerDiagramContainer) {
       return 10;
     }
     if (figure instanceof NodeGroup) {
