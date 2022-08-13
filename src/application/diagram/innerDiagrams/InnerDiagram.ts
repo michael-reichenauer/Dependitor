@@ -7,11 +7,12 @@ import CanvasStack from "./CanvasStack";
 import { Box, Figure2d } from "../draw2dTypes";
 import { Tweenable } from "shifty";
 import { Time } from "../../../utils/time";
-import { CanvasDto } from "../StoreDtos";
+import { CanvasDto, FigureDto } from "../StoreDtos";
 import { di } from "../../../common/di";
 import { IStoreKey } from "../Store";
 import { isError } from "../../../common/Result";
 import { defaultIcon } from "./defaultDiagram";
+import assert from "assert";
 
 // Zoom/move a little slower than show total diagram
 const zoomMoveDuration = 1 * Time.second;
@@ -36,14 +37,13 @@ export default class InnerDiagram {
       return;
     }
     const canvasDto = this.getCanvasDto(node);
-    node.getPorts().each((i: number, p: any) => {
-      p.setAlpha(0.0);
-    });
+    const containerDto = this.getContainerDto(canvasDto);
+    const innerZoom = node.getWidth() / containerDto.rect.w;
 
     this.canvas.unselectAll();
     this.canvas.hidePorts();
     await this.moveToShowNodeInCenter(node);
-    await this.zoomToShowEditableNode(node, canvasDto.rect);
+    await this.zoomToShowEditableNode(node, canvasDto.rect, innerZoom);
 
     // Remember the current outer zoom, which is used when zooming inner diagram
     const outerZoom = this.canvas.zoomFactor;
@@ -69,8 +69,8 @@ export default class InnerDiagram {
     this.addOrUpdateConnectedNodes(groupNode, connectedNodes);
 
     // Zoom inner diagram to correspond to inner diagram image size in the outer node
-    // @ts-ignore
-    const targetZoom = outerZoom / innerDiagram.innerZoom;
+
+    const targetZoom = outerZoom / innerZoom;
 
     this.canvas.setZoom(targetZoom);
 
@@ -103,6 +103,8 @@ export default class InnerDiagram {
 
     // Show outer diagram (closing the inner diagram) (same id as group)
     const outerNodeId = this.canvas.canvasId;
+    const canvasDto = this.store.getCanvas(outerNodeId);
+    const containerDto = this.getContainerDto(canvasDto);
 
     // const externalNodes = this.getNodesExternalToGroup(groupNode);
     this.canvasStack.popDiagram();
@@ -111,14 +113,16 @@ export default class InnerDiagram {
     const node = this.canvas.getFigure(outerNodeId);
     node.showInnerDiagram();
 
+    const innerZoom = node.getWidth() / containerDto.rect.w;
+
     // Zoom outer diagram to correspond to the inner diagram
-    const preInnerZoom = this.canvas.zoomFactor / node.innerDiagram.innerZoom;
+    const preInnerZoom = this.canvas.zoomFactor / innerZoom;
     const newZoom = this.canvas.zoomFactor * (postInnerZoom / preInnerZoom);
     this.canvas.setZoom(newZoom);
 
     // get the inner diagram margin in outer canvas coordinates
-    const imx = node.innerDiagram.marginX * node.innerDiagram.innerZoom;
-    const imy = node.innerDiagram.marginY * node.innerDiagram.innerZoom;
+    const imx = node.innerDiagram.marginX * innerZoom;
+    const imy = node.innerDiagram.marginY * innerZoom;
 
     // Scroll outer diagram to correspond to inner diagram position
     const sx =
@@ -412,7 +416,11 @@ export default class InnerDiagram {
     });
   }
 
-  private zoomToShowEditableNode(node: Node, targetRect: Box): Promise<void> {
+  private zoomToShowEditableNode(
+    node: Node,
+    targetRect: Box,
+    innerZoom: number
+  ): Promise<void> {
     this.canvas.unselectAll();
 
     return new Promise((resolve) => {
@@ -441,11 +449,9 @@ export default class InnerDiagram {
         };
       }
       const targetZoom = Math.max(
-        node.innerDiagram.innerZoom,
-        (targetRect.w * node.innerDiagram.innerZoom) /
-          (this.canvas.getWidth() - 100),
-        (targetRect.h * node.innerDiagram.innerZoom) /
-          (this.canvas.getHeight() - 100)
+        innerZoom,
+        (targetRect.w * innerZoom) / (this.canvas.getWidth() - 100),
+        (targetRect.h * innerZoom) / (this.canvas.getHeight() - 100)
       );
 
       const tweenable = new Tweenable();
@@ -470,6 +476,12 @@ export default class InnerDiagram {
         },
       });
     });
+  }
+
+  private getContainerDto(canvasDto: CanvasDto): FigureDto {
+    const contr = canvasDto.figures.find((f) => f.id === ContainerNode.mainId);
+    assert(contr);
+    return contr;
   }
 
   private zoomToShowNormalNode(node: Node, targetZoom: number): Promise<void> {

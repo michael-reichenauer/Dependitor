@@ -14,14 +14,15 @@ import {
 import Canvas from "../Canvas";
 import ContainerNode from "./ContainerNode";
 import { defaultIcon } from "./defaultDiagram";
+import { CanvasDto, FigureDto } from "../StoreDtos";
+import assert from "assert";
 
 const imgMargin = 0;
 
 export default class DiagramIcon extends draw2d.shape.basic.Image {
   private static innerPadding = 2;
-  private parent: Node;
 
-  public constructor(parent: Node, private store = di(IStoreKey)) {
+  public constructor(readonly parent: Node, private store = di(IStoreKey)) {
     super({
       path: "",
       width: parent.width - DiagramIcon.innerPadding * 2,
@@ -31,11 +32,7 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
       radius: 5,
     });
 
-    this.innerZoom = 0.14; // calculate real !!!!
-    this.parent = parent;
     this.setDiagram(parent.id);
-    this.marginX = 0;
-    this.marginY = 0;
   }
 
   public setCanvas(canvas: Canvas2d) {
@@ -48,15 +45,11 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
   public getDiagramViewCoordinate() {
     const canvasZoom = this.canvas.zoomFactor;
 
-    // get the diagram margin in canvas coordinates
-    const imx = this.marginX * this.innerZoom;
-    const imy = this.marginY * this.innerZoom;
-
     // get the inner diagram pos in canvas view coordinates
     const outerScrollPos = this.getScrollInCanvasCoordinate();
 
-    const vx = (this.getAbsoluteX() + imx - outerScrollPos.left) / canvasZoom;
-    const vy = (this.getAbsoluteY() + imy - outerScrollPos.top) / canvasZoom;
+    const vx = (this.getAbsoluteX() - outerScrollPos.left) / canvasZoom;
+    const vy = (this.getAbsoluteY() - outerScrollPos.top) / canvasZoom;
 
     return { left: vx, top: vy };
   }
@@ -93,7 +86,7 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
       this.store.writeCanvas(canvasDto);
     }
 
-    const group = canvasDto.figures.find((f) => f.id === ContainerNode.mainId);
+    const container = this.getContainerDto(canvasDto);
 
     const canvas = Canvas.deserializeInnerCanvas(canvasDto);
     this.updateGroupInfo(canvas);
@@ -101,12 +94,9 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
       Node.defaultWidth,
       Node.defaultHeight,
       imgMargin,
-      group?.rect
+      container.rect
     );
     canvas.destroy();
-
-    const innerWidth = group?.rect.w ?? ContainerNode.defaultWidth;
-    this.innerZoom = this.width / innerWidth;
 
     // Since icons are nested svg with external links, the links must be replaced with
     // the actual icon image as an dataUrl. Let pars unique urls
@@ -122,6 +112,12 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
     const svgData = replacePathsWithSvgDataUrls(svg, nestedSvgPaths, files);
     // Make one svgDataUrl of the diagram
     return svgToSvgDataUrl(svgData);
+  }
+
+  private getContainerDto(canvasDto: CanvasDto): FigureDto {
+    const contr = canvasDto.figures.find((f) => f.id === ContainerNode.mainId);
+    assert(contr);
+    return contr;
   }
 
   private updateGroupInfo(canvas: Canvas): void {
