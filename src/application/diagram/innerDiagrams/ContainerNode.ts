@@ -1,36 +1,33 @@
 import draw2d from "draw2d";
 import cuid from "cuid";
-import Colors from "./Colors";
-import { icons, noImageIconKey } from "../../common/icons";
+import Colors from "../Colors";
+import { defaultIconKey, icons, noImageIconKey } from "../../../common/icons";
 import PubSub from "pubsub-js";
-import { LabelEditor } from "./LabelEditor";
-import { Figure2d, Point } from "./draw2dTypes";
-import { FigureDto } from "./StoreDtos";
-import { Toolbar } from "./Toolbar";
+import { LabelEditor } from "../LabelEditor";
+import { Figure2d } from "../draw2dTypes";
+import { FigureDto } from "../StoreDtos";
+import { Toolbar } from "../Toolbar";
 
 const defaultOptions = () => ({
-  id: cuid(),
-  width: InnerDiagramContainer.defaultWidth,
-  height: InnerDiagramContainer.defaultHeight,
+  width: ContainerNode.defaultWidth,
+  height: ContainerNode.defaultHeight,
   description: "",
-  icon: "Default",
-  colorName: "None",
+  icon: defaultIconKey,
 });
 
 // InnerDiagramContainer draws a border around all inner icons and external icons are connected
 // to the container
-export default class InnerDiagramContainer extends draw2d.shape.basic
-  .Rectangle {
+export default class ContainerNode extends draw2d.shape.basic.Rectangle {
   static mainId = "mainId";
   static nodeType = "group";
   static defaultWidth = 400;
   static defaultHeight = 400;
 
+  private toolBar: Toolbar;
   private nameLabel: Figure2d;
   private descriptionLabel: Figure2d;
-  private iconName: string = "Default";
   private icon: Figure2d;
-  private toolBar: Toolbar;
+  private iconName: string = defaultIconKey;
 
   public constructor(options?: any) {
     const o = { ...defaultOptions(), ...options };
@@ -38,35 +35,33 @@ export default class InnerDiagramContainer extends draw2d.shape.basic
       id: options?.id ?? cuid(),
       width: o.width,
       height: o.height,
+      color: Colors.canvasText,
+      bgColor: "none",
       stroke: 2,
       alpha: 1,
-      color: Colors.canvasText,
-      bgColor: Colors.canvasBackground,
       radius: 5,
     });
 
-    this.toolBar = new Toolbar(this);
+    this.toolBar = new Toolbar(this, () => ({ x: 0, y: -35 }));
     this.addIcon(o.icon);
     this.addLabels(o.name, o.description, o.Icon);
     this.addPorts();
   }
 
   static deserialize(data: FigureDto) {
-    return new InnerDiagramContainer({
+    return new ContainerNode({
       id: data.id,
       width: data.rect.w,
       height: data.rect.h,
       name: data.name,
       description: data.description,
-      colorName: data.color,
       icon: data.icon,
-      sticky: data.sticky,
     });
   }
 
   serialize(): FigureDto {
     return {
-      type: InnerDiagramContainer.nodeType,
+      type: ContainerNode.nodeType,
       id: this.id,
       rect: { x: this.x, y: this.y, w: this.width, h: this.height },
       name: this.getName(),
@@ -80,10 +75,6 @@ export default class InnerDiagramContainer extends draw2d.shape.basic
   public getName = () => this.nameLabel?.text ?? "";
 
   public getDescription = () => this.descriptionLabel?.text ?? "";
-
-  public getToolbarLocation(): Point {
-    return { x: 0, y: -35 };
-  }
 
   public setName(name: string) {
     this.nameLabel?.setText(name);
@@ -129,13 +120,13 @@ export default class InnerDiagramContainer extends draw2d.shape.basic
 
     // Get the rect which contains all inner icons (exclude external and container node)
     const figRec = this.canvas.getFiguresRect(
-      (f: Figure2d) => !f.isConnected && !(f instanceof InnerDiagramContainer)
+      (f: Figure2d) => !f.isConnected && !(f instanceof ContainerNode)
     );
 
     // Make rect a square form (with default minimal size)
     const mwh = Math.max(
-      InnerDiagramContainer.defaultHeight,
-      InnerDiagramContainer.defaultWidth,
+      ContainerNode.defaultHeight,
+      ContainerNode.defaultWidth,
       figRec.h,
       figRec.w
     );

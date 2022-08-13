@@ -13,7 +13,7 @@ import DiagramCanvas from "./DiagramCanvas";
 import Node from "./Node";
 import NodeGroup from "./NodeGroup";
 import NodeNumber from "./NodeNumber";
-import InnerDiagramContainer from "./InnerDiagramContainer";
+import ContainerNode from "./innerDiagrams/ContainerNode";
 
 const randomDist = 30;
 
@@ -119,6 +119,16 @@ export default class Canvas extends draw2d.Canvas {
     return canvas;
   }
 
+  public hidePorts() {
+    this.getFigures()
+      .asArray()
+      .forEach((figure: Figure2d) => {
+        figure.getPorts().each((i: number, p: any) => {
+          p.setAlpha(0.0);
+        });
+      });
+  }
+
   public unselectAll() {
     if (!this.selection.all.isEmpty()) {
       // Deselect items, since zooming with selected figures is slow
@@ -148,7 +158,7 @@ export default class Canvas extends draw2d.Canvas {
   }
 
   private figureTypeZOrder(figure: Figure2d): number {
-    if (figure instanceof InnerDiagramContainer) {
+    if (figure instanceof ContainerNode) {
       return 10;
     }
     if (figure instanceof NodeGroup) {

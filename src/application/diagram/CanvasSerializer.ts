@@ -1,7 +1,7 @@
 import draw2d from "draw2d";
 import Connection from "./Connection";
 import Colors from "./Colors";
-import InnerDiagramContainer from "./InnerDiagramContainer";
+import ContainerNode from "./innerDiagrams/ContainerNode";
 import Node from "./Node";
 import NodeGroup from "./NodeGroup";
 import NodeNumber from "./NodeNumber";
@@ -124,8 +124,8 @@ export default class CanvasSerializer {
 
   private deserializeFigure = (f: FigureDto): Figure2d => {
     let figure;
-    if (f.type === InnerDiagramContainer.nodeType) {
-      figure = InnerDiagramContainer.deserialize(f);
+    if (f.type === ContainerNode.nodeType) {
+      figure = ContainerNode.deserialize(f);
     } else if (f.type === NodeGroup.nodeType) {
       figure = NodeGroup.deserialize(f);
     } else if (f.type === NodeNumber.nodeType) {

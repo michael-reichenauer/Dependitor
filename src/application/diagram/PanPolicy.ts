@@ -1,7 +1,7 @@
 import draw2d from "draw2d";
 import Canvas from "./Canvas";
 import { Figure2d, Line2d } from "./draw2dTypes";
-import InnerDiagramContainer from "./InnerDiagramContainer";
+import ContainerNode from "./innerDiagrams/ContainerNode";
 
 export default class PanPolicy extends draw2d.policy.canvas
   .SingleSelectionPolicy {
@@ -150,7 +150,7 @@ export default class PanPolicy extends draw2d.policy.canvas
         this.isResizeHandle = true;
       }
 
-      if (figure !== null && figure.id === InnerDiagramContainer.mainId) {
+      if (figure !== null && figure.id === ContainerNode.mainId) {
         figure = null;
       }
 
@@ -439,7 +439,7 @@ export default class PanPolicy extends draw2d.policy.canvas
         this.boundingBoxFigure2 = null;
       }
       if (this.isMoved) {
-        const groupNode = this.canvas.getFigure(InnerDiagramContainer.mainId);
+        const groupNode = this.canvas.getFigure(ContainerNode.mainId);
         groupNode?.resizeToContainInnerIcons();
       }
     } catch (exc) {

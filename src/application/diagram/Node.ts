@@ -9,10 +9,10 @@ import Label from "./Label";
 import { icons } from "../../common/icons";
 import { LabelEditor } from "./LabelEditor";
 import NodeSelectionFeedbackPolicy from "./NodeSelectionFeedbackPolicy";
-import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
+import { Canvas2d, Figure2d } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
 import { Toolbar } from "./Toolbar";
-import InnerDiagramIcon from "./InnerDiagramIcon";
+import DiagramIcon from "./innerDiagrams/DiagramIcon";
 import { logName } from "../../common/log";
 
 const defaultIconKey = "Azure/General/Module";
@@ -116,16 +116,12 @@ export default class Node extends draw2d.shape.node.Between {
     this.on("dblclick", (_s: any, _e: any) => {});
     this.on("resize", (_s: any, _e: any) => this.handleResize());
 
-    this.toolBar = new Toolbar(this);
+    this.toolBar = new Toolbar(this, () => ({ x: 0, y: -35 }));
     this.on("select", () => this.selectNode());
     this.on("unselect", () => this.unSelectNode());
 
     // Adjust selection handle sizes
     this.installEditPolicy(new NodeSelectionFeedbackPolicy());
-  }
-
-  public getToolbarLocation(): Point {
-    return { x: 0, y: -35 };
   }
 
   public setCanvas(canvas: Canvas2d) {
@@ -323,7 +319,7 @@ export default class Node extends draw2d.shape.node.Between {
   private showInnerDiagram(): void {
     this.setChildrenVisible(false);
 
-    this.innerDiagram = new InnerDiagramIcon(this);
+    this.innerDiagram = new DiagramIcon(this);
     this.add(this.innerDiagram, new InnerDiagramLocator());
     this.repaint();
 

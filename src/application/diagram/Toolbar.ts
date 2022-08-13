@@ -1,7 +1,7 @@
 import draw2d from "draw2d";
 import PubSub from "pubsub-js";
 import Colors from "./Colors";
-import { Figure2d, Icon2d } from "./draw2dTypes";
+import { Figure2d, Icon2d, Point } from "./draw2dTypes";
 import Connection from "./Connection";
 import { Tooltip } from "./Tooltip";
 
@@ -30,7 +30,7 @@ export class Toolbar implements IToolbar {
   private iconButtons: IconButton[] = [];
   private buttons: Button[] = [];
 
-  public constructor(private figure: Figure2d) {}
+  public constructor(private figure: Figure2d, private locator: () => Point) {}
 
   public repaint(): void {
     if (!this.isShowing()) {
@@ -114,14 +114,14 @@ export class Toolbar implements IToolbar {
 
   private makeLocator(x: number, y: number) {
     if (this.figure instanceof Connection) {
-      return new ConnectionButtonLocator(x, y);
+      return new ConnectionButtonLocator(x, y, this.locator);
     }
 
-    return new NodeButtonLocator(x, y);
+    return new NodeButtonLocator(x, y, this.locator);
   }
 
   private showButtonMenu(x: number, y: number, menu: () => any): void {
-    const tp = this.figure.getToolbarLocation();
+    const tp = this.locator();
 
     const cx = this.figure.x + tp.x + x;
     const cy = this.figure.y + tp.y + y;
@@ -137,21 +137,29 @@ export class Toolbar implements IToolbar {
 }
 
 class NodeButtonLocator extends draw2d.layout.locator.Locator {
-  constructor(private ox: number, private oy: number) {
+  constructor(
+    private ox: number,
+    private oy: number,
+    private locator: () => Point
+  ) {
     super();
   }
   relocate(_index: number, target: Figure2d) {
-    const { x, y } = target.getParent().getToolbarLocation();
+    const { x, y } = this.locator();
     target.setPosition(x + this.ox, y + this.oy);
   }
 }
 
 class ConnectionButtonLocator extends draw2d.layout.locator.ConnectionLocator {
-  constructor(private ox: number, private oy: number) {
+  constructor(
+    private ox: number,
+    private oy: number,
+    private locator: () => Point
+  ) {
     super();
   }
   relocate(_index: number, target: Figure2d) {
-    const { x, y } = target.getParent().getToolbarLocation();
+    const { x, y } = this.locator();
     target.setPosition(x + this.ox, y + this.oy);
   }
 }

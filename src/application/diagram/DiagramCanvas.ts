@@ -10,10 +10,10 @@ import {
 import Node from "./Node";
 import { IStore, IStoreKey } from "./Store";
 import Canvas from "./Canvas";
-import CanvasStack from "./CanvasStack";
+import CanvasStack from "./innerDiagrams/CanvasStack";
 import { zoomAndMoveShowTotalDiagram } from "./showTotalDiagram";
 import { addDefaultNewDiagram, addFigureToCanvas } from "./addDefault";
-import InnerDiagram from "./InnerDiagram";
+import InnerDiagram from "./innerDiagrams/InnerDiagram";
 import Printer from "../../common/Printer";
 import { setErrorMessage, setInfoMessage } from "../../common/MessageSnackbar";
 import NodeGroup from "./NodeGroup";
@@ -24,7 +24,7 @@ import { Canvas2d } from "./draw2dTypes";
 import { isError } from "../../common/Result";
 import { DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
-import InnerDiagramContainer from "./InnerDiagramContainer";
+import ContainerNode from "./innerDiagrams/ContainerNode";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
@@ -482,7 +482,7 @@ export default class DiagramCanvas {
   }
 
   private handleDoubleClick(e: any) {
-    if (e.figure?.id === InnerDiagramContainer.mainId) {
+    if (e.figure?.id === ContainerNode.mainId) {
       // Double click on group node
       this.showAddNodeDialog(e.x, e.y);
       return;

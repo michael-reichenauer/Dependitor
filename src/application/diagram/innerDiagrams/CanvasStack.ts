@@ -1,8 +1,9 @@
 import draw2d from "draw2d";
-import Canvas from "./Canvas";
-import { ArrayList2d, CommandStack2d, Figure2d, Line2d } from "./draw2dTypes";
+import Canvas from "../Canvas";
+import { ArrayList2d, CommandStack2d, Figure2d, Line2d } from "../draw2dTypes";
 
-export interface CanvasData {
+// CanvasData contains infor for each pushed canvas in the stack, to be popped later
+interface CanvasData {
   canvasId: string;
   commandStack: CommandStack2d;
   commonPorts: any;
@@ -15,39 +16,39 @@ export interface CanvasData {
   lineIntersections: ArrayList2d;
 }
 
+// CanvasStack manages the stack of canvases when editing inner diagrams and the popping to outer
 export default class CanvasStack {
-  private diagramStack: CanvasData[] = [];
+  private stack: CanvasData[] = [];
 
   public constructor(private canvas: Canvas) {}
 
   public isRoot(): boolean {
-    return this.diagramStack.length === 0;
+    return this.stack.length === 0;
   }
 
-  public pushDiagram(): void {
-    const canvas = this.canvas;
-    const canvasData = this.getCanvasData(canvas);
+  public push(): void {
+    const canvasData = this.getCanvasData(this.canvas);
 
     // Store the canvas data so it can be popped later
-    this.diagramStack.push(canvasData);
+    this.stack.push(canvasData);
 
-    this.clearCanvas(canvas);
+    this.clearCanvas(this.canvas);
 
     // new command stack, but reuse command stack event listeners from parent
-    canvas.commandStack.eventListeners = canvasData.commandStack.eventListeners;
+    this.canvas.commandStack.eventListeners =
+      canvasData.commandStack.eventListeners;
   }
 
-  public popDiagram(): void {
-    if (this.diagramStack.length === 0) {
+  public pop(): void {
+    if (this.stack.length === 0) {
       return;
     }
-    const canvas = this.canvas;
 
-    this.clearCanvas(canvas);
+    this.clearCanvas(this.canvas);
 
     // pop canvas data and restore canvas
-    const canvasData = this.diagramStack.pop()!;
-    this.restoreCanvasData(canvasData, canvas);
+    const canvasData = this.stack.pop()!;
+    this.restoreCanvasData(canvasData, this.canvas);
   }
 
   private clearCanvas(canvas: Canvas): void {
@@ -83,9 +84,6 @@ export default class CanvasStack {
   }
 
   private restoreCanvasData(canvasData: CanvasData, canvas: Canvas): void {
-    // @ts-ignore
-    canvas.diagramId = canvasData.diagramId;
-    // @ts-ignore
     canvas.canvasId = canvasData.canvasId;
 
     canvas.setZoom(canvasData.zoom);
