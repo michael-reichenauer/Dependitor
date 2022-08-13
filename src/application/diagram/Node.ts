@@ -12,7 +12,7 @@ import NodeSelectionFeedbackPolicy from "./NodeSelectionFeedbackPolicy";
 import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
 import { Toolbar } from "./Toolbar";
-import InnerDiagramIcon from "./InnerDiagramIcon";
+import DiagramIcon from "./innerDiagrams/DiagramIcon";
 import { logName } from "../../common/log";
 
 const defaultIconKey = "Azure/General/Module";
@@ -323,7 +323,7 @@ export default class Node extends draw2d.shape.node.Between {
   private showInnerDiagram(): void {
     this.setChildrenVisible(false);
 
-    this.innerDiagram = new InnerDiagramIcon(this);
+    this.innerDiagram = new DiagramIcon(this);
     this.add(this.innerDiagram, new InnerDiagramLocator());
     this.repaint();
 

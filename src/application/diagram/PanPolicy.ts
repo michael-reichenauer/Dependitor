@@ -1,7 +1,7 @@
 import draw2d from "draw2d";
 import Canvas from "./Canvas";
 import { Figure2d, Line2d } from "./draw2dTypes";
-import InnerDiagramContainer from "./InnerDiagramContainer";
+import InnerDiagramContainer from "./innerDiagrams/InnerDiagramContainer";
 
 export default class PanPolicy extends draw2d.policy.canvas
   .SingleSelectionPolicy {

@@ -1,17 +1,17 @@
 import draw2d from "draw2d";
-import Colors from "./Colors";
-import Node from "./Node";
-import { Canvas2d } from "./draw2dTypes";
-import Result, { isError } from "../../common/Result";
-import { IStoreKey } from "./Store";
-import { di } from "../../common/di";
+import Colors from "../Colors";
+import Node from "../Node";
+import { Canvas2d } from "../draw2dTypes";
+import Result, { isError } from "../../../common/Result";
+import { IStoreKey } from "../Store";
+import { di } from "../../../common/di";
 import {
   fetchFilesAsync,
   parseNestedSvgPaths,
   replacePathsWithSvgDataUrls,
   svgToSvgDataUrl,
-} from "../../utils/utils";
-import Canvas from "./Canvas";
+} from "../../../utils/utils";
+import Canvas from "../Canvas";
 import InnerDiagramContainer from "./InnerDiagramContainer";
 
 const imgMargin = 0;
@@ -47,15 +47,15 @@ const defaultIcon = (node: Node) => ({
   connections: [],
 });
 
-export default class InnerDiagramIcon extends draw2d.shape.basic.Image {
+export default class DiagramIcon extends draw2d.shape.basic.Image {
   private static innerPadding = 2;
   private parent: Node;
 
   public constructor(parent: Node, private store = di(IStoreKey)) {
     super({
       path: "",
-      width: parent.width - InnerDiagramIcon.innerPadding * 2,
-      height: parent.height - InnerDiagramIcon.innerPadding * 2,
+      width: parent.width - DiagramIcon.innerPadding * 2,
+      height: parent.height - DiagramIcon.innerPadding * 2,
       color: Colors.canvasText,
       bgColor: Colors.canvasBackground,
       radius: 5,

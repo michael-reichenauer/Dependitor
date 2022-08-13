@@ -1,12 +1,12 @@
 import draw2d from "draw2d";
 import cuid from "cuid";
-import Colors from "./Colors";
-import { icons, noImageIconKey } from "../../common/icons";
+import Colors from "../Colors";
+import { icons, noImageIconKey } from "../../../common/icons";
 import PubSub from "pubsub-js";
-import { LabelEditor } from "./LabelEditor";
-import { Figure2d, Point } from "./draw2dTypes";
-import { FigureDto } from "./StoreDtos";
-import { Toolbar } from "./Toolbar";
+import { LabelEditor } from "../LabelEditor";
+import { Figure2d, Point } from "../draw2dTypes";
+import { FigureDto } from "../StoreDtos";
+import { Toolbar } from "../Toolbar";
 
 const defaultOptions = () => ({
   id: cuid(),

@@ -1,6 +1,6 @@
 import draw2d from "draw2d";
-import Canvas from "./Canvas";
-import { ArrayList2d, CommandStack2d, Figure2d, Line2d } from "./draw2dTypes";
+import Canvas from "../Canvas";
+import { ArrayList2d, CommandStack2d, Figure2d, Line2d } from "../draw2dTypes";
 
 export interface CanvasData {
   canvasId: string;

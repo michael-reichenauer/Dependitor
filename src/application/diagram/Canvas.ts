@@ -13,7 +13,7 @@ import DiagramCanvas from "./DiagramCanvas";
 import Node from "./Node";
 import NodeGroup from "./NodeGroup";
 import NodeNumber from "./NodeNumber";
-import InnerDiagramContainer from "./InnerDiagramContainer";
+import InnerDiagramContainer from "./innerDiagrams/InnerDiagramContainer";
 
 const randomDist = 30;
 

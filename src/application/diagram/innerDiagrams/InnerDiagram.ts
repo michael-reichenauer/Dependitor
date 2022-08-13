@@ -1,12 +1,12 @@
 import draw2d from "draw2d";
-import Connection from "./Connection";
+import Connection from "../Connection";
 import InnerDiagramContainer from "./InnerDiagramContainer";
-import Node from "./Node";
-import Canvas from "./Canvas";
+import Node from "../Node";
+import Canvas from "../Canvas";
 import CanvasStack from "./CanvasStack";
-import { Box, Figure2d } from "./draw2dTypes";
+import { Box, Figure2d } from "../draw2dTypes";
 import { Tweenable } from "shifty";
-import { Time } from "../../utils/time";
+import { Time } from "../../../utils/time";
 
 // Zoom/move a little slower than show total diagram
 const zoomMoveDuration = 1 * Time.second;
