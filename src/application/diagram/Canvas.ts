@@ -119,6 +119,16 @@ export default class Canvas extends draw2d.Canvas {
     return canvas;
   }
 
+  public hidePorts() {
+    this.getFigures()
+      .asArray()
+      .forEach((figure: Figure2d) => {
+        figure.getPorts().each((i: number, p: any) => {
+          p.setAlpha(0.0);
+        });
+      });
+  }
+
   public unselectAll() {
     if (!this.selection.all.isEmpty()) {
       // Deselect items, since zooming with selected figures is slow

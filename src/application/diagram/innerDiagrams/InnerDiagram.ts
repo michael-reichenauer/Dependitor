@@ -7,6 +7,11 @@ import CanvasStack from "./CanvasStack";
 import { Box, Figure2d } from "../draw2dTypes";
 import { Tweenable } from "shifty";
 import { Time } from "../../../utils/time";
+import { CanvasDto } from "../StoreDtos";
+import { di } from "../../../common/di";
+import { IStoreKey } from "../Store";
+import { isError } from "../../../common/Result";
+import { defaultIcon } from "./defaultDiagram";
 
 // Zoom/move a little slower than show total diagram
 const zoomMoveDuration = 1 * Time.second;
@@ -15,7 +20,11 @@ export default class InnerDiagram {
   private canvas: Canvas;
   private canvasStack: CanvasStack;
 
-  public constructor(canvas: Canvas, canvasStack: CanvasStack) {
+  public constructor(
+    canvas: Canvas,
+    canvasStack: CanvasStack,
+    private store = di(IStoreKey)
+  ) {
     this.canvas = canvas;
     this.canvasStack = canvasStack;
   }
@@ -26,12 +35,13 @@ export default class InnerDiagram {
       // Figure has no inner diagram, thus nothing to edit
       return;
     }
-    const canvasDto = node.innerDiagram.canvasDto;
+    const canvasDto = this.getCanvasDto(node);
     node.getPorts().each((i: number, p: any) => {
       p.setAlpha(0.0);
     });
 
     this.canvas.unselectAll();
+    this.canvas.hidePorts();
     await this.moveToShowNodeInCenter(node);
     await this.zoomToShowEditableNode(node, canvasDto.rect);
 
@@ -44,7 +54,6 @@ export default class InnerDiagram {
 
     // Get nodes connected to outer node so they can be re-added in the inner diagram after push
     const connectedNodes = this.getNodesConnectedToOuterNode(node);
-    console.log("connected", connectedNodes);
 
     // Hide the inner diagram image from node (will be updated and shown when popping)
     node.hideInnerDiagram();
@@ -118,12 +127,18 @@ export default class InnerDiagram {
       node.y + 2 + imy - innerDiagramViewPos.y * this.canvas.zoomFactor;
     this.setScrollInCanvasCoordinate(sx, sy);
 
-    node.getPorts().each((i: number, p: any) => {
-      p.setAlpha(0.0);
-    });
-
     this.canvas.unselectAll();
+    this.canvas.hidePorts();
     await this.zoomToShowNormalNode(node, 1);
+  }
+
+  private getCanvasDto(node: Node): CanvasDto {
+    let canvasDto = this.store.tryGetCanvas(node.id);
+    if (isError(canvasDto)) {
+      canvasDto = defaultIcon(node);
+      this.store.writeCanvas(canvasDto);
+    }
+    return canvasDto;
   }
 
   private getNodesConnectedToOuterNode(figure: Figure2d) {

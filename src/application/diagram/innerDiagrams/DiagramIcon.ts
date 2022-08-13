@@ -13,38 +13,9 @@ import {
 } from "../../../utils/utils";
 import Canvas from "../Canvas";
 import ContainerNode from "./ContainerNode";
+import { defaultIcon } from "./defaultDiagram";
 
 const imgMargin = 0;
-
-const defaultIcon = (node: Node) => ({
-  id: node.id,
-  rect: {
-    x: 49800,
-    y: 49800,
-    w: 400,
-    h: 400,
-    x2: 50200,
-    y2: 50200,
-  },
-  figures: [
-    {
-      type: "group",
-      id: "mainId",
-      rect: {
-        x: 49800,
-        y: 49800,
-        w: 400,
-        h: 400,
-      },
-      name: node.getName(),
-      description: node.getDescription(),
-      color: "none",
-      zOrder: 0,
-      icon: node.iconName,
-    },
-  ],
-  connections: [],
-});
 
 export default class DiagramIcon extends draw2d.shape.basic.Image {
   private static innerPadding = 2;
@@ -119,9 +90,8 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
     let canvasDto = this.store.tryGetCanvas(id);
     if (isError(canvasDto)) {
       canvasDto = defaultIcon(this.parent);
+      this.store.writeCanvas(canvasDto);
     }
-
-    this.canvasDto = canvasDto;
 
     const group = canvasDto.figures.find((f) => f.id === ContainerNode.mainId);
 
