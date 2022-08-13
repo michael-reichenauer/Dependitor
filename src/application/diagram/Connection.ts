@@ -42,7 +42,7 @@ export default class Connection extends draw2d.Connection {
 
     this.on("contextmenu", () => {});
 
-    const nodeToolBar = new Toolbar(this);
+    const nodeToolBar = new Toolbar(this, () => this.getToolbarLocation());
     this.on("select", () =>
       nodeToolBar.show([
         { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
@@ -127,7 +127,7 @@ export default class Connection extends draw2d.Connection {
     return c;
   }
 
-  public getToolbarLocation(): Point {
+  private getToolbarLocation(): Point {
     let points = this.getVertices();
 
     let segmentIndex = Math.floor((points.getSize() - 2) / 2);

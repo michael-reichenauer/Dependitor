@@ -7,7 +7,7 @@ import CommandChangeIcon from "./CommandChangeIcon";
 import PubSub from "pubsub-js";
 import { LabelEditor } from "./LabelEditor";
 import CommandChangeColor from "./CommandChangeColor";
-import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
+import { Canvas2d, Figure2d } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
 import { Toolbar } from "./Toolbar";
 
@@ -70,7 +70,7 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     this.on("dblclick", (_s: any, _e: any) => {});
     this.on("resize", (_s: any, _e: any) => {});
 
-    this.toolBar = new Toolbar(this);
+    this.toolBar = new Toolbar(this, () => ({ x: 0, y: -35 }));
     this.on("select", () => this.selectNodeGroup());
     this.on("unselect", () => this.unSelectNodeGroup());
 
@@ -189,10 +189,6 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
         this.canvas.runCmd(new CommandChangeColor(this, name))
       );
     });
-  }
-
-  public getToolbarLocation(): Point {
-    return { x: 0, y: -35 };
   }
 
   moveToBack() {

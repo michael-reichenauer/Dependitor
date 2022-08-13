@@ -1,6 +1,6 @@
 import draw2d from "draw2d";
 import Connection from "../Connection";
-import InnerDiagramContainer from "./InnerDiagramContainer";
+import ContainerNode from "./ContainerNode";
 import Node from "../Node";
 import Canvas from "../Canvas";
 import CanvasStack from "./CanvasStack";
@@ -55,7 +55,7 @@ export default class InnerDiagram {
     // Load inner diagram canvas or a default diagram canvas
     this.canvas.deserialize(canvasDto);
 
-    const groupNode = this.canvas.getFigure(InnerDiagramContainer.mainId);
+    const groupNode = this.canvas.getFigure(ContainerNode.mainId);
     this.updateGroup(groupNode, node);
     this.addOrUpdateConnectedNodes(groupNode, connectedNodes);
 
@@ -80,7 +80,7 @@ export default class InnerDiagram {
   public async popFromInnerDiagram(): Promise<void> {
     this.canvas.unselectAll();
 
-    const groupNode = this.canvas.getFigure(InnerDiagramContainer.mainId);
+    const groupNode = this.canvas.getFigure(ContainerNode.mainId);
 
     // Get the inner diagram zoom to use when zooming outer diagram
     const postInnerZoom = this.canvas.zoomFactor;
@@ -131,9 +131,7 @@ export default class InnerDiagram {
       .getPort("input0")
       .getConnections()
       .asArray()
-      .filter(
-        (c: any) => c.sourcePort.parent.type !== InnerDiagramContainer.nodeType
-      )
+      .filter((c: any) => c.sourcePort.parent.type !== ContainerNode.nodeType)
       .map((c: any) => {
         return {
           node: c.sourcePort.parent.serialize(),
@@ -145,9 +143,7 @@ export default class InnerDiagram {
       .getPort("input1")
       .getConnections()
       .asArray()
-      .filter(
-        (c: any) => c.sourcePort.parent.type !== InnerDiagramContainer.nodeType
-      )
+      .filter((c: any) => c.sourcePort.parent.type !== ContainerNode.nodeType)
       .map((c: any) => {
         return {
           node: c.sourcePort.parent.serialize(),
@@ -159,9 +155,7 @@ export default class InnerDiagram {
       .getPort("output0")
       .getConnections()
       .asArray()
-      .filter(
-        (c: any) => c.targetPort.parent.type !== InnerDiagramContainer.nodeType
-      )
+      .filter((c: any) => c.targetPort.parent.type !== ContainerNode.nodeType)
       .map((c: any) => {
         return {
           node: c.targetPort.parent.serialize(),
@@ -173,9 +167,7 @@ export default class InnerDiagram {
       .getPort("output1")
       .getConnections()
       .asArray()
-      .filter(
-        (c: any) => c.targetPort.parent.type !== InnerDiagramContainer.nodeType
-      )
+      .filter((c: any) => c.targetPort.parent.type !== ContainerNode.nodeType)
       .map((c: any) => {
         return {
           node: c.targetPort.parent.serialize(),
@@ -429,8 +421,8 @@ export default class InnerDiagram {
         targetRect = {
           x: 0,
           y: 0,
-          w: InnerDiagramContainer.defaultWidth + 400,
-          h: InnerDiagramContainer.defaultHeight + 300,
+          w: ContainerNode.defaultWidth + 400,
+          h: ContainerNode.defaultHeight + 300,
         };
       }
       const targetZoom = Math.max(
