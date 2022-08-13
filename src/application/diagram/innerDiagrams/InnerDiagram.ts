@@ -50,7 +50,7 @@ export default class InnerDiagram {
     node.hideInnerDiagram();
 
     // Push current diagram canvas to make room for new inner diagram canvas
-    this.canvasStack.pushDiagram();
+    this.canvasStack.push();
 
     // Load inner diagram canvas
     this.canvas.deserialize(canvasDto);
@@ -94,7 +94,7 @@ export default class InnerDiagram {
     const outerNodeId = this.canvas.canvasId;
     const canvasDto = this.store.getCanvas(outerNodeId);
     const containerDto = this.getContainerDto(canvasDto);
-    this.canvasStack.popDiagram();
+    this.canvasStack.pop();
 
     // Update the nodes inner diagram image in the outer node
     const node = this.canvas.getFigure(outerNodeId);
