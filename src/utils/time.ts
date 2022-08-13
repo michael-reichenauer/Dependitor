@@ -1,9 +1,11 @@
 const humanizeDuration = require("humanize-duration");
 
-export const second = 1000;
-export const minute = 60 * second;
-export const hour = 60 * minute;
-export const day = 24 * hour;
+export class Time {
+  public static second = 1000;
+  public static minute = 60 * Time.second;
+  public static hour = 60 * Time.minute;
+  public static day = 24 * Time.hour;
+}
 
 // Returns a duration as a nice human readable string.
 export const durationString = (duration: number): string => {

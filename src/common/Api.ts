@@ -12,7 +12,7 @@ import {
 } from "@simplewebauthn/typescript-types";
 import { withProgress } from "./Progress";
 import { commonApiKey } from "../config";
-import { second } from "../utils/time";
+import { Time } from "../utils/time";
 
 export const IApiKey = diKey<IApi>();
 export interface IApi {
@@ -114,7 +114,7 @@ export class RequestError extends NetworkError {}
 export class LocalApiServerError extends NoContactError {}
 export class LocalEmulatorError extends NoContactError {}
 
-const requestTimeout = 20 * second;
+const requestTimeout = 20 * Time.second;
 
 @singleton(IApiKey)
 export class Api implements IApi {

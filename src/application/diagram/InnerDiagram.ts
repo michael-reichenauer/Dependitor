@@ -6,8 +6,10 @@ import Canvas from "./Canvas";
 import CanvasStack from "./CanvasStack";
 import { Box, Figure2d } from "./draw2dTypes";
 import { Tweenable } from "shifty";
+import { Time } from "../../utils/time";
 
-const zoomMoveDuration = 1000;
+// Zoom/move a little slower than show total diagram
+const zoomMoveDuration = 1 * Time.second;
 
 export default class InnerDiagram {
   private canvas: Canvas;
@@ -123,136 +125,6 @@ export default class InnerDiagram {
     this.canvas.unselectAll();
     await this.zoomToShowNormalNode(node, 1);
   }
-
-  // private getNodesExternalToGroup(group: Group): any {
-  //   const internalNodes = group.getAboardFigures(true).asArray();
-  //   const externalNodes = this.canvas
-  //     .getFigures()
-  //     .asArray()
-  //     .filter(
-  //       (f: Figure2d) =>
-  //         f !== group &&
-  //         null == internalNodes.find((i: Figure2d) => i.id === f.id)
-  //     );
-
-  //   return {
-  //     nodes: externalNodes.map((n: any) => {
-  //       return {
-  //         node: n.serialize(),
-  //         connections: this.serializeExternalConnections(n),
-  //       };
-  //     }),
-  //     group: group.serialize(),
-  //   };
-  // }
-
-  // private serializeExternalConnections(node: Node) {
-  //   const ports = node.getPorts().asArray();
-  //   return ports.flatMap((p: any) =>
-  //     p
-  //       .getConnections()
-  //       .asArray()
-  //       .map((c: any) => c.serialize())
-  //   );
-  // }
-
-  // private addOrUpdateExternalNodes(data: any, outerNode: any) {
-  //   outerNode.setName(data.group.name);
-  //   outerNode.setDescription(data.group.description);
-
-  //   const marginX = 150;
-  //   const marginY = 100;
-  //   data.nodes.forEach((d: any) => {
-  //     let isNewNode = false;
-  //     let node = this.canvas.getFigure(d.node.id);
-  //     if (node != null) {
-  //       // Node already exist, updating data
-  //       node.setName(d.node.name);
-  //       node.setDescription(d.node.description);
-  //       node.setIcon(d.node.icon);
-  //       node.setNodeColor(d.node.color);
-  //     } else {
-  //       // New node needed (will be added below)
-  //       node = Node.deserialize(d.node);
-  //       isNewNode = true;
-  //     }
-
-  //     d.connections.forEach((c: any) => {
-  //       let connection = this.canvas.getLine(c.id);
-  //       if (connection != null) {
-  //         // Connection already exist, updating data
-  //         connection.setName(c.name);
-  //         connection.setDescription(c.description);
-  //       } else {
-  //         let srcPort = null;
-  //         let trgPort = null;
-  //         let src = null;
-  //         let trg = null;
-  //         let x = node.x;
-  //         let y = node.y;
-
-  //         if (c.src === node.id) {
-  //           // source is node, target should be outerNode
-  //           src = node;
-  //           trg = outerNode;
-  //           if (c.srcPort === "output0") {
-  //             // from right to left
-  //             srcPort = "output0";
-  //             trgPort = "input0";
-  //             x = outerNode.x - node.width - marginX;
-  //             y = outerNode.y;
-  //           } else {
-  //             // from bottom down to top
-  //             srcPort = "output1";
-  //             trgPort = "input1";
-  //             x = outerNode.x;
-  //             y = outerNode.y - node.height - marginY;
-  //           }
-  //         } else {
-  //           src = outerNode;
-  //           trg = node;
-  //           if (c.trgPort === "input0") {
-  //             // from right to left
-  //             srcPort = "output0";
-  //             trgPort = "input0";
-  //             x = outerNode.x + outerNode.width + marginX;
-  //             y = outerNode.y;
-  //           } else {
-  //             // from bottom down to top
-  //             srcPort = "output1";
-  //             trgPort = "input1";
-  //             x = outerNode.x;
-  //             y = outerNode.y + outerNode.height + marginY;
-  //           }
-  //         }
-  //         if (isNewNode) {
-  //           // Adjust node pos to match connection
-  //           this.canvas.addAtApproximately(node, x, y);
-  //           isNewNode = false;
-  //         }
-  //         // Connection needs to be added
-  //         connection = new Connection(
-  //           c.name,
-  //           c.description,
-  //           src,
-  //           srcPort,
-  //           trg,
-  //           trgPort,
-  //           c.id
-  //         );
-  //         this.canvas.add(connection);
-  //       }
-  //     });
-
-  //     if (isNewNode) {
-  //       // Add node which did not have a new connection
-  //       const x = outerNode.x - node.width - marginX;
-  //       const y = outerNode.y - node.height - marginY;
-  //       this.canvas.addAtApproximately(node, x, y);
-  //       isNewNode = false;
-  //     }
-  //   });
-  // }
 
   private getNodesConnectedToOuterNode(figure: Figure2d) {
     const left = figure
