@@ -1,7 +1,6 @@
 import draw2d from "draw2d";
 import Colors from "../Colors";
 import Node from "../Node";
-import { Canvas2d } from "../draw2dTypes";
 import Result, { isError } from "../../../common/Result";
 import { IStoreKey } from "../Store";
 import { di } from "../../../common/di";
@@ -17,8 +16,7 @@ import { defaultIcon } from "./defaultDiagram";
 import { CanvasDto, FigureDto } from "../StoreDtos";
 import assert from "assert";
 
-const imgMargin = 0;
-
+// DiagramIcon is an svg icon of the inner diagram for a node
 export default class DiagramIcon extends draw2d.shape.basic.Image {
   private static innerPadding = 2;
 
@@ -32,74 +30,37 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
       radius: 5,
     });
 
-    this.setDiagram(parent.id);
-  }
-
-  public setCanvas(canvas: Canvas2d) {
-    super.setCanvas(canvas);
-    if (canvas != null) {
-      this.shape?.attr({ cursor: "pointer" });
-    }
-  }
-
-  public getDiagramViewCoordinate() {
-    const canvasZoom = this.canvas.zoomFactor;
-
-    // get the inner diagram pos in canvas view coordinates
-    const outerScrollPos = this.getScrollInCanvasCoordinate();
-
-    const vx = (this.getAbsoluteX() - outerScrollPos.left) / canvasZoom;
-    const vy = (this.getAbsoluteY() - outerScrollPos.top) / canvasZoom;
-
-    return { left: vx, top: vy };
-  }
-
-  public getScrollInCanvasCoordinate() {
-    const area = this.canvas.getScrollArea();
-    return {
-      left: area.scrollLeft() * this.canvas.zoomFactor,
-      top: area.scrollTop() * this.canvas.zoomFactor,
-    };
-  }
-
-  public handleSingleClick() {
-    //this.parent.hideInnerDiagram();
+    this.setDiagramAsync(parent.id);
   }
 
   public handleDoubleClick() {
+    // Shortcut for starting to edit the inner diagram
     PubSub.publish("canvas.EditInnerDiagram", this.parent);
   }
 
-  private async setDiagram(id: string): Promise<void> {
-    const url = await this.getDiagramUrl(id);
+  // setDiagramAsync loads the diagram and creates a svg, which can be shown
+  private async setDiagramAsync(id: string): Promise<void> {
+    const url = await this.getDiagramSvgImageUrl(id);
     if (isError(url)) {
       return;
     }
 
+    // Show the actual svg image in this icon
     this.setPath(url);
   }
 
-  private async getDiagramUrl(id: string): Promise<Result<string>> {
+  // getDiagramSvgImageUrl returns a svg image in url format
+  private async getDiagramSvgImageUrl(id: string): Promise<Result<string>> {
     let canvasDto = this.store.tryGetCanvas(id);
     if (isError(canvasDto)) {
       canvasDto = defaultIcon(this.parent);
       this.store.writeCanvas(canvasDto);
     }
 
-    const container = this.getContainerDto(canvasDto);
-
-    const canvas = Canvas.deserializeInnerCanvas(canvasDto);
-    this.updateGroupInfo(canvas);
-    const svg = canvas.export(
-      Node.defaultWidth,
-      Node.defaultHeight,
-      imgMargin,
-      container.rect
-    );
-    canvas.destroy();
+    const svg = this.createSvg(canvasDto);
 
     // Since icons are nested svg with external links, the links must be replaced with
-    // the actual icon image as an dataUrl. Let pars unique urls
+    // the actual icon image as an dataUrl. Let parse unique urls
     const nestedSvgPaths = parseNestedSvgPaths(svg);
 
     // Fetch the actual icon svg files
@@ -112,6 +73,25 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
     const svgData = replacePathsWithSvgDataUrls(svg, nestedSvgPaths, files);
     // Make one svgDataUrl of the diagram
     return svgToSvgDataUrl(svgData);
+  }
+
+  private createSvg(canvasDto: CanvasDto): string {
+    const container = this.getContainerDto(canvasDto);
+
+    const canvas = Canvas.deserializeInnerCanvas(canvasDto);
+
+    // Update container node with latest info
+    this.updateGroupInfo(canvas);
+
+    const svg = canvas.export(
+      Node.defaultWidth,
+      Node.defaultHeight,
+      0,
+      container.rect
+    );
+    canvas.destroy();
+
+    return svg;
   }
 
   private getContainerDto(canvasDto: CanvasDto): FigureDto {

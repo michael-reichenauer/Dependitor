@@ -31,11 +31,6 @@ export default class InnerDiagram {
   }
 
   public async editInnerDiagram(node: Node): Promise<void> {
-    const innerDiagram = node.innerDiagram;
-    if (innerDiagram == null) {
-      // Figure has no inner diagram, thus nothing to edit
-      return;
-    }
     const canvasDto = this.getCanvasDto(node);
     const containerDto = this.getContainerDto(canvasDto);
     const innerZoom = node.getWidth() / containerDto.rect.w;
@@ -50,7 +45,7 @@ export default class InnerDiagram {
 
     // Get the view coordinates of the inner diagram image where the inner diagram should
     // positioned after the switch
-    const innerDiagramViewPos = innerDiagram.getDiagramViewCoordinate();
+    const innerDiagramViewPos = this.getDiagramViewCoordinate(node);
 
     // Get nodes connected to outer node so they can be re-added in the inner diagram after push
     const connectedNodes = this.getNodesConnectedToOuterNode(node);
@@ -120,15 +115,9 @@ export default class InnerDiagram {
     const newZoom = this.canvas.zoomFactor * (postInnerZoom / preInnerZoom);
     this.canvas.setZoom(newZoom);
 
-    // get the inner diagram margin in outer canvas coordinates
-    const imx = node.innerDiagram.marginX * innerZoom;
-    const imy = node.innerDiagram.marginY * innerZoom;
-
     // Scroll outer diagram to correspond to inner diagram position
-    const sx =
-      node.x + 2 + imx - innerDiagramViewPos.x * this.canvas.zoomFactor;
-    const sy =
-      node.y + 2 + imy - innerDiagramViewPos.y * this.canvas.zoomFactor;
+    const sx = node.x + 2 - innerDiagramViewPos.x * this.canvas.zoomFactor;
+    const sy = node.y + 2 - innerDiagramViewPos.y * this.canvas.zoomFactor;
     this.setScrollInCanvasCoordinate(sx, sy);
 
     this.canvas.unselectAll();
@@ -200,6 +189,26 @@ export default class InnerDiagram {
     this.sortNodesOnX(bottom);
 
     return { left: left, top: top, right: right, bottom: bottom };
+  }
+
+  private getDiagramViewCoordinate(inner: Figure2d) {
+    const canvasZoom = inner.canvas.zoomFactor;
+
+    // get the inner diagram pos in canvas view coordinates
+    const outerScrollPos = this.getScrollInCanvasCoordinate(inner);
+
+    const vx = (inner.getAbsoluteX() - outerScrollPos.left) / canvasZoom;
+    const vy = (inner.getAbsoluteY() - outerScrollPos.top) / canvasZoom;
+
+    return { left: vx, top: vy };
+  }
+
+  private getScrollInCanvasCoordinate(inner: Figure2d) {
+    const area = inner.canvas.getScrollArea();
+    return {
+      left: area.scrollLeft() * inner.canvas.zoomFactor,
+      top: area.scrollTop() * inner.canvas.zoomFactor,
+    };
   }
 
   private updateGroup(group: Figure2d, node: Figure2d) {
