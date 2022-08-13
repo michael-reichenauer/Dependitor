@@ -18,34 +18,30 @@ import assert from "assert";
 const zoomMoveDuration = 1 * Time.second;
 
 export default class InnerDiagram {
-  private canvas: Canvas;
-  private canvasStack: CanvasStack;
-
   public constructor(
-    canvas: Canvas,
-    canvasStack: CanvasStack,
+    private canvas: Canvas,
+    private canvasStack: CanvasStack,
     private store = di(IStoreKey)
-  ) {
-    this.canvas = canvas;
-    this.canvasStack = canvasStack;
-  }
+  ) {}
 
+  // editInnerDiagram called when edit inner diagram is requested
   public async editInnerDiagram(node: Node): Promise<void> {
     const canvasDto = this.getCanvasDto(node);
     const containerDto = this.getContainerDto(canvasDto);
     const innerZoom = node.getWidth() / containerDto.rect.w;
 
+    // Move/Zoom outer diagram to prepare for switching to inner diagram canvas
     this.canvas.unselectAll();
     this.canvas.hidePorts();
     await this.moveToShowNodeInCenter(node);
     await this.zoomToShowEditableNode(node, canvasDto.rect, innerZoom);
 
-    // Remember the current outer zoom, which is used when zooming inner diagram
+    // Remember the current outer zoom, which is used when zooming inner diagram to match
     const outerZoom = this.canvas.zoomFactor;
 
     // Get the view coordinates of the inner diagram image where the inner diagram should
     // positioned after the switch
-    const innerDiagramViewPos = this.getDiagramViewCoordinate(node);
+    const innerViewPos = this.getDiagramViewCoordinate(node);
 
     // Get nodes connected to outer node so they can be re-added in the inner diagram after push
     const connectedNodes = this.getNodesConnectedToOuterNode(node);
@@ -53,34 +49,32 @@ export default class InnerDiagram {
     // Hide the inner diagram image from node (will be updated and shown when popping)
     node.hideInnerDiagram();
 
-    // Push current diagram to make room for new inner diagram
+    // Push current diagram canvas to make room for new inner diagram canvas
     this.canvasStack.pushDiagram();
 
-    // Load inner diagram canvas or a default diagram canvas
+    // Load inner diagram canvas
     this.canvas.deserialize(canvasDto);
 
-    const groupNode = this.canvas.getFigure(ContainerNode.mainId);
-    this.updateGroup(groupNode, node);
-    this.addOrUpdateConnectedNodes(groupNode, connectedNodes);
+    // Update container node with latest info and connect external nodes
+    const containerNode = this.canvas.getFigure(ContainerNode.mainId);
+    this.updateContainerNode(containerNode, node);
+    this.addOrUpdateConnectedNodes(containerNode, connectedNodes);
 
-    // Zoom inner diagram to correspond to inner diagram image size in the outer node
-
+    // Zoom inner diagram to correspond to inner diagram image size in the outer node was
     const targetZoom = outerZoom / innerZoom;
-
     this.canvas.setZoom(targetZoom);
 
     // Scroll inner diagram to correspond to where the inner diagram image in the outer node was
-    const innerDiagramRect = this.getInnerDiagramRect(groupNode);
-
-    const left =
-      innerDiagramRect.x - innerDiagramViewPos.left * this.canvas.zoomFactor;
-    const top =
-      innerDiagramRect.y - innerDiagramViewPos.top * this.canvas.zoomFactor;
-
+    const innerRect = this.getInnerDiagramRect(containerNode);
+    const left = innerRect.x - innerViewPos.left * this.canvas.zoomFactor;
+    const top = innerRect.y - innerViewPos.top * this.canvas.zoomFactor;
     this.setScrollInCanvasCoordinate(left, top);
-    groupNode.showToolbar();
+
+    // Show the pop diagram tool bar button
+    containerNode.showToolbar();
   }
 
+  // popFromInnerDiagram pops the inner diagram canvas back to the outer node canvas
   public async popFromInnerDiagram(): Promise<void> {
     this.canvas.unselectAll();
 
@@ -90,34 +84,31 @@ export default class InnerDiagram {
     const postInnerZoom = this.canvas.zoomFactor;
 
     // Get inner diagram view position to scroll the outer diagram to same position
-    const innerDiagramRect = this.getInnerDiagramRect(groupNode);
-    const innerDiagramViewPos = this.fromCanvasToViewCoordinate(
-      innerDiagramRect.x,
-      innerDiagramRect.y
+    const innerRect = this.getInnerDiagramRect(groupNode);
+    const innerViewPos = this.fromCanvasToViewCoordinate(
+      innerRect.x,
+      innerRect.y
     );
 
     // Show outer diagram (closing the inner diagram) (same id as group)
     const outerNodeId = this.canvas.canvasId;
     const canvasDto = this.store.getCanvas(outerNodeId);
     const containerDto = this.getContainerDto(canvasDto);
-
-    // const externalNodes = this.getNodesExternalToGroup(groupNode);
     this.canvasStack.popDiagram();
 
     // Update the nodes inner diagram image in the outer node
     const node = this.canvas.getFigure(outerNodeId);
     node.showInnerDiagram();
 
-    const innerZoom = node.getWidth() / containerDto.rect.w;
-
     // Zoom outer diagram to correspond to the inner diagram
+    const innerZoom = node.getWidth() / containerDto.rect.w;
     const preInnerZoom = this.canvas.zoomFactor / innerZoom;
     const newZoom = this.canvas.zoomFactor * (postInnerZoom / preInnerZoom);
     this.canvas.setZoom(newZoom);
 
     // Scroll outer diagram to correspond to inner diagram position
-    const sx = node.x + 2 - innerDiagramViewPos.x * this.canvas.zoomFactor;
-    const sy = node.y + 2 - innerDiagramViewPos.y * this.canvas.zoomFactor;
+    const sx = node.x + 2 - innerViewPos.x * this.canvas.zoomFactor;
+    const sy = node.y + 2 - innerViewPos.y * this.canvas.zoomFactor;
     this.setScrollInCanvasCoordinate(sx, sy);
 
     this.canvas.unselectAll();
@@ -135,7 +126,7 @@ export default class InnerDiagram {
   }
 
   private getNodesConnectedToOuterNode(figure: Figure2d) {
-    const left = figure
+    const leftNodes = figure
       .getPort("input0")
       .getConnections()
       .asArray()
@@ -147,7 +138,7 @@ export default class InnerDiagram {
         };
       });
 
-    const top = figure
+    const topNodes = figure
       .getPort("input1")
       .getConnections()
       .asArray()
@@ -159,7 +150,7 @@ export default class InnerDiagram {
         };
       });
 
-    const right = figure
+    const rightNodes = figure
       .getPort("output0")
       .getConnections()
       .asArray()
@@ -171,7 +162,7 @@ export default class InnerDiagram {
         };
       });
 
-    const bottom = figure
+    const bottomNodes = figure
       .getPort("output1")
       .getConnections()
       .asArray()
@@ -183,12 +174,17 @@ export default class InnerDiagram {
         };
       });
 
-    this.sortNodesOnY(left);
-    this.sortNodesOnY(right);
-    this.sortNodesOnX(top);
-    this.sortNodesOnX(bottom);
+    this.sortNodesOnY(leftNodes);
+    this.sortNodesOnY(rightNodes);
+    this.sortNodesOnX(topNodes);
+    this.sortNodesOnX(bottomNodes);
 
-    return { left: left, top: top, right: right, bottom: bottom };
+    return {
+      left: leftNodes,
+      top: topNodes,
+      right: rightNodes,
+      bottom: bottomNodes,
+    };
   }
 
   private getDiagramViewCoordinate(inner: Figure2d) {
@@ -211,19 +207,20 @@ export default class InnerDiagram {
     };
   }
 
-  private updateGroup(group: Figure2d, node: Figure2d) {
+  private updateContainerNode(containerNode: Figure2d, node: Figure2d) {
     // Update inner diagram container with outer node info
-    group.setName(node.getName());
-    group.setDescription(node.getDescription());
-    group.setIcon(node.iconName);
+    containerNode.setName(node.getName());
+    containerNode.setDescription(node.getDescription());
+    containerNode.setIcon(node.iconName);
 
     // Tone down container bounding box appearance
-    group.setStroke(0.5);
-    group.setAlpha(0.2);
-    group.setDashArray("--..");
+    containerNode.setStroke(0.5);
+    containerNode.setAlpha(0.2);
+    containerNode.setDashArray("--..");
   }
 
-  private addOrUpdateConnectedNodes(group: any, nodes: any) {
+  // addOrUpdateConnectedNodes adds or updates external nodes connected to the outer node
+  private addOrUpdateConnectedNodes(containerNode: any, nodes: any) {
     const marginX = 150;
     const marginY = 100;
 
@@ -234,11 +231,11 @@ export default class InnerDiagram {
       const h = data.node.rect.h;
       const total = nodes.left.length;
       const p = i * (h + 20) - ((total - 1) * (h + 20)) / 2;
-      const x = group.x - w - marginX;
-      const y = group.y + group.height / 2 - h / 2 + p;
+      const x = containerNode.x - w - marginX;
+      const y = containerNode.y + containerNode.height / 2 - h / 2 + p;
       const node = this.addConnectedNode(data, x, y);
       node.isLeft = true;
-      this.addConnection(data, node, group);
+      this.addConnection(data, node, containerNode);
       addedNodes.push(node);
     });
 
@@ -248,11 +245,11 @@ export default class InnerDiagram {
       const h = data.node.rect.h;
       const total = nodes.top.length;
       const p = i * (w + 20) - ((total - 1) * (w + 20)) / 2;
-      const x = group.x + group.width / 2 - w / 2 + p;
-      const y = group.y - h - marginY;
+      const x = containerNode.x + containerNode.width / 2 - w / 2 + p;
+      const y = containerNode.y - h - marginY;
       const node = this.addConnectedNode(data, x, y);
       node.isTop = true;
-      this.addConnection(data, node, group);
+      this.addConnection(data, node, containerNode);
       addedNodes.push(node);
     });
 
@@ -260,11 +257,11 @@ export default class InnerDiagram {
       const h = data.node.rect.h;
       const total = nodes.right.length;
       const p = i * (h + 20) - ((total - 1) * (h + 20)) / 2;
-      const x = group.x + group.width + marginX;
-      const y = group.y + group.height / 2 - h / 2 + p;
+      const x = containerNode.x + containerNode.width + marginX;
+      const y = containerNode.y + containerNode.height / 2 - h / 2 + p;
       const node = this.addConnectedNode(data, x, y);
       node.isRight = true;
-      this.addConnection(data, group, node);
+      this.addConnection(data, containerNode, node);
       addedNodes.push(node);
     });
 
@@ -272,34 +269,19 @@ export default class InnerDiagram {
       const w = data.node.rect.w;
       const total = nodes.bottom.length;
       const p = i * (w + 20) - ((total - 1) * (w + 20)) / 2;
-      const x = group.x + group.width / 2 - w / 2 + p;
-      const y = group.y + group.height + marginY;
+      const x = containerNode.x + containerNode.width / 2 - w / 2 + p;
+      const y = containerNode.y + containerNode.height + marginY;
       const node = this.addConnectedNode(data, x, y);
       node.isBottom = true;
-      this.addConnection(data, group, node);
+      this.addConnection(data, containerNode, node);
       addedNodes.push(node);
     });
-
-    // const externalNodes = this.canvas
-    //   .getFigures()
-    //   .asArray()
-    //   .filter((f: any) => f.isConnected);
-
-    // externalNodes.forEach((n: any) => {
-    //   if (n.isConnected) {
-    //     // Node is connected from the outside
-    //     return;
-    //   }
-
-    //   // Node is not connected from the outside, remove all node connections and the node
-    //   n.getAllConnections().forEach((c: any) => this.canvas.remove(c));
-    //   this.canvas.remove(n);
-    // });
   }
 
   private addConnectedNode(data: any, x: number, y: number) {
     const alpha = 0.6;
     let node = this.canvas.getFigure(data.node.id);
+
     if (node != null) {
       // Node already exist, updating data
       node.setName(data.node.name);
