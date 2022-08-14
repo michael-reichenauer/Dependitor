@@ -10,7 +10,6 @@ import {
 import Node from "./Node";
 import { IStore, IStoreKey } from "./Store";
 import Canvas from "./Canvas";
-import CanvasStack from "./innerDiagrams/CanvasStack";
 import { zoomAndMoveShowTotalDiagram } from "./showTotalDiagram";
 import { addDefaultNewDiagram, addFigureToCanvas } from "./addDefault";
 import InnerDiagram from "./innerDiagrams/InnerDiagram";
@@ -25,6 +24,7 @@ import { isError } from "../../common/Result";
 import { DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
 import ContainerNode from "./innerDiagrams/ContainerNode";
+import { ICanvasStackKey } from "./innerDiagrams/CanvasStack";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
@@ -35,7 +35,6 @@ export default class DiagramCanvas {
   static defaultWidth = 100000;
   static defaultHeight = 100000;
 
-  canvasStack: CanvasStack;
   private store: IStore = di(IStoreKey);
   inner: InnerDiagram;
   diagramId: string = "";
@@ -44,7 +43,11 @@ export default class DiagramCanvas {
   canvas: Canvas;
   callbacks: any;
 
-  constructor(htmlElementId: string, callbacks: any) {
+  constructor(
+    htmlElementId: string,
+    callbacks: any,
+    private canvasStack = di(ICanvasStackKey)
+  ) {
     this.callbacks = callbacks;
     this.canvas = new Canvas(
       htmlElementId,
@@ -52,8 +55,7 @@ export default class DiagramCanvas {
       DiagramCanvas.defaultWidth,
       DiagramCanvas.defaultHeight
     );
-    this.canvasStack = new CanvasStack(this.canvas);
-    this.inner = new InnerDiagram(this.canvas, this.canvasStack);
+    this.inner = new InnerDiagram(this.canvas);
   }
 
   init() {

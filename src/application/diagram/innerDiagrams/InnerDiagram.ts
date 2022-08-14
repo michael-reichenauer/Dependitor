@@ -3,7 +3,7 @@ import Connection from "../Connection";
 import ContainerNode from "./ContainerNode";
 import Node from "../Node";
 import Canvas from "../Canvas";
-import CanvasStack from "./CanvasStack";
+import { ICanvasStackKey } from "./CanvasStack";
 import { Box, Figure2d } from "../draw2dTypes";
 import { Tweenable } from "shifty";
 import { Time } from "../../../utils/time";
@@ -20,7 +20,7 @@ const zoomMoveDuration = 1 * Time.second;
 export default class InnerDiagram {
   public constructor(
     private canvas: Canvas,
-    private canvasStack: CanvasStack,
+    private canvasStack = di(ICanvasStackKey),
     private store = di(IStoreKey)
   ) {}
 
@@ -50,7 +50,7 @@ export default class InnerDiagram {
     node.hideInnerDiagram();
 
     // Push current diagram canvas to make room for new inner diagram canvas
-    this.canvasStack.push();
+    this.canvasStack.push(this.canvas);
 
     // Load inner diagram canvas
     this.canvas.deserialize(canvasDto);
@@ -94,7 +94,7 @@ export default class InnerDiagram {
     const outerNodeId = this.canvas.canvasId;
     const canvasDto = this.store.getCanvas(outerNodeId);
     const containerDto = this.getContainerDto(canvasDto);
-    this.canvasStack.pop();
+    this.canvasStack.pop(this.canvas);
 
     // Update the nodes inner diagram image in the outer node
     const node = this.canvas.getFigure(outerNodeId);
