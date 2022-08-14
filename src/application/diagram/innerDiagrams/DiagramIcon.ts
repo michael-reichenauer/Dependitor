@@ -51,11 +51,7 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
 
   // getDiagramSvgImageUrl returns a svg image in url format
   private async getDiagramSvgImageUrl(id: string): Promise<Result<string>> {
-    let canvasDto = this.store.tryGetCanvas(id);
-    if (isError(canvasDto)) {
-      canvasDto = defaultIcon(this.parent);
-      this.store.writeCanvas(canvasDto);
-    }
+    const canvasDto = this.getCanvasDto(id);
 
     const svg = this.createSvg(canvasDto);
 
@@ -73,6 +69,16 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
     const svgData = replacePathsWithSvgDataUrls(svg, nestedSvgPaths, files);
     // Make one svgDataUrl of the diagram
     return svgToSvgDataUrl(svgData);
+  }
+
+  private getCanvasDto(id: string): CanvasDto {
+    let canvasDto = this.store.tryGetCanvas(id);
+    if (isError(canvasDto)) {
+      canvasDto = defaultIcon(this.parent);
+      this.store.writeCanvas(canvasDto);
+    }
+
+    return canvasDto;
   }
 
   private createSvg(canvasDto: CanvasDto): string {
