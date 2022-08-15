@@ -44,7 +44,7 @@ export function ApplicationMenu() {
         "Print Diagram ...",
         () => PubSub.publish("canvas.Print"),
         true,
-        !isEdgeOnIos || true
+        !isEdgeOnIos
       ),
       menuItem(
         "Export current page as png",
