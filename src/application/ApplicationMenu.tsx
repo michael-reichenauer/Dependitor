@@ -48,19 +48,19 @@ export function ApplicationMenu() {
         "Print Diagram ...",
         () => PubSub.publish("canvas.Print"),
         true,
-        !isEdgeOnIos || true
+        !isEdgeOnIos
       ),
       menuItem(
         "Export current page as png",
         () => PubSub.publish("canvas.Export", { type: "png", target: "file" }),
         true,
-        !isMobileOrTabletDevice
+        !isMobileOrTabletDevice || true
       ),
       menuItem(
         "Export current page as svg",
         () => PubSub.publish("canvas.Export", { type: "svg", target: "file" }),
         true,
-        !isMobileOrTabletDevice
+        !isMobileOrTabletDevice || true
       ),
     ]),
 
