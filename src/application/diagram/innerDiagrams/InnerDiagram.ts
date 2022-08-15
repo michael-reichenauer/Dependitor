@@ -13,6 +13,7 @@ import { IStoreKey } from "../Store";
 import { isError } from "../../../common/Result";
 import { defaultIcon } from "./defaultDiagram";
 import assert from "assert";
+import { ICanvasSerializerKey } from "../CanvasSerializer";
 
 // Zoom/move a little slower than show total diagram
 const zoomMoveDuration = 1 * Time.second;
@@ -21,7 +22,8 @@ export default class InnerDiagram {
   public constructor(
     private canvas: Canvas,
     private canvasStack = di(ICanvasStackKey),
-    private store = di(IStoreKey)
+    private store = di(IStoreKey),
+    private serializer = di(ICanvasSerializerKey)
   ) {}
 
   // editInnerDiagram called when edit inner diagram is requested
@@ -53,7 +55,7 @@ export default class InnerDiagram {
     this.canvasStack.push(this.canvas);
 
     // Load inner diagram canvas
-    this.canvas.deserialize(canvasDto);
+    this.serializer.deserialize(this.canvas, canvasDto);
 
     // Update container node with latest info and connect external nodes
     const containerNode = this.canvas.getFigure(ContainerNode.mainId);
@@ -221,8 +223,8 @@ export default class InnerDiagram {
 
   // addOrUpdateConnectedNodes adds or updates external nodes connected to the outer node
   private addOrUpdateConnectedNodes(containerNode: any, nodes: any) {
-    const marginX = 150;
-    const marginY = 100;
+    const marginX = 60;
+    const marginY = 60;
 
     const addedNodes = [];
 

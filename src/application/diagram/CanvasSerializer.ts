@@ -1,110 +1,61 @@
-import draw2d from "draw2d";
 import Connection from "./Connection";
-import Colors from "./Colors";
 import ContainerNode from "./innerDiagrams/ContainerNode";
 import Node from "./Node";
 import NodeGroup from "./NodeGroup";
 import NodeNumber from "./NodeNumber";
 import Canvas from "./Canvas";
-import { Figure2d, Line2d, Box } from "./draw2dTypes";
+import { Figure2d, Line2d } from "./draw2dTypes";
 import { CanvasDto, ConnectionDto, FigureDto } from "./StoreDtos";
+import { diKey, singleton } from "../../common/di";
+import DiagramCanvas from "./DiagramCanvas";
 
+export const ICanvasSerializerKey = diKey<ICanvasSerializer>();
+export interface ICanvasSerializer {
+  deserializeNewCanvas(canvasDto: CanvasDto): Canvas;
+  serialize(canvas: Canvas): CanvasDto;
+  deserialize(canvas: Canvas, canvasDto: CanvasDto): void;
+}
+
+@singleton(ICanvasSerializerKey)
 export default class CanvasSerializer {
-  private canvas: Canvas;
+  public deserializeNewCanvas(canvasDto: CanvasDto): Canvas {
+    const canvas = new Canvas(
+      "canvasPrint",
+      () => {},
+      DiagramCanvas.defaultWidth,
+      DiagramCanvas.defaultHeight
+    );
 
-  public constructor(canvas: Canvas) {
-    this.canvas = canvas;
+    this.deserialize(canvas, canvasDto);
+    return canvas;
   }
 
-  public serialize(): CanvasDto {
-    // If canvas is a group, mark all nodes within the group as group to be included in data
-    // const node = this.canvas.getFigure(Group.mainId);
-    // if (node instanceof Group) {
-    //   node
-    //     .getAboardFigures(true)
-    //     .each((_: number, f: Figure2d) => (f.group = node));
-    // }
-
+  public serialize(canvas: Canvas): CanvasDto {
     const canvasDto: CanvasDto = {
-      id: this.canvas.canvasId ?? "",
-      rect: this.canvas.getFiguresRect(),
-      figures: this.serializeFigures(),
-      connections: this.serializeConnections(),
+      id: canvas.canvasId ?? "",
+      rect: canvas.getFiguresRect(),
+      figures: this.serializeFigures(canvas),
+      connections: this.serializeConnections(canvas),
     };
 
-    // Unmark all nodes
-    // this.canvas.getFigures().each((_: number, f: Figure2d) => (f.group = null));
-    // console.log('data', canvasData)
     return canvasDto;
   }
 
-  public deserialize(canvasDto: CanvasDto): void {
-    this.canvas.canvasId = canvasDto.id;
+  public deserialize(canvas: Canvas, canvasDto: CanvasDto): void {
+    canvas.canvasId = canvasDto.id;
 
-    // const figures = this.deserializeFigures(canvasData.figures)
-    // figures.forEach(figure => this.canvas.add(figure));
+    const figures = this.deserializeFigures(canvasDto.figures);
+    canvas.addAll(figures);
 
-    // const connection = this.deserializeConnections(canvasData.connections)
-    // connection.forEach(connection => this.canvas.add(connection));
-    this.canvas.addAll(this.deserializeFigures(canvasDto.figures));
-
-    this.canvas.addAll(this.deserializeConnections(canvasDto.connections));
+    const connections = this.deserializeConnections(
+      canvas,
+      canvasDto.connections
+    );
+    canvas.addAll(connections);
   }
 
-  public export(
-    rect: Box,
-    width: number,
-    height: number,
-    margin: number
-  ): string {
-    const writer = new draw2d.io.svg.Writer();
-    let svgText = "";
-    writer.marshal(this.canvas, (svg: string) => {
-      // console.log('svg org:', svg)
-
-      const areaWidth = width + margin * 2;
-      const areaHeight = height + margin * 2;
-      if (rect.w < areaWidth && rect.h < areaHeight) {
-        // Image smaller than area; Center image and resize to normal size
-        const xd = areaWidth - rect.w;
-        const yd = areaHeight - rect.h;
-
-        rect.x = rect.x - xd / 2;
-        rect.y = rect.y - yd / 2;
-        rect.w = rect.w + xd;
-        rect.h = rect.h + yd;
-      } else {
-        // Image larger than area; Resize and add margin for image larger than area
-        rect.x = rect.x - margin;
-        rect.y = rect.y - margin;
-        rect.w = rect.w + margin * 2;
-        rect.h = rect.h + margin * 2;
-      }
-
-      // Export size (A4) and view box
-      const prefix = `<svg width="${width}" height="${height}" version="1.1" viewBox="${rect.x} ${rect.y} ${rect.w} ${rect.h}" `;
-
-      // Replace svg size with A4 size and view box
-      const index = svg.indexOf('xmlns="http://www.w3.org/2000/svg"');
-      let res = prefix + svg.substr(index);
-
-      // Adjust style for color and page brake
-      res = res.replace(
-        'style="',
-        `style="background-color:${Colors.canvasDivBackground};`
-      );
-      res = res.replace('style="', `style="page-break-after: always;`);
-
-      // Remove org view box (if it exists)
-      res = res.replace('viewBox="0 0 10000 10000"', "");
-
-      svgText = res;
-    });
-    return svgText;
-  }
-
-  private serializeFigures = (): FigureDto[] => {
-    const figures = this.canvas.getFigures().clone();
+  private serializeFigures = (canvas: Canvas): FigureDto[] => {
+    const figures = canvas.getFigures().clone();
     figures.sort((a: Figure2d, b: Figure2d) => {
       // return 1  if a before b
       // return -1 if b before a
@@ -139,16 +90,19 @@ export default class CanvasSerializer {
     return figure;
   };
 
-  private serializeConnections(): ConnectionDto[] {
-    return this.canvas
+  private serializeConnections(canvas: Canvas): ConnectionDto[] {
+    return canvas
       .getLines()
       .asArray()
       .map((connection: Line2d) => connection.serialize());
   }
 
-  private deserializeConnections(connections: ConnectionDto[]): Line2d[] {
+  private deserializeConnections(
+    canvas: Canvas,
+    connections: ConnectionDto[]
+  ): Line2d[] {
     return connections
-      .map((c: ConnectionDto) => Connection.deserialize(this.canvas, c))
+      .map((c: ConnectionDto) => Connection.deserialize(canvas, c))
       .filter((c: Line2d) => c != null);
   }
 }

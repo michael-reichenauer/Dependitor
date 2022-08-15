@@ -5,11 +5,7 @@ import KeyboardPolicy from "./KeyboardPolicy";
 import ConnectionCreatePolicy from "./ConnectionCreatePolicy";
 import Colors from "./Colors";
 import { random } from "../../utils/utils";
-import CanvasSerializer from "./CanvasSerializer";
-import { Box, Canvas2d, Command2d, Figure2d, Line2d } from "./draw2dTypes";
-import { CanvasDto } from "./StoreDtos";
-
-import DiagramCanvas from "./DiagramCanvas";
+import { Canvas2d, Command2d, Figure2d, Line2d } from "./draw2dTypes";
 import Node from "./Node";
 import NodeGroup from "./NodeGroup";
 import NodeNumber from "./NodeNumber";
@@ -18,8 +14,6 @@ import ContainerNode from "./innerDiagrams/ContainerNode";
 const randomDist = 30;
 
 export default class Canvas extends draw2d.Canvas {
-  private serializer: CanvasSerializer;
-
   private touchEndTime: number = 0;
   private previousPinchDiff: number = -1;
   private coronaDecorationPolicy: any = null;
@@ -33,7 +27,6 @@ export default class Canvas extends draw2d.Canvas {
     height: number
   ) {
     super(htmlElementId, width, height);
-    this.serializer = new CanvasSerializer(this);
 
     this.setScrollArea("#" + htmlElementId);
     this.setDimension(new draw2d.geo.Rectangle(0, 0, width, height));
@@ -86,38 +79,13 @@ export default class Canvas extends draw2d.Canvas {
     this.enableTouchSupport();
   }
 
-  public serialize(): CanvasDto {
-    return this.serializer.serialize();
-  }
+  // public serialize(): CanvasDto {
+  //   return this.serializer.serialize(this);
+  // }
 
-  public deserialize(canvasDto: CanvasDto): void {
-    this.serializer.deserialize(canvasDto);
-  }
-
-  public static exportDtoAsSvg(
-    canvasDto: CanvasDto,
-    width: number,
-    height: number,
-    margin: number,
-    box?: Box
-  ): string {
-    const canvas = Canvas.deserializeInnerCanvas(canvasDto);
-    const svg = canvas.export(width, height, margin, box);
-    canvas.destroy();
-    return svg;
-  }
-
-  public static deserializeInnerCanvas(canvasDto: CanvasDto): Canvas {
-    const canvas = new Canvas(
-      "canvasPrint",
-      () => {},
-      DiagramCanvas.defaultWidth,
-      DiagramCanvas.defaultHeight
-    );
-
-    canvas.deserialize(canvasDto);
-    return canvas;
-  }
+  // public deserialize(canvasDto: CanvasDto): void {
+  //   this.serializer.deserialize(this, canvasDto);
+  // }
 
   public hidePorts() {
     this.getFigures()
@@ -172,18 +140,6 @@ export default class Canvas extends draw2d.Canvas {
     }
 
     return 100;
-  }
-
-  public export(
-    width: number,
-    height: number,
-    margin: number,
-    box?: Box
-  ): string {
-    if (!box) {
-      box = this.getFiguresRect();
-    }
-    return this.serializer.export(box, width, height, margin);
   }
 
   clearDiagram = (): void => {

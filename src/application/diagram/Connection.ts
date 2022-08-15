@@ -199,8 +199,7 @@ export default class Connection extends draw2d.Connection {
   }
 
   deleteConnection(): void {
-    let cmd = new draw2d.command.CommandDelete(this);
-    this.getCanvas().getCommandStack().execute(cmd);
+    this.canvas.runCmd(new draw2d.command.CommandDelete(this));
   }
 
   public setName(name: string): void {
