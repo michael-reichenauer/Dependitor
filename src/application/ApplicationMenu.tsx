@@ -11,11 +11,7 @@ import { di } from "../common/di";
 import { useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { DiagramInfoDto } from "./diagram/StoreDtos";
-import {
-  isEdgeOnIos,
-  isMobileOrTabletDevice,
-  isStandaloneApp,
-} from "../utils/build";
+import { isEdgeOnIos, isStandaloneApp } from "../utils/build";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,
