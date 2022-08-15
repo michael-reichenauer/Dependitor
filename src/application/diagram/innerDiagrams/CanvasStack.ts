@@ -1,8 +1,16 @@
 import draw2d from "draw2d";
 import Canvas from "../Canvas";
 import { ArrayList2d, CommandStack2d, Figure2d, Line2d } from "../draw2dTypes";
+import { diKey, singleton } from "../../../common/di";
 
-// CanvasData contains infor for each pushed canvas in the stack, to be popped later
+export const ICanvasStackKey = diKey<ICanvasStack>();
+export interface ICanvasStack {
+  push(canvas: Canvas): void;
+  pop(canvas: Canvas): void;
+  isRoot(): boolean;
+}
+
+// CanvasData contains info for each pushed canvas in the stack, to be popped later
 interface CanvasData {
   canvasId: string;
   commandStack: CommandStack2d;
@@ -17,52 +25,53 @@ interface CanvasData {
 }
 
 // CanvasStack manages the stack of canvases when editing inner diagrams and the popping to outer
+@singleton(ICanvasStackKey)
 export default class CanvasStack {
   private stack: CanvasData[] = [];
-
-  public constructor(private canvas: Canvas) {}
 
   public isRoot(): boolean {
     return this.stack.length === 0;
   }
 
-  public push(): void {
-    const canvasData = this.getCanvasData(this.canvas);
+  public push(canvas: Canvas): void {
+    const canvasData = this.getCanvasData(canvas);
 
     // Store the canvas data so it can be popped later
     this.stack.push(canvasData);
 
-    this.clearCanvas(this.canvas);
+    this.clearCanvas(canvas);
 
     // new command stack, but reuse command stack event listeners from parent
-    this.canvas.commandStack.eventListeners =
-      canvasData.commandStack.eventListeners;
+    canvas.commandStack.eventListeners = canvasData.commandStack.eventListeners;
   }
 
-  public pop(): void {
+  public pop(canvas: Canvas): void {
     if (this.stack.length === 0) {
       return;
     }
 
-    this.clearCanvas(this.canvas);
+    this.clearCanvas(canvas);
 
     // pop canvas data and restore canvas
     const canvasData = this.stack.pop()!;
-    this.restoreCanvasData(canvasData, this.canvas);
+    this.restoreCanvasData(canvasData, canvas);
   }
 
   private clearCanvas(canvas: Canvas): void {
     // Remove all connections and nodes
     canvas.lines.each((_: number, e: Line2d) => e.setCanvas(null));
     canvas.figures.each((_: number, e: Figure2d) => e.setCanvas(null));
+
     // Clear all canvas data
     canvas.selection.clear();
     canvas.currentDropTarget = null;
+
     canvas.figures = new draw2d.util.ArrayList();
     canvas.lines = new draw2d.util.ArrayList();
     canvas.commonPorts = new draw2d.util.ArrayList();
     canvas.linesToRepaintAfterDragDrop = new draw2d.util.ArrayList();
     canvas.lineIntersections = new draw2d.util.ArrayList();
+
     canvas.commandStack = new draw2d.command.CommandStack();
     canvas.canvasId = "";
   }
@@ -90,8 +99,10 @@ export default class CanvasStack {
     const area = canvas.getScrollArea();
     area.scrollLeft(canvasData.x);
     area.scrollTop(canvasData.y);
+
     canvas.figures = canvasData.figures;
     canvas.lines = canvasData.lines;
+
     canvas.commonPorts = canvasData.commonPorts;
     canvas.commandStack = canvasData.commandStack;
 

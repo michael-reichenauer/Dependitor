@@ -10,7 +10,6 @@ import {
 import Node from "./Node";
 import { IStore, IStoreKey } from "./Store";
 import Canvas from "./Canvas";
-import CanvasStack from "./innerDiagrams/CanvasStack";
 import { zoomAndMoveShowTotalDiagram } from "./showTotalDiagram";
 import { addDefaultNewDiagram, addFigureToCanvas } from "./addDefault";
 import InnerDiagram from "./innerDiagrams/InnerDiagram";
@@ -19,12 +18,16 @@ import { setErrorMessage, setInfoMessage } from "../../common/MessageSnackbar";
 import NodeGroup from "./NodeGroup";
 import { greenNumberIconKey } from "../../common/icons";
 import NodeNumber from "./NodeNumber";
-import { svgToSvgDataUrl, fetchFiles } from "../../utils/utils";
 import { Canvas2d } from "./draw2dTypes";
 import { isError } from "../../common/Result";
-import { DiagramDto } from "./StoreDtos";
+import { CanvasDto, DiagramDto } from "./StoreDtos";
 import { di } from "./../../common/di";
 import ContainerNode from "./innerDiagrams/ContainerNode";
+import { ICanvasStackKey } from "./innerDiagrams/CanvasStack";
+import { ICanvasExporterKey } from "./CanvasExporter";
+import { ICanvasSerializerKey } from "./CanvasSerializer";
+import { AsyncSerializer } from "../../utils/AsyncSerializer";
+import { withProgress } from "../../common/Progress";
 
 const a4Width = 793.7007874; // "210mm" A4
 const a4Height = 1046.9291339; // "277mm" A4
@@ -35,7 +38,6 @@ export default class DiagramCanvas {
   static defaultWidth = 100000;
   static defaultHeight = 100000;
 
-  canvasStack: CanvasStack;
   private store: IStore = di(IStoreKey);
   inner: InnerDiagram;
   diagramId: string = "";
@@ -44,7 +46,13 @@ export default class DiagramCanvas {
   canvas: Canvas;
   callbacks: any;
 
-  constructor(htmlElementId: string, callbacks: any) {
+  constructor(
+    htmlElementId: string,
+    callbacks: any,
+    private canvasStack = di(ICanvasStackKey),
+    private exporter = di(ICanvasExporterKey),
+    private serializer = di(ICanvasSerializerKey)
+  ) {
     this.callbacks = callbacks;
     this.canvas = new Canvas(
       htmlElementId,
@@ -52,8 +60,7 @@ export default class DiagramCanvas {
       DiagramCanvas.defaultWidth,
       DiagramCanvas.defaultHeight
     );
-    this.canvasStack = new CanvasStack(this.canvas);
-    this.inner = new InnerDiagram(this.canvas, this.canvasStack);
+    this.inner = new InnerDiagram(this.canvas);
   }
 
   init() {
@@ -163,94 +170,75 @@ export default class DiagramCanvas {
     }
   };
 
-  commandPrint = () => {
+  commandPrint = async () => {
+    const s = new AsyncSerializer();
     const diagram = this.store.exportDiagram();
-    const pages: string[] = Object.values(diagram.canvases).map((d) =>
-      Canvas.exportDtoAsSvg(d, a4Width, a4Height, a4Margin)
-    );
+    const canvases = Object.values(diagram.canvases);
+
+    const pages = await withProgress(async () => {
+      return await Promise.all(
+        canvases.map((canvasDto) =>
+          s.serialize(() => this.exportCanvasSvg(canvasDto))
+        )
+      );
+    });
 
     const printer = new Printer();
     printer.print(pages);
   };
 
-  commandExport = (data: any) => {
+  private async exportCanvasSvg(canvasDto: CanvasDto): Promise<string> {
+    const canvas = this.serializer.deserializeNewCanvas(canvasDto);
+
+    const svg = await this.exporter.exportSvgAsync(
+      canvas,
+      a4Width,
+      a4Height,
+      a4Margin
+    );
+    canvas.destroy();
+    return svg;
+  }
+
+  private async exportCanvasSvgDataUrl(
+    canvasDto: CanvasDto,
+    imgWidth: number,
+    imgHeight: number,
+    imgMargin: number
+  ): Promise<string> {
+    const canvas = this.serializer.deserializeNewCanvas(canvasDto);
+
+    const svg = await this.exporter.exportSvgDataUrl(
+      canvas,
+      imgWidth,
+      imgHeight,
+      imgMargin
+    );
+    canvas.destroy();
+    return svg;
+  }
+
+  commandExport = async (data: any) => {
     const diagram = this.store.exportDiagram();
+    const canvasDto = diagram.canvases[this.canvas.canvasId];
     const diagramName = diagram.name;
     const rect = this.canvas.getFiguresRect();
     const imgWidth = rect.w + imgMargin * 2;
     const imgHeight = rect.h + imgMargin * 2;
 
-    let pages: string[] = Object.values(diagram.canvases).map((d) =>
-      this.canvas.exportAsSvg(d, imgWidth, imgHeight, imgMargin)
+    const svgText = await withProgress(
+      async () =>
+        await this.exportCanvasSvgDataUrl(canvasDto, imgWidth, imgHeight, 0)
     );
-    console.log("pages", pages);
-    let svgText = pages[0];
 
-    // Since icons are nested svg with external links, the links must be replaced with
-    // the actual icon image as an dataUrl. Let pars unique urls
-    const nestedSvgPaths = this.parseNestedSvgPaths(svgText);
-    console.log("nestedPaths", nestedSvgPaths);
-
-    // Fetch the actual icon svg files
-    fetchFiles(nestedSvgPaths, (files) => {
-      // Replace all the links with dataUrl of the files.
-      svgText = this.replacePathsWithSvgDataUrls(
-        svgText,
-        nestedSvgPaths,
-        files
-      );
-
-      // Make one svgDataUrl of the diagram
-      let svgDataUrl = svgToSvgDataUrl(svgText);
-
-      if (data.type === "png") {
-        imgDataUrlToPngDataUrl(
-          svgDataUrl,
-          imgWidth,
-          imgHeight,
-          (pngDataUrl) => {
-            publishAsDownload(pngDataUrl, `${diagramName}.png`);
-          }
-        );
-      } else if (data.type === "svg") {
-        publishAsDownload(svgDataUrl, `${diagramName}.svg`);
-      }
-    });
+    if (data.type === "png") {
+      imgDataUrlToPngDataUrl(svgText, imgWidth, imgHeight, (pngDataUrl) => {
+        publishAsDownload(pngDataUrl, `${diagramName}.png`);
+      });
+    } else if (data.type === "svg") {
+      publishAsDownload(svgText, `${diagramName}.svg`);
+    }
   };
-
-  parseNestedSvgPaths(text: string) {
-    const regexp = new RegExp('xlink:href="/static/media[^"]*', "g");
-
-    let uniquePaths: string[] = [];
-
-    let match;
-    while ((match = regexp.exec(text)) !== null) {
-      const ref = `${match[0]}`;
-      const path = ref.substring(12);
-      if (!uniquePaths.includes(path)) {
-        uniquePaths.push(path);
-      }
-    }
-    return uniquePaths;
-  }
-
-  replacePathsWithSvgDataUrls(
-    svgText: string,
-    paths: string[],
-    svgImages: string[]
-  ) {
-    for (let i = 0; i < paths.length; i++) {
-      const path = paths[i];
-      const svgImage = svgImages[i];
-      const svgDataUrl =
-        "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgImage);
-      svgText = svgText.replaceAll(
-        `xlink:href="${path}"`,
-        `xlink:href="${svgDataUrl}"`
-      );
-    }
-    return svgText;
-  }
 
   commandEditInnerDiagram = (_msg: string, figure: any) => {
     this.inner.editInnerDiagram(figure);
@@ -365,7 +353,7 @@ export default class DiagramCanvas {
 
   save() {
     // Serialize canvas figures and connections into canvas data object
-    const canvasData = this.canvas.serialize();
+    const canvasData = this.serializer.serialize(this.canvas);
     this.store.writeCanvas(canvasData);
   }
 
@@ -396,7 +384,7 @@ export default class DiagramCanvas {
 
   showDiagram(diagramDto: DiagramDto) {
     const canvasDto = this.store.getRootCanvas();
-    this.canvas.deserialize(canvasDto);
+    this.serializer.deserialize(this.canvas, canvasDto);
     this.diagramId = diagramDto.id;
     this.diagramName = diagramDto.name;
     this.canvas.canvasId = "root";
@@ -440,12 +428,17 @@ export default class DiagramCanvas {
     this.updateToolbarButtonsStates();
 
     canvas.commandStack.addEventListener((e: any) => {
-      // console.log('change event:', e)
+      // console.log("change event:", e);
       this.updateToolbarButtonsStates();
 
       if (e.isPostChangeEvent()) {
         if (e.action === "POST_EXECUTE") {
-          // console.log('save')
+          if (e.command?.label === "Delete Shape") {
+            // Deleting a node, if node has inner canvas, ensure it is deleted as well
+            this.store.deleteCanvas(e.command.figure.id);
+          }
+
+          // Save on every edit
           this.save();
         }
       }

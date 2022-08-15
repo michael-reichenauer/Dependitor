@@ -4,23 +4,24 @@ import Node from "../Node";
 import Result, { isError } from "../../../common/Result";
 import { IStoreKey } from "../Store";
 import { di } from "../../../common/di";
-import {
-  fetchFilesAsync,
-  parseNestedSvgPaths,
-  replacePathsWithSvgDataUrls,
-  svgToSvgDataUrl,
-} from "../../../utils/utils";
 import Canvas from "../Canvas";
 import ContainerNode from "./ContainerNode";
 import { defaultIcon } from "./defaultDiagram";
 import { CanvasDto, FigureDto } from "../StoreDtos";
 import assert from "assert";
+import { ICanvasExporterKey } from "../CanvasExporter";
+import { ICanvasSerializerKey } from "../CanvasSerializer";
 
 // DiagramIcon is an svg icon of the inner diagram for a node
 export default class DiagramIcon extends draw2d.shape.basic.Image {
   private static innerPadding = 2;
 
-  public constructor(readonly parent: Node, private store = di(IStoreKey)) {
+  public constructor(
+    readonly parent: Node,
+    private store = di(IStoreKey),
+    private canvasExporter = di(ICanvasExporterKey),
+    private serializer = di(ICanvasSerializerKey)
+  ) {
     super({
       path: "",
       width: parent.width - DiagramIcon.innerPadding * 2,
@@ -51,47 +52,35 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
 
   // getDiagramSvgImageUrl returns a svg image in url format
   private async getDiagramSvgImageUrl(id: string): Promise<Result<string>> {
+    const canvasDto = this.getCanvasDto(id);
+    const containerDto = this.getContainerDto(canvasDto);
+
+    const canvas = this.serializer.deserializeNewCanvas(canvasDto);
+
+    // Update container node with latest info
+    this.updateGroupInfo(canvas);
+
+    // Export to svg url
+    const svg = await this.canvasExporter.exportSvgDataUrl(
+      canvas,
+      Node.defaultWidth,
+      Node.defaultHeight,
+      0,
+      containerDto.rect
+    );
+    canvas.destroy();
+
+    return svg;
+  }
+
+  private getCanvasDto(id: string): CanvasDto {
     let canvasDto = this.store.tryGetCanvas(id);
     if (isError(canvasDto)) {
       canvasDto = defaultIcon(this.parent);
       this.store.writeCanvas(canvasDto);
     }
 
-    const svg = this.createSvg(canvasDto);
-
-    // Since icons are nested svg with external links, the links must be replaced with
-    // the actual icon image as an dataUrl. Let parse unique urls
-    const nestedSvgPaths = parseNestedSvgPaths(svg);
-
-    // Fetch the actual icon svg files
-    const files = await fetchFilesAsync(nestedSvgPaths);
-    if (isError(files)) {
-      return files;
-    }
-
-    // Replace all the links with dataUrl of the files.
-    const svgData = replacePathsWithSvgDataUrls(svg, nestedSvgPaths, files);
-    // Make one svgDataUrl of the diagram
-    return svgToSvgDataUrl(svgData);
-  }
-
-  private createSvg(canvasDto: CanvasDto): string {
-    const container = this.getContainerDto(canvasDto);
-
-    const canvas = Canvas.deserializeInnerCanvas(canvasDto);
-
-    // Update container node with latest info
-    this.updateGroupInfo(canvas);
-
-    const svg = canvas.export(
-      Node.defaultWidth,
-      Node.defaultHeight,
-      0,
-      container.rect
-    );
-    canvas.destroy();
-
-    return svg;
+    return canvasDto;
   }
 
   private getContainerDto(canvasDto: CanvasDto): FigureDto {

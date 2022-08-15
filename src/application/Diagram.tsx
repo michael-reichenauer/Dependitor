@@ -132,20 +132,6 @@ function enableContextMenu(
       event.preventDefault();
       event = getCommonEvent(event);
     }
-
-    // const { x, y } = { x: event.clientX, y: event.clientY }
-
-    // // Get target figure or use canvas as target
-    // let figure = getFigure(canvas, event)
-    // const target = figure ?? canvas
-
-    // if (typeof target.getContextMenuItems !== "function") {
-    //     // No context menu on target
-    //     return
-    // }
-
-    // const menuItems = target.getContextMenuItems(x, y)
-    // setContextMenu({ items: menuItems, x: x, y: y });
   };
 
   var el = document.getElementById(elementId);
@@ -153,16 +139,3 @@ function enableContextMenu(
   document.addEventListener("longclick", handleContextMenu);
   return handleContextMenu;
 }
-
-// const getFigure = (canvas, event) => {
-//     let figure = canvas.tryGetFigure(event.clientX, event.clientY)
-//     if (figure == null) {
-//         return null
-//     }
-
-//     if (typeof figure.getContextMenuItems !== "function" && figure.getParent() != null) {
-//         // Figure did not have context menu, but has a parent (e.g. a label) lets try parent
-//         figure = figure.getParent()
-//     }
-//     return figure
-// }

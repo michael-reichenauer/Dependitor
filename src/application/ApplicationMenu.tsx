@@ -41,23 +41,23 @@ export function ApplicationMenu() {
       ),
     ]),
 
-    menuParentItem("Diagrams", [
+    menuParentItem("Diagram", [
       menuItem("Rename", () => renameDiagram(diagramName)),
       menuItem("Delete", deleteDiagram),
       menuItem(
-        "Print ...",
+        "Print Diagram ...",
         () => PubSub.publish("canvas.Print"),
         true,
         !isEdgeOnIos
       ),
       menuItem(
-        "Export png",
+        "Export current page as png",
         () => PubSub.publish("canvas.Export", { type: "png", target: "file" }),
         true,
         !isMobileOrTabletDevice
       ),
       menuItem(
-        "Export svg",
+        "Export current page as svg",
         () => PubSub.publish("canvas.Export", { type: "svg", target: "file" }),
         true,
         !isMobileOrTabletDevice
