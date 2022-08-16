@@ -13,6 +13,7 @@ import {
 import { withProgress } from "./Progress";
 import { commonApiKey } from "../config";
 import { Time } from "../utils/time";
+import { jsonStringify } from "../utils/text";
 
 export const IApiKey = diKey<IApi>();
 export interface IApi {
@@ -296,9 +297,12 @@ export class Api implements IApi {
       return rspData;
     } catch (e) {
       const error = this.toError(e);
-      const text = `%cRequest #${this.requestCount}: POST ${uri}: ERROR: ${
-        error.name
-      }: ${error.message} ${t()}`;
+      const reqBytes = jsonStringify(requestData).length;
+      const text = `%cRequest #${
+        this.requestCount
+      }: POST ${uri} (${reqBytes}->? bytes): ERROR: ${error.name}: ${
+        error.message
+      } ${t()}`;
       console.groupCollapsed(text, "color: #CD5C5C");
       console.log(text, "color: #CD5C5C");
       console.log("Request:", requestData);
