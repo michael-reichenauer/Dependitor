@@ -52,7 +52,7 @@ export default class InnerDiagram {
     node.hideInnerDiagram();
 
     // Push current diagram canvas to make room for new inner diagram canvas
-    this.canvasStack.push(this.canvas);
+    this.canvasStack.push(this.canvas, this.canvas.canvasName);
 
     // Load inner diagram canvas
     this.serializer.deserialize(this.canvas, canvasDto);
@@ -61,6 +61,7 @@ export default class InnerDiagram {
     const containerNode = this.canvas.getFigure(ContainerNode.mainId);
     this.updateContainerNode(containerNode, node);
     this.addOrUpdateConnectedNodes(containerNode, connectedNodes);
+    PubSub.publish("canvas.SetCanvasName", containerNode.getName());
 
     // Zoom inner diagram to correspond to inner diagram image size in the outer node was
     const targetZoom = outerZoom / innerZoom;
@@ -96,7 +97,9 @@ export default class InnerDiagram {
     const outerNodeId = this.canvas.canvasId;
     const canvasDto = this.store.getCanvas(outerNodeId);
     const containerDto = this.getContainerDto(canvasDto);
-    this.canvasStack.pop(this.canvas);
+    const canvasName = this.canvasStack.pop(this.canvas);
+    PubSub.publish("canvas.SetCanvasName", canvasName);
+    //diagramNameState.set(diagramName);
 
     // Update the nodes inner diagram image in the outer node
     const node = this.canvas.getFigure(outerNodeId);

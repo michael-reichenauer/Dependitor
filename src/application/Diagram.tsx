@@ -27,7 +27,7 @@ export default function Diagram({ width, height }) {
   // The ref to the canvas handler for all canvas operations
   const canvasRef = useRef(null);
   const [contextMenu, setContextMenu] = useState<any>();
-  const [, setTitle] = useAtom(diagramNameAtom);
+  const [, setTitle] = useDiagramName();
   const [, setCanUndo] = useAtom(canUndoAtom);
   const [, setCanRedo] = useAtom(canRedoAtom);
   const [, setCanPopDiagram] = useAtom(canPopDiagramAtom);
