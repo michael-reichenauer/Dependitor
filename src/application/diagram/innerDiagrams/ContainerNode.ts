@@ -3,7 +3,6 @@ import cuid from "cuid";
 import Colors from "../Colors";
 import { defaultIconKey, icons, noImageIconKey } from "../../../common/icons";
 import PubSub from "pubsub-js";
-import { LabelEditor } from "../LabelEditor";
 import { Figure2d } from "../draw2dTypes";
 import { FigureDto } from "../StoreDtos";
 import { Toolbar } from "../Toolbar";
@@ -209,7 +208,6 @@ export default class ContainerNode extends draw2d.shape.basic.Rectangle {
       bold: true,
     });
 
-    this.nameLabel.installEditor(new LabelEditor(this));
     this.nameLabel.labelLocator = new NodeGroupNameLocator();
     this.add(this.nameLabel, this.nameLabel.labelLocator);
 
@@ -221,7 +219,6 @@ export default class ContainerNode extends draw2d.shape.basic.Rectangle {
       bold: false,
     });
 
-    this.descriptionLabel.installEditor(new LabelEditor(this));
     this.descriptionLabel.labelLocator = new NodeGroupDescriptionLocator();
     this.add(this.descriptionLabel, this.descriptionLabel.labelLocator);
   }

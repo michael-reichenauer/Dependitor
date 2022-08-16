@@ -19,6 +19,7 @@ export default class Canvas extends draw2d.Canvas {
   private coronaDecorationPolicy: any = null;
 
   public canvasId: string = "";
+  public canvasName: string = "";
 
   public constructor(
     htmlElementId: string,

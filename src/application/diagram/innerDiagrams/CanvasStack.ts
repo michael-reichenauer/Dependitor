@@ -5,8 +5,8 @@ import { diKey, singleton } from "../../../common/di";
 
 export const ICanvasStackKey = diKey<ICanvasStack>();
 export interface ICanvasStack {
-  push(canvas: Canvas): void;
-  pop(canvas: Canvas): void;
+  push(canvas: Canvas, canvasName: string): void;
+  pop(canvas: Canvas): string;
   isRoot(): boolean;
 }
 
@@ -22,6 +22,7 @@ interface CanvasData {
   zoom: number;
   linesToRepaintAfterDragDrop: ArrayList2d;
   lineIntersections: ArrayList2d;
+  canvasName: string;
 }
 
 // CanvasStack manages the stack of canvases when editing inner diagrams and the popping to outer
@@ -33,8 +34,8 @@ export default class CanvasStack {
     return this.stack.length === 0;
   }
 
-  public push(canvas: Canvas): void {
-    const canvasData = this.getCanvasData(canvas);
+  public push(canvas: Canvas, canvasName: string): void {
+    const canvasData = this.getCanvasData(canvas, canvasName);
 
     // Store the canvas data so it can be popped later
     this.stack.push(canvasData);
@@ -45,9 +46,9 @@ export default class CanvasStack {
     canvas.commandStack.eventListeners = canvasData.commandStack.eventListeners;
   }
 
-  public pop(canvas: Canvas): void {
+  public pop(canvas: Canvas): string {
     if (this.stack.length === 0) {
-      return;
+      return "";
     }
 
     this.clearCanvas(canvas);
@@ -55,6 +56,7 @@ export default class CanvasStack {
     // pop canvas data and restore canvas
     const canvasData = this.stack.pop()!;
     this.restoreCanvasData(canvasData, canvas);
+    return canvasData.canvasName;
   }
 
   private clearCanvas(canvas: Canvas): void {
@@ -76,7 +78,7 @@ export default class CanvasStack {
     canvas.canvasId = "";
   }
 
-  private getCanvasData(canvas: Canvas): CanvasData {
+  private getCanvasData(canvas: Canvas, canvasName: string): CanvasData {
     const area = canvas.getScrollArea();
     return {
       canvasId: canvas.canvasId ?? "",
@@ -89,6 +91,7 @@ export default class CanvasStack {
       commandStack: canvas.commandStack,
       linesToRepaintAfterDragDrop: canvas.linesToRepaintAfterDragDrop,
       lineIntersections: canvas.lineIntersections,
+      canvasName: canvasName,
     };
   }
 
