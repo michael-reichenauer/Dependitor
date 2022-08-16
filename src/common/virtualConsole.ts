@@ -1,7 +1,7 @@
 import VConsole from "vconsole";
 import { ILocalStoreKey } from "../common/LocalStore";
 import { di } from "./di";
-import { isMobileOrTabletDevice } from "./utils";
+import { isMobileOrTabletDevice } from "../utils/build";
 
 const vConsoleKey = "vConsole.enable";
 let vConsole: any = null;
@@ -30,5 +30,5 @@ export function enableVirtualConsole(flag: boolean): void {
 }
 
 export function restoreVirtualConsoleState(): void {
-  enableVirtualConsole(di(ILocalStoreKey).readOrDefault(vConsoleKey, false));
+  enableVirtualConsole(di(ILocalStoreKey).readOr(vConsoleKey, false));
 }

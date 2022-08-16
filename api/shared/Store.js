@@ -6,6 +6,7 @@ const entGen = azure.TableUtilities.entityGenerator;
 
 const dataBaseTableName = 'data'
 const dataPartitionKey = 'data'
+const maxValueChunkSize = 30000
 
 
 exports.tryReadBatch = async (context, body, userId) => {
@@ -100,11 +101,21 @@ exports.removeBatch = async (context, body, userId) => {
 function toDataTableEntity(entity) {
     const { key, value } = entity
 
+    // Convert value to string and chunk if value is big
+    const valueText = JSON.stringify(value)
+    const chunks = stringChunks(valueText, maxValueChunkSize)
+
     const item = {
         RowKey: entGen.String(key),
         PartitionKey: entGen.String(dataPartitionKey),
 
-        value: entGen.String(JSON.stringify(value)),
+        chunks: entGen.Int32(chunks.length),
+        value: entGen.String(chunks[0]),
+    }
+
+    // Add possible additional chunks as value1, value2, ... properties
+    for (let i = 1; i < chunks.length; i++) {
+        item['value' + i] = chunks[i]
     }
 
     return item
@@ -116,6 +127,27 @@ function toDataEntity(item) {
     if (item.value) {
         valueText = item.value
     }
+
+    // Concat possible value1, value2, ... properties for big values
+    for (let i = 1; i < item.chunks; i++) {
+        valueText = valueText.concat(item['value' + i])
+    }
+
     const value = JSON.parse(valueText)
     return { key: item.RowKey, etag: item['odata.etag'], value: value }
+}
+
+function stringChunks(text, size) {
+    if (text === '') {
+        return ['']
+    }
+
+    const numChunks = Math.ceil(text.length / size);
+    const chunks = new Array(numChunks);
+
+    for (let i = 0, o = 0; i < numChunks; ++i, o += size) {
+        chunks[i] = text.substr(o, size);
+    }
+
+    return chunks;
 }

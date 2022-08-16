@@ -56,7 +56,9 @@ export class RemoteDB implements IRemoteDB {
   ): Promise<Result<RemoteEntityRsp[]>> {
     const apiEntities = await this.toUploadingApiEntities(entities);
 
-    return await this.api.writeBatch(apiEntities);
+    return await this.api.withNoProgress(() =>
+      this.api.writeBatch(apiEntities)
+    );
   }
 
   public async removeBatch(keys: string[]): Promise<Result<void>> {

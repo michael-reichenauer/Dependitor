@@ -42,6 +42,7 @@ export interface FigureDto {
   description: string;
   rect: RectDto;
   color: string;
+  zOrder: number;
   icon?: string;
   sticky?: boolean;
 }

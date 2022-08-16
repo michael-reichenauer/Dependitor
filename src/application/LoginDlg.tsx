@@ -13,7 +13,7 @@ import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
 import { setErrorMessage } from "../common/MessageSnackbar";
-import { isDeveloperMode, isMobileDevice } from "../common/utils";
+import { isDeveloperMode, isMobileDevice } from "../utils/build";
 import {
   AuthenticatorCanceledError,
   AuthenticatorNotAcceptedError,
