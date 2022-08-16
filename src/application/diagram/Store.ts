@@ -15,6 +15,7 @@ import {
 } from "./StoreDtos";
 import { LocalEntity } from "../../common/db/LocalDB";
 import { RemoteEntity } from "../../common/db/RemoteDB";
+import { NotFoundError } from "../../common/CustomError";
 
 export interface Configuration {
   onRemoteChanged: (keys: string[]) => void;
@@ -35,8 +36,10 @@ export interface IStore {
   exportDiagram(): DiagramDto; // Used for print or export
 
   getRootCanvas(): CanvasDto;
+  tryGetCanvas(canvasId: string): Result<CanvasDto>;
   getCanvas(canvasId: string): CanvasDto;
   writeCanvas(canvas: CanvasDto): void;
+  deleteCanvas(canvasId: string): void;
 
   getMostResentDiagramId(): Result<string>;
   getRecentDiagrams(): DiagramInfoDto[];
@@ -159,13 +162,38 @@ export class Store implements IStore {
     return canvasDto;
   }
 
+  public deleteCanvas(canvasId: string): void {
+    const diagramDto = this.getDiagramDto();
+    const diagramId = diagramDto.id;
+
+    if (!diagramDto.canvases[canvasId]) {
+      return;
+    }
+
+    delete diagramDto.canvases[canvasId];
+    this.db.writeBatch([{ key: diagramId, value: diagramDto }]);
+  }
+
+  public tryGetCanvas(canvasId: string): Result<CanvasDto> {
+    const diagramDto = this.getDiagramDto();
+
+    const canvasDto = diagramDto.canvases[canvasId];
+    if (!canvasDto) {
+      return new NotFoundError(
+        `Canvas ${canvasId} not in diagram ${diagramDto.id}`
+      );
+    }
+
+    return canvasDto;
+  }
+
   public writeCanvas(canvasDto: CanvasDto): void {
     const diagramDto = this.getDiagramDto();
-    const id = diagramDto.id;
+    const diagramId = diagramDto.id;
 
     diagramDto.canvases[canvasDto.id] = canvasDto;
 
-    this.db.writeBatch([{ key: id, value: diagramDto }]);
+    this.db.writeBatch([{ key: diagramId, value: diagramDto }]);
   }
 
   public getRecentDiagrams(): DiagramInfoDto[] {
@@ -209,6 +237,9 @@ export class Store implements IStore {
 
   public async loadDiagramFromFile(): Promise<Result<string>> {
     const fileText = await this.localFiles.loadFile();
+    if (isError(fileText)) {
+      return fileText;
+    }
     const fileDto: FileDto = JSON.parse(fileText);
 
     // if (!(await this.sync.uploadDiagrams(fileDto.diagrams))) {

@@ -7,7 +7,7 @@ import { LabelEditor } from "./LabelEditor";
 import { Figure2d, Point } from "./draw2dTypes";
 import Canvas from "./Canvas";
 import { ConnectionDto, VertexDto } from "./StoreDtos";
-import { NodeToolbar } from "./NodeToolbar";
+import { Toolbar } from "./Toolbar";
 
 const defaultTextWidth = 230;
 
@@ -42,10 +42,12 @@ export default class Connection extends draw2d.Connection {
 
     this.on("contextmenu", () => {});
 
-    const nodeToolBar = new NodeToolbar(this, [
-      { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
-    ]);
-    this.on("select", () => nodeToolBar.show());
+    const nodeToolBar = new Toolbar(this, () => this.getToolbarLocation());
+    this.on("select", () =>
+      nodeToolBar.show([
+        { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
+      ])
+    );
     this.on("unselect", () => nodeToolBar.hide());
 
     this.setColor(Colors.connectionColor);
@@ -125,7 +127,7 @@ export default class Connection extends draw2d.Connection {
     return c;
   }
 
-  public getToolbarLocation(): Point {
+  private getToolbarLocation(): Point {
     let points = this.getVertices();
 
     let segmentIndex = Math.floor((points.getSize() - 2) / 2);
@@ -197,11 +199,14 @@ export default class Connection extends draw2d.Connection {
   }
 
   deleteConnection(): void {
-    let cmd = new draw2d.command.CommandDelete(this);
-    this.getCanvas().getCommandStack().execute(cmd);
+    this.canvas.runCmd(new draw2d.command.CommandDelete(this));
   }
 
-  setDescription(description: string): void {
+  public setName(name: string): void {
+    this.nameLabel?.setText(name);
+  }
+
+  public setDescription(description: string): void {
     this.descriptionLabel?.setText(description);
   }
 

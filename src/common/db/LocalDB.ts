@@ -47,7 +47,7 @@ export class LocalDB implements ILocalDB {
 
   public tryReadBatch(keys: string[]): Result<LocalEntity>[] {
     const localKeys = this.toLocalKeys(keys);
-    return this.localStore.tryReadBatch(localKeys);
+    return this.localStore.readBatch(localKeys);
   }
 
   public write(entity: LocalEntity): void {
@@ -99,11 +99,11 @@ export class LocalDB implements ILocalDB {
     const localKeys = this.localStore
       .keys()
       .filter((key) => key.startsWith(localKeyPrefix));
-    return this.localStore.tryReadBatch(localKeys);
+    return this.localStore.readBatch(localKeys);
   }
 
   public getRemovedKeys(): string[] {
-    return orDefault(this.localStore.tryRead<string[]>(removedKey), []);
+    return orDefault(this.localStore.read<string[]>(removedKey), []);
   }
 
   public clear(): void {

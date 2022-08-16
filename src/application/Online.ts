@@ -105,14 +105,14 @@ export class Online implements IOnline {
         this.showProgress();
 
         const loginRsp = await this.authenticate.login();
-        if (loginRsp instanceof WebAuthnNeedReloadError) {
+        if (isError(loginRsp, WebAuthnNeedReloadError)) {
           // On IOS, access to WebAuthn only works on recently manually loaded web page,
           // so user must must manually reload and after reload we try again.
           this.setTriggerLoginAfterReload(true);
           this.showReloadPageAlert();
           return;
         }
-        if (loginRsp instanceof WebAuthnCanceledError) {
+        if (isError(loginRsp, WebAuthnCanceledError)) {
           // User canceled login
           setInfoMessage(deviceSyncCanceledMsg);
           this.cancelLoginOnLocalDevice();
@@ -162,7 +162,7 @@ export class Online implements IOnline {
 
       // Check connection and authentication with server
       const checkRsp = await this.authenticate.check();
-      if (checkRsp instanceof AuthenticateError) {
+      if (isError(checkRsp, AuthenticateError)) {
         // Authentication is needed, showing the authentication dialog or sync enable dlg
         if (!skipLocalLogin && this.authenticate.isLocalLoginEnabled()) {
           return this.loginOnLocalDevice();
@@ -282,7 +282,7 @@ export class Online implements IOnline {
 
   // getPersistentIsSyncEnabled returns true if sync should be automatically enabled after browser start
   private getPersistentIsSyncEnabled() {
-    return this.localStore.readOrDefault(persistentSyncKeyName, false);
+    return this.localStore.readOr(persistentSyncKeyName, false);
   }
 
   // setPersistentIsSyncEnabled stores if  sync should be automatically enabled after browser start
@@ -292,7 +292,7 @@ export class Online implements IOnline {
 
   // getLoginAfterReloadEnabled returns true if a login should be done once after a reload
   private getLoginAfterReloadEnabled() {
-    return orDefault(this.localStore.tryRead(loginAfterReloadKeyName), false);
+    return orDefault(this.localStore.read(loginAfterReloadKeyName), false);
   }
 
   // setLoginAfterReloadEnabled stores if  login should be done once after a reload

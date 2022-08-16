@@ -54,18 +54,15 @@ export default function PromptDialog() {
 
   const handleCancel = () => {
     setPrompt?.(null);
-    // @ts-ignore
     prompt?.onCancel?.();
   };
 
   const handleOK = () => {
     setPrompt?.(null);
-    // @ts-ignore
     prompt?.onOk?.(prompt.text);
   };
 
   const handleTextFieldChange = (e: any) => {
-    // @ts-ignore
     setPrompt?.({ ...prompt, text: e.target.value });
   };
 

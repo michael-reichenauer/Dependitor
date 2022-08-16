@@ -7,9 +7,9 @@ import CommandChangeIcon from "./CommandChangeIcon";
 import PubSub from "pubsub-js";
 import { LabelEditor } from "./LabelEditor";
 import CommandChangeColor from "./CommandChangeColor";
-import { Canvas2d, Figure2d, Point } from "./draw2dTypes";
+import { Canvas2d, Figure2d } from "./draw2dTypes";
 import { FigureDto } from "./StoreDtos";
-import { NodeToolbar } from "./NodeToolbar";
+import { Toolbar } from "./Toolbar";
 
 const defaultOptions = () => {
   return {
@@ -33,6 +33,7 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
   descriptionLabel: Figure2d;
   colorName: string;
   getAboardFiguresOrg: boolean;
+  private toolBar: Toolbar;
 
   getName = () => this.nameLabel?.text ?? "";
   getDescription = () => this.descriptionLabel?.text ?? "";
@@ -69,15 +70,9 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     this.on("dblclick", (_s: any, _e: any) => {});
     this.on("resize", (_s: any, _e: any) => {});
 
-    const nodeToolBar = new NodeToolbar(this, [
-      { icon: draw2d.shape.icon.Run, menu: () => this.getConfigMenuItems() },
-      {
-        icon: draw2d.shape.icon.Pallete,
-        menu: () => this.getBackgroundColorMenuItems(),
-      },
-    ]);
-    this.on("select", () => nodeToolBar.show());
-    this.on("unselect", () => nodeToolBar.hide());
+    this.toolBar = new Toolbar(this, () => ({ x: 0, y: -35 }));
+    this.on("select", () => this.selectNodeGroup());
+    this.on("unselect", () => this.unSelectNodeGroup());
 
     // Adjust selection handle sizes
     const selectionPolicy = this.editPolicy.find(
@@ -124,9 +119,29 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
       name: this.getName(),
       description: this.getDescription(),
       color: this.colorName,
+      zOrder: this.getZOrder(),
       icon: this.iconName,
       sticky: sticky,
     };
+  }
+
+  private selectNodeGroup() {
+    this.toolBar.show([
+      {
+        icon: draw2d.shape.icon.Run,
+        menu: () => this.getConfigMenuItems(),
+        tooltip: "Settings",
+      },
+      {
+        icon: draw2d.shape.icon.Pallete,
+        menu: () => this.getBackgroundColorMenuItems(),
+        tooltip: "Set background color",
+      },
+    ]);
+  }
+
+  private unSelectNodeGroup() {
+    this.toolBar.hide();
   }
 
   toggleGroupSubItems() {
@@ -176,22 +191,24 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     });
   }
 
-  public getToolbarLocation(): Point {
-    return { x: 0, y: -35 };
-  }
-
   moveToBack() {
     this.toBack();
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 
   moveToFront() {
     this.toFront();
+    this.canvas.adjustZOrder();
     PubSub.publish("canvas.Save");
   }
 
   setName(name: string) {
     this.nameLabel?.setText(name);
+  }
+
+  setDescription(name: string) {
+    this.descriptionLabel?.setText(name);
   }
 
   setDefaultSize() {
@@ -229,42 +246,17 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
   toBack() {
     if (this.isSetCanvas) {
       // Since parent type is a composite, the parent called toBack() when setCanvas() was called.
-      // However, we do not want that, just be back behind all figures, but in front of all groups
-      this.moveAllFiguresToFront();
+      // However, we do not want that
       return;
     }
 
     super.toBack();
-    // const group = this.getCanvas()?.group
-    // group?.toBack()
-  }
-
-  toFront() {
-    super.toFront();
-
-    // When moving group to front, move all figures to front as well to ensure groups are behind
-    this.moveAllFiguresToFront();
   }
 
   setNodeColor(colorName: string) {
     this.colorName = colorName;
     const color = Colors.getBackgroundColor(colorName);
     this.setBackgroundColor(color);
-  }
-
-  moveAllFiguresToFront() {
-    // Get all figures in z order
-    const figures = this.canvas.getFigures().clone();
-    figures.sort((a: Figure2d, b: Figure2d) => {
-      return a.getZOrder() > b.getZOrder() ? 1 : -1;
-    });
-
-    // move all group nodes to back to be behind all nodes
-    figures.asArray().forEach((f: Figure2d) => {
-      if (!(f instanceof NodeGroup)) {
-        f.toFront();
-      }
-    });
   }
 
   handleResize(): void {
@@ -329,6 +321,12 @@ export default class NodeGroup extends draw2d.shape.composite.Raft {
     this.iconName = iconKey;
     this.icon = icon;
     this.add(icon, new NodeIconLocator());
+  }
+
+  getAllConnections() {
+    return this.getPorts()
+      .asArray()
+      .flatMap((p: any) => p.getConnections().asArray());
   }
 
   showConfigMenu = (): void => {

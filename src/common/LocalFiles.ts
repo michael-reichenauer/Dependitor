@@ -1,10 +1,12 @@
 import FileSaver from "file-saver";
 import { diKey, singleton } from "./di";
+import Result from "./Result";
 
+// ILocalFiles supports saving and loading files
 export const ILocalFilesKey = diKey<ILocalFiles>();
 export interface ILocalFiles {
   saveFile(fileName: string, fileText: string): void;
-  loadFile(): Promise<string>;
+  loadFile(): Promise<Result<string>>;
 }
 
 @singleton(ILocalFilesKey)
@@ -14,7 +16,7 @@ export default class LocalFiles implements ILocalFiles {
     FileSaver.saveAs(blob, fileName);
   }
 
-  loadFile(): Promise<string> {
+  loadFile(): Promise<Result<string>> {
     return new Promise((resolve, reject) => {
       const readFile = this.buildFileSelector((e: any) => {
         var file = e.path[0].files[0];
@@ -26,7 +28,8 @@ export default class LocalFiles implements ILocalFiles {
         const reader = new FileReader();
 
         reader.onload = (e: any) => resolve(e.target.result);
-        reader.onerror = (_) => reject(reader.error);
+        reader.onerror = (_) =>
+          resolve(new Error("Load error: " + reader.error));
 
         reader.readAsText(file);
       });

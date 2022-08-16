@@ -1,10 +1,10 @@
 import axios from "axios";
 import { useEffect, useRef } from "react";
 import { useActivity } from "./activity";
-import { minute, second } from "./utils";
+import { Time } from "../utils/time";
 
-const checkRemoteInterval = 30 * minute;
-const retryFailedRemoteInterval = 5 * minute;
+const checkRemoteInterval = 30 * Time.minute;
+const retryFailedRemoteInterval = 5 * Time.minute;
 
 export const startTime = dateToLocalISO(new Date().toISOString());
 export const localSha =
@@ -43,7 +43,7 @@ export const useAppVersionMonitor = () => {
         );
         // console.log(`Checking remote, active=${isActive} ...`)
         const manifest = (
-          await axios.get("/manifest.json", { timeout: 20 * second })
+          await axios.get("/manifest.json", { timeout: 20 * Time.second })
         ).data;
 
         const remoteSha =
@@ -92,7 +92,7 @@ function dateToLocalISO(dateText: string) {
   const off = date.getTimezoneOffset();
   const absOffset = Math.abs(off);
   return (
-    new Date(date.getTime() - off * minute).toISOString().substr(0, 23) +
+    new Date(date.getTime() - off * Time.minute).toISOString().substr(0, 23) +
     (off > 0 ? "-" : "+") +
     (absOffset / 60).toFixed(0).padStart(2, "0") +
     ":" +

@@ -1,3 +1,5 @@
+// The About dialog
+
 import React from "react";
 import { atom, useAtom } from "jotai";
 import {
@@ -8,51 +10,26 @@ import {
   Tooltip,
   Typography,
 } from "@material-ui/core";
-import { localBuildTime, localSha } from "../common/appVersion";
+import { localBuildTime, localShortSha } from "../common/appVersion";
 import { SetAtom } from "jotai/core/types";
-import { isProduction } from "../common/utils";
+import { isProduction } from "../utils/build";
 import {
   enableVirtualConsole,
   isVirtualConsoleEnabled,
 } from "../common/virtualConsole";
-//import { useLogin } from "./Login";
 
-// Test
 const aboutAtom = atom(false);
-
 export const useAbout: () => [boolean, SetAtom<boolean>] = () =>
   useAtom(aboutAtom);
 
 const About: React.FC = () => {
   const [show, setShow] = useAbout();
-  //const [, setShowLogin] = useLogin()
-
-  // const hasShown = localStorage.getItem('hasShownAbout')
-
-  // if (!show && hasShown !== 'true') {
-  //     console.log('Set timeout')
-
-  //     setTimeout(() => {
-  //         localStorage.setItem('hasShownAbout', 'true')
-  //         setShow(true)
-  //     }, 3000);
-  // }//
-
-  // const enableCloudSync = () => {
-  //     setShowLogin(true);
-  // }
+  const versionText = `version: ${localBuildTime} (${localShortSha})`;
 
   return (
-    <Dialog
-      open={show}
-      onClose={() => {
-        setShow(false);
-      }}
-    >
+    <Dialog open={show} onClose={() => setShow(false)}>
       <Box style={{ width: 300, height: 180, padding: 20 }}>
-        <Tooltip
-          title={`version: ${localBuildTime} (${localSha.substring(0, 6)})`}
-        >
+        <Tooltip title={versionText}>
           <Link
             component="button"
             underline="none"
@@ -70,7 +47,7 @@ const About: React.FC = () => {
 
         {!isProduction() && (
           <Typography style={{ fontSize: "10px", marginTop: 40 }}>
-            Version: {`${localBuildTime} (${localSha.substring(0, 6)})`}
+            Version: {versionText}
           </Typography>
         )}
 

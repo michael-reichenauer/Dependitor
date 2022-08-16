@@ -1,16 +1,12 @@
-import Result, { orDefault } from "./Result";
+import Result, { isError } from "./Result";
 import { diKey, singleton } from "./di";
 
-export interface KeyValue {
-  key: string;
-  value: any;
-}
-
+// ILocalStore is a convenience wrapper for the localStorage api
 export const ILocalStoreKey = diKey<ILocalStore>();
 export interface ILocalStore {
-  tryRead<T>(key: string): Result<T>;
-  readOrDefault<T>(key: string, defaultValue: T): T;
-  tryReadBatch(keys: string[]): Result<any>[];
+  read<T>(key: string): Result<T>;
+  readOr<T>(key: string, defaultValue: T): T;
+  readBatch(keys: string[]): Result<any>[];
   write(key: string, value: any): void;
   writeBatch(keyValues: KeyValue[]): void;
   remove(key: string): void;
@@ -20,29 +16,40 @@ export interface ILocalStore {
   clear(): void;
 }
 
+// KeyValue is used when writing batch of values
+export interface KeyValue {
+  key: string;
+  value: any;
+}
+
 const noValueError = new RangeError("No value for specified key");
 
 @singleton(ILocalStoreKey)
 export default class LocalStore implements ILocalStore {
-  public tryRead<T>(key: string): Result<T> {
-    return this.tryReadBatch([key])[0] as T;
+  public read<T>(key: string): Result<T> {
+    return this.readBatch([key])[0] as T;
   }
 
-  public readOrDefault<T>(key: string, defaultValue: T): T {
-    return orDefault(this.tryRead(key), defaultValue);
+  public readOr<T>(key: string, defaultValue: T): T {
+    const value = this.read<T>(key);
+    if (isError(value)) {
+      return defaultValue;
+    }
+
+    return value;
   }
 
-  public tryReadBatch(keys: string[]): Result<any>[] {
+  public readBatch(keys: string[]): Result<any>[] {
     return keys.map((key: string) => {
       let valueText = localStorage.getItem(key);
-      if (valueText == null) {
+      if (valueText === null) {
         return noValueError;
       }
-      // console.log(`Read key: ${key}, ${text.length} bytes`);
+
       try {
         return JSON.parse(valueText);
       } catch {
-        return {};
+        return noValueError;
       }
     });
   }
@@ -56,7 +63,6 @@ export default class LocalStore implements ILocalStore {
       const key = keyValue.key;
       const valueText = JSON.stringify(keyValue.value);
       localStorage.setItem(key, valueText);
-      // console.log(`Wrote key: ${key}, ${text.length} bytes`);
     });
   }
 

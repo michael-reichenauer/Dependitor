@@ -11,7 +11,7 @@ import { di, diKey, singleton } from "../common/di";
 import Result, { isError } from "../common/Result";
 
 import now from "../common/stopwatch";
-import { delay, minute, second } from "../common/utils";
+import { delay, Time } from "../utils/time";
 import {
   AuthenticateCode,
   AuthenticateReq,
@@ -41,8 +41,8 @@ export interface AuthenticateOperation {
 }
 
 //const randomIdLength = 12; // The length of random user id and names.
-const tryLoginTimeout = 3 * minute; // Wait for authenticator to allow/deny login
-const tryLoginPreWait = 4 * second; // Time before starting to poll server for result
+const tryLoginTimeout = 3 * Time.minute; // Wait for authenticator to allow/deny login
+const tryLoginPreWait = 4 * Time.second; // Time before starting to poll server for result
 
 @singleton(IAuthenticatorClientKey)
 export class AuthenticatorClient implements IAuthenticatorClient {
@@ -154,7 +154,7 @@ export class AuthenticatorClient implements IAuthenticatorClient {
 
       if (!authData) {
         // No auth data yet, lets wait a little before retrying again
-        if (!(await delay(1 * second, operation.ac))) {
+        if (!(await delay(1 * Time.second, operation.ac))) {
           return new AuthenticatorCanceledError("AuthenticatorCanceledError:");
         }
         continue;
@@ -166,22 +166,4 @@ export class AuthenticatorClient implements IAuthenticatorClient {
     // Failed to get auth data within timeout
     return new AuthenticateError();
   }
-
-  // private getDeviceDescription(): string {
-  //   const ua = uaParser();
-
-  //   const model = !!ua.device.model ? ua.device.model : ua.os.name;
-  //   return `${ua.browser.name} on ${model}`;
-  // }
-
-  // private getClientId() {
-  //   let clientId: string;
-  //   const userInfo = this.authenticate.readUserInfo();
-  //   if (isError(userInfo) || !userInfo.clientId) {
-  //     clientId = this.dataCrypt.generateRandomString(randomIdLength);
-  //   } else {
-  //     clientId = userInfo.clientId;
-  //   }
-  //   return clientId;
-  // }
 }
