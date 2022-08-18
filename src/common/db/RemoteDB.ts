@@ -3,6 +3,7 @@ import Result, { isError } from "../Result";
 import { CustomError } from "../CustomError";
 import { ApiEntity, IApi, IApiKey, Query } from "../Api";
 import { IKeyVault, IKeyVaultKey } from "../keyVault";
+import { withNoProgress } from "../Progress";
 
 export interface RemoteEntity {
   key: string;
@@ -41,7 +42,7 @@ export class RemoteDB implements IRemoteDB {
   public async tryReadBatch(
     queries: Query[]
   ): Promise<Result<Result<RemoteEntity>[]>> {
-    const apiEntities = await this.api.withNoProgress(() =>
+    const apiEntities = await withNoProgress(() =>
       this.api.tryReadBatch(queries)
     );
     if (isError(apiEntities)) {
@@ -56,9 +57,7 @@ export class RemoteDB implements IRemoteDB {
   ): Promise<Result<RemoteEntityRsp[]>> {
     const apiEntities = await this.toUploadingApiEntities(entities);
 
-    return await this.api.withNoProgress(() =>
-      this.api.writeBatch(apiEntities)
-    );
+    return await withNoProgress(() => this.api.writeBatch(apiEntities));
   }
 
   public async removeBatch(keys: string[]): Promise<Result<void>> {
