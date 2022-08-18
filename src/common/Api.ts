@@ -41,8 +41,6 @@ export interface IApi {
     username: string,
     authentication: AuthenticationCredentialJSON
   ): Promise<Result<boolean>>;
-
-  withNoProgress<T>(callback: () => Promise<T>): Promise<T>;
 }
 
 export interface GetWebAuthnRegistrationOptionsRsp {
@@ -122,16 +120,6 @@ export class Api implements IApi {
   private apiKey = commonApiKey; // Must be same as in server side api
 
   private requestCount = 0;
-  private isNoProgress = false;
-
-  public async withNoProgress<T>(callback: () => Promise<T>): Promise<T> {
-    try {
-      this.isNoProgress = true;
-      return await callback();
-    } finally {
-      this.isNoProgress = false;
-    }
-  }
 
   public async loginDeviceSet(req: LoginDeviceSetReq): Promise<Result<void>> {
     return await this.post("/api/LoginDeviceSet", req);
@@ -240,7 +228,7 @@ export class Api implements IApi {
     // console.log(`Request #${this.requestCount}: GET ${uri} ...`);
     const t = timing();
     try {
-      const rsp = await this.withProgress(() =>
+      const rsp = await withProgress(() =>
         axios.get(uri, {
           headers: { "x-api-key": this.apiKey },
           timeout: requestTimeout,
@@ -277,7 +265,7 @@ export class Api implements IApi {
 
     const t = timing();
     try {
-      const rsp = await this.withProgress(() =>
+      const rsp = await withProgress(() =>
         axios.post(uri, requestData, {
           headers: { "x-api-key": this.apiKey },
           timeout: requestTimeout,
@@ -310,14 +298,6 @@ export class Api implements IApi {
       console.groupEnd();
       return error;
     }
-  }
-
-  private withProgress<T>(callback: () => Promise<T>): Promise<T> {
-    if (this.isNoProgress) {
-      return callback();
-    }
-
-    return withProgress(callback);
   }
 
   private toError(rspError: any) {

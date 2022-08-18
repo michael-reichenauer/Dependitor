@@ -2,18 +2,6 @@ import Result, { isError, orDefault } from "../Result";
 import { di, diKey, singleton } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
 
-// LocalEntity is the entity stored in the local device store and corresponds
-// to the RemoteEntity, which is stored in a remote cloud server and synced
-export interface LocalEntity {
-  key: string; // Entity key (same local as remote)
-  etag: string; // local etag set when updating local entity
-  syncedEtag: string; // local entity when last sync was done, sync is needed if not same as etag
-  remoteEtag: string; // remote server etag when last sync was done.
-
-  value: any;
-  version: number;
-}
-
 // The local db interface, which is used by StoreDB to sync between local and remote
 export const ILocalDBKey = diKey<ILocalDB>();
 export interface ILocalDB {
@@ -27,6 +15,18 @@ export interface ILocalDB {
   getAllEntities(): LocalEntity[];
   getRemovedKeys(): string[]; // Get all removed entity keys, which have not yet been confirmed
   clear(): void;
+}
+
+// LocalEntity is the entity stored in the local device store and corresponds
+// to the RemoteEntity, which is stored in a remote cloud server and synced
+export interface LocalEntity {
+  key: string; // Entity key (same local as remote)
+  etag: string; // local etag set when updating local entity
+  syncedEtag: string; // local entity when last sync was done, sync is needed if not same as etag
+  remoteEtag: string; // remote server etag when last sync was done.
+
+  value: any;
+  version: number;
 }
 
 const removedKey = "db_.removedKeys"; // Key to store removed entities that are not yet synced upp
