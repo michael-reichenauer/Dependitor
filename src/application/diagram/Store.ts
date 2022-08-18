@@ -246,10 +246,15 @@ export class Store implements IStore {
   }
 
   public getApplicationDto(): ApplicationDto {
-    return this.db.readLocal<ApplicationDto>(
+    const dto = this.db.readLocal<ApplicationDto>(
       applicationKey,
       defaultApplicationDto
     );
+    if (dto.deletedDiagrams == null) {
+      dto.deletedDiagrams = [];
+    }
+
+    return dto;
   }
 
   private onRemoteChange(keys: string[]) {
@@ -275,6 +280,10 @@ export class Store implements IStore {
     const key = local.key;
     const localApp = local.value as ApplicationDto;
     const remoteApp = remote.value as ApplicationDto;
+    localApp.deletedDiagrams =
+      localApp.deletedDiagrams == null ? [] : localApp.deletedDiagrams;
+    remoteApp.deletedDiagrams =
+      remoteApp.deletedDiagrams == null ? [] : remoteApp.deletedDiagrams;
 
     // Merge removed diagrams to ensure that diagrams are removed in both locations
     const removed: string[] = [];
