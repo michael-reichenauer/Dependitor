@@ -35,6 +35,7 @@ export default class InnerDiagram {
     // Move/Zoom outer diagram to prepare for switching to inner diagram canvas
     this.canvas.unselectAll();
     this.canvas.hidePorts();
+    node.showInnerDiagram();
     await this.moveToShowNodeInCenter(node);
     await this.zoomToShowEditableNode(node, canvasDto.rect, innerZoom);
 
@@ -119,13 +120,13 @@ export default class InnerDiagram {
     this.canvas.unselectAll();
     this.canvas.hidePorts();
     await this.zoomToShowNormalNode(node, 1);
+    node.select(true);
   }
 
   private getCanvasDto(node: Node): CanvasDto {
     let canvasDto = this.store.tryGetCanvas(node.id);
     if (isError(canvasDto)) {
       canvasDto = defaultIcon(node);
-      this.store.writeCanvas(canvasDto);
     }
     return canvasDto;
   }
