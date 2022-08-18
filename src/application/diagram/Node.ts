@@ -14,6 +14,9 @@ import { FigureDto } from "./StoreDtos";
 import { Toolbar } from "./Toolbar";
 import DiagramIcon from "./innerDiagrams/DiagramIcon";
 import { logName } from "../../common/log";
+import { isError } from "../../common/Result";
+import { IStoreKey } from "./Store";
+import { di } from "../../common/di";
 
 const defaultIconKey = "Azure/General/Module";
 
@@ -25,46 +28,8 @@ const defaultOptions = {
   icon: defaultIconKey,
 };
 
-// const defaultOptions = () => {
-//   const dv = {
-//     id: cuid(),
-//     width: Node.defaultWidth,
-//     height: Node.defaultHeight,
-//     description: "",
-//     icon:
-//   };
-
-//   switch (type) {
-//     case Node.nodeType:
-//       return { ...dv, icon: defaultIconKey };
-//     case Node.systemType:
-//       return {
-//         ...dv,
-//         name: "System",
-//         icon: "Azure/Compute/CloudServices(Classic)",
-//       };
-//     case Node.userType:
-//       return {
-//         ...dv,
-//         name: "External Users",
-//         icon: "Azure/Management+Governance/MyCustomers",
-//       };
-//     case Node.externalType:
-//       return {
-//         ...dv,
-//         name: "External Systems",
-//         icon: "Azure/Databases/VirtualClusters",
-//       };
-//     default:
-//       throw new Error("Unknown type: " + type);
-//   }
-// };
-
 export default class Node extends draw2d.shape.node.Between {
   static nodeType = "node";
-  // static systemType = "system";
-  // static userType = "user";
-  // static externalType = "external";
   static defaultWidth = 60;
   static defaultHeight = 60;
 
@@ -199,7 +164,7 @@ export default class Node extends draw2d.shape.node.Between {
   public handleSingleClick() {}
 
   public handleDoubleClick() {
-    this.showInnerDiagram();
+    this.editInnerDiagram();
   }
 
   public moveToBack(): void {
@@ -263,49 +228,74 @@ export default class Node extends draw2d.shape.node.Between {
 
   private selectNode() {
     this.showAppropriateToolbar();
-  }
 
-  private showAppropriateToolbar() {
-    let toolButtons;
-    if (this.innerDiagram) {
-      toolButtons = [
-        {
-          icon: draw2d.shape.icon.Run,
-          menu: () => this.getConfigMenuItems(),
-          tooltip: "Settings",
-        },
-        {
-          icon: draw2d.shape.icon.Diagram,
-          action: () => this.toggleInnerDiagram(),
-          pushed: true,
-          tooltip: "Toggle inner diagram",
-        },
-        {
-          icon: draw2d.shape.icon.Expand,
-          action: () => this.editInnerDiagram(),
-          tooltip: "Edit inner diagram",
-        },
-      ];
-    } else {
-      toolButtons = [
-        {
-          icon: draw2d.shape.icon.Run,
-          menu: () => this.getConfigMenuItems(),
-          tooltip: "Settings",
-        },
-        {
-          icon: draw2d.shape.icon.Diagram,
-          action: () => this.toggleInnerDiagram(),
-          tooltip: "Toggle inner diagram",
-        },
-      ];
+    if (isError(di(IStoreKey).tryGetCanvas(this.id))) {
+      // No inner diagram yet
+      return;
     }
-    this.toolBar.show(toolButtons);
+
+    this.showInnerDiagram();
   }
 
   private unSelectNode() {
     this.toolBar.hide();
+    this.hideInnerDiagram();
   }
+
+  private showAppropriateToolbar() {
+    let toolButtons = [
+      {
+        icon: draw2d.shape.icon.Run,
+        menu: () => this.getConfigMenuItems(),
+        tooltip: "Settings",
+      },
+      {
+        icon: draw2d.shape.icon.Expand,
+        action: () => this.editInnerDiagram(),
+        tooltip: "Edit inner diagram",
+      },
+    ];
+
+    this.toolBar.show(toolButtons);
+  }
+
+  // private showAppropriateToolbar() {
+  //   let toolButtons;
+  //   if (this.innerDiagram) {
+  //     toolButtons = [
+  //       {
+  //         icon: draw2d.shape.icon.Run,
+  //         menu: () => this.getConfigMenuItems(),
+  //         tooltip: "Settings",
+  //       },
+  //       {
+  //         icon: draw2d.shape.icon.Diagram,
+  //         action: () => this.toggleInnerDiagram(),
+  //         pushed: true,
+  //         tooltip: "Toggle inner diagram",
+  //       },
+  //       {
+  //         icon: draw2d.shape.icon.Expand,
+  //         action: () => this.editInnerDiagram(),
+  //         tooltip: "Edit inner diagram",
+  //       },
+  //     ];
+  //   } else {
+  //     toolButtons = [
+  //       {
+  //         icon: draw2d.shape.icon.Run,
+  //         menu: () => this.getConfigMenuItems(),
+  //         tooltip: "Settings",
+  //       },
+  //       {
+  //         icon: draw2d.shape.icon.Diagram,
+  //         action: () => this.toggleInnerDiagram(),
+  //         tooltip: "Toggle inner diagram",
+  //       },
+  //     ];
+  //   }
+  //   this.toolBar.show(toolButtons);
+  // }
 
   private toggleInnerDiagram(): void {
     if (this.innerDiagram) {
@@ -316,10 +306,13 @@ export default class Node extends draw2d.shape.node.Between {
     this.showInnerDiagram();
   }
 
-  private showInnerDiagram(): void {
+  public async showInnerDiagram(): Promise<void> {
+    const innerDiagramIcon = new DiagramIcon(this);
+    await innerDiagramIcon.setDiagram();
+
     this.setChildrenVisible(false);
 
-    this.innerDiagram = new DiagramIcon(this);
+    this.innerDiagram = innerDiagramIcon;
     this.add(this.innerDiagram, new InnerDiagramLocator());
     this.repaint();
 

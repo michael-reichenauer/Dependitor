@@ -31,17 +31,17 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
       radius: 5,
     });
 
-    this.setDiagramAsync(parent.id);
+    //this.setDiagramAsync(parent.id);
   }
 
-  public handleDoubleClick() {
-    // Shortcut for starting to edit the inner diagram
-    PubSub.publish("canvas.EditInnerDiagram", this.parent);
-  }
+  // public handleDoubleClick() {
+  //   // Shortcut for starting to edit the inner diagram
+  //   PubSub.publish("canvas.EditInnerDiagram", this.parent);
+  // }
 
   // setDiagramAsync loads the diagram and creates a svg, which can be shown
-  private async setDiagramAsync(id: string): Promise<void> {
-    const url = await this.getDiagramSvgImageUrl(id);
+  public async setDiagram(): Promise<void> {
+    const url = await this.getDiagramSvgImageUrl(this.parent.id);
     if (isError(url)) {
       return;
     }
@@ -77,7 +77,6 @@ export default class DiagramIcon extends draw2d.shape.basic.Image {
     let canvasDto = this.store.tryGetCanvas(id);
     if (isError(canvasDto)) {
       canvasDto = defaultIcon(this.parent);
-      this.store.writeCanvas(canvasDto);
     }
 
     return canvasDto;
