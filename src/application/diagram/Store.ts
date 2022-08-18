@@ -2,30 +2,23 @@ import cuid from "cuid";
 import Result, { isError } from "../../common/Result";
 import assert from "assert";
 import { di, singleton, diKey } from "../../common/di";
-import { ILocalFiles, ILocalFilesKey } from "../../common/LocalFiles";
-import { IStoreDB, IStoreDBKey, MergeEntity } from "../../common/db/StoreDB";
+import { IStoreDBKey, MergeEntity } from "../../common/db/StoreDB";
 import {
   ApplicationDto,
   applicationKey,
   CanvasDto,
   DiagramDto,
   DiagramInfoDto,
-  DiagramInfoDtos,
-  FileDto,
 } from "./StoreDtos";
 import { LocalEntity } from "../../common/db/LocalDB";
 import { RemoteEntity } from "../../common/db/RemoteDB";
 import { NotFoundError } from "../../common/CustomError";
 
-export interface Configuration {
-  onRemoteChanged: (keys: string[]) => void;
-  onSyncChanged: (isOK: boolean, error?: Error) => void;
-  isSyncEnabled: boolean;
-}
-
+// IStore handles storage of diagrams
 export const IStoreKey = diKey<IStore>();
 export interface IStore {
   configure(config: Partial<Configuration>): void;
+  isSyncEnabled(): boolean;
   triggerSync(): Promise<Result<void>>;
 
   openNewDiagram(): DiagramDto;
@@ -45,14 +38,19 @@ export interface IStore {
   getRecentDiagrams(): DiagramInfoDto[];
 
   deleteDiagram(diagramId: string): void;
+}
 
-  saveDiagramToFile(): void;
-  loadDiagramFromFile(): Promise<Result<string>>;
-  saveAllDiagramsToFile(): Promise<void>;
+export interface Configuration {
+  onRemoteChanged: (keys: string[]) => void;
+  onSyncChanged: (isOK: boolean, error?: Error) => void;
+  isSyncEnabled: boolean;
 }
 
 const rootCanvasId = "root";
-const defaultApplicationDto: ApplicationDto = { diagramInfos: {} };
+const defaultApplicationDto: ApplicationDto = {
+  diagramInfos: {},
+  deletedDiagrams: [],
+};
 const defaultDiagramDto: DiagramDto = { id: "", name: "", canvases: {} };
 
 @singleton(IStoreKey)
@@ -64,11 +62,11 @@ export class Store implements IStore {
     isSyncEnabled: false,
   };
 
-  constructor(
-    // private localData: ILocalData = di(ILocalDataKey),
-    private localFiles: ILocalFiles = di(ILocalFilesKey),
-    private db: IStoreDB = di(IStoreDBKey)
-  ) {}
+  constructor(private db = di(IStoreDBKey)) {}
+
+  public isSyncEnabled(): boolean {
+    return this.db.isSyncEnabled();
+  }
 
   public configure(config: Partial<Configuration>): void {
     this.config = { ...this.config, ...config };
@@ -117,7 +115,7 @@ export class Store implements IStore {
   public async tryOpenMostResentDiagram(): Promise<Result<DiagramDto>> {
     const id = this.getMostResentDiagramId();
     if (isError(id)) {
-      return id as Error;
+      return id;
     }
 
     const diagramDto = await this.db.tryReadLocalThenRemote<DiagramDto>(id);
@@ -212,6 +210,9 @@ export class Store implements IStore {
 
     const applicationDto = this.getApplicationDto();
     delete applicationDto.diagramInfos[id];
+    if (!applicationDto.deletedDiagrams.includes(id)) {
+      applicationDto.deletedDiagrams.push(id);
+    }
 
     this.db.writeBatch([{ key: applicationKey, value: applicationDto }]);
     this.db.removeBatch([id]);
@@ -233,47 +234,6 @@ export class Store implements IStore {
       { key: applicationKey, value: applicationDto },
       { key: id, value: diagramDto },
     ]);
-  }
-
-  public async loadDiagramFromFile(): Promise<Result<string>> {
-    const fileText = await this.localFiles.loadFile();
-    if (isError(fileText)) {
-      return fileText;
-    }
-    const fileDto: FileDto = JSON.parse(fileText);
-
-    // if (!(await this.sync.uploadDiagrams(fileDto.diagrams))) {
-    //   // save locally
-    //   fileDto.diagrams.forEach((d: DiagramDto) => this.local.writeDiagram(d));
-    // }
-
-    //fileDto.diagrams.forEach((d: DiagramDto) => this.local.writeDiagram(d));
-
-    const firstDiagramId = fileDto.diagrams[0]?.id;
-    if (!firstDiagramId) {
-      return new Error("No valid diagram in file");
-    }
-    return firstDiagramId;
-  }
-
-  public saveDiagramToFile(): void {
-    const diagramDto = this.getDiagramDto();
-
-    const fileDto: FileDto = { diagrams: [diagramDto] };
-    const fileText = JSON.stringify(fileDto, null, 2);
-    this.localFiles.saveFile(`${diagramDto.name}.json`, fileText);
-  }
-
-  public async saveAllDiagramsToFile(): Promise<void> {
-    // let diagrams = await this.sync.downloadAllDiagrams();
-    // if (!diagrams) {
-    //   // Read from local
-    //   diagrams = this.local.readAllDiagrams();
-    // }
-    //   let diagrams = this.local.readAllDiagrams();
-    //   const fileDto = { diagrams: diagrams };
-    //   const fileText = JSON.stringify(fileDto, null, 2);
-    //   this.localFiles.saveFile(`diagrams.json`, fileText);
   }
 
   public getMostResentDiagramId(): Result<string> {
@@ -312,45 +272,59 @@ export class Store implements IStore {
   ): MergeEntity {
     console.warn("Application conflict", local, remote);
 
-    const mergeDiagramInfos = (
-      newerDiagrams: DiagramInfoDtos,
-      olderDiagrams: DiagramInfoDtos
-    ): DiagramInfoDtos => {
-      let mergedDiagrams = { ...olderDiagrams, ...newerDiagrams };
-      Object.keys(newerDiagrams).forEach((key) => {
-        if (!(key in newerDiagrams)) {
-          delete mergedDiagrams[key];
-        }
-      });
-      return mergedDiagrams;
-    };
+    const key = local.key;
+    const localApp = local.value as ApplicationDto;
+    const remoteApp = remote.value as ApplicationDto;
 
+    // Merge removed diagrams to ensure that diagrams are removed in both locations
+    const removed: string[] = [];
+    remoteApp.deletedDiagrams.forEach((id) => {
+      if (!localApp.deletedDiagrams.includes(id)) {
+        localApp.deletedDiagrams.push(id);
+        delete localApp.diagramInfos[id];
+        removed.push(id);
+      }
+    });
+    localApp.deletedDiagrams.forEach((id) => {
+      if (!remoteApp.deletedDiagrams.includes(id)) {
+        remoteApp.deletedDiagrams.push(id);
+        delete remoteApp.diagramInfos[id];
+        removed.push(id);
+      }
+    });
+    setTimeout(() => this.db.removeBatch(removed), 0);
+
+    // Merger diagram infos
     if (local.version >= remote.version) {
-      // Local entity has more edits, merge diagram infos, but priorities remote
+      // Local entity has more edits, merge diagram infos, but priorities local
+      const diagramInfos = {
+        ...remoteApp.diagramInfos,
+        ...localApp.diagramInfos,
+      };
       const applicationDto: ApplicationDto = {
-        diagramInfos: mergeDiagramInfos(
-          local.value.diagramInfos,
-          remote.value.diagramInfos
-        ),
+        diagramInfos: diagramInfos,
+        deletedDiagrams: localApp.deletedDiagrams,
       };
 
       return {
-        key: local.key,
+        key: key,
         value: applicationDto,
         version: local.version,
       };
     }
 
-    // Remote entity since that has more edits, merge diagram infos, but priorities local
+    // Remote entity since that has more edits, merge diagram infos, but priorities remote
+    const diagramInfos = {
+      ...localApp.diagramInfos,
+      ...remoteApp.diagramInfos,
+    };
     const applicationDto: ApplicationDto = {
-      diagramInfos: mergeDiagramInfos(
-        remote.value.diagramInfos,
-        local.value.diagramInfos
-      ),
+      diagramInfos: diagramInfos,
+      deletedDiagrams: remoteApp.deletedDiagrams,
     };
 
     return {
-      key: remote.key,
+      key: key,
       value: applicationDto,
       version: remote.version,
     };
@@ -398,3 +372,44 @@ export class Store implements IStore {
     return "Name";
   }
 }
+
+// public async loadDiagramFromFile(): Promise<Result<string>> {
+//   const fileText = await this.localFiles.loadFile();
+//   if (isError(fileText)) {
+//     return fileText;
+//   }
+//   const fileDto: FileDto = JSON.parse(fileText);
+
+//   // if (!(await this.sync.uploadDiagrams(fileDto.diagrams))) {
+//   //   // save locally
+//   //   fileDto.diagrams.forEach((d: DiagramDto) => this.local.writeDiagram(d));
+//   // }
+
+//   //fileDto.diagrams.forEach((d: DiagramDto) => this.local.writeDiagram(d));
+
+//   const firstDiagramId = fileDto.diagrams[0]?.id;
+//   if (!firstDiagramId) {
+//     return new Error("No valid diagram in file");
+//   }
+//   return firstDiagramId;
+// }
+
+// public saveDiagramToFile(): void {
+//   const diagramDto = this.getDiagramDto();
+
+//   const fileDto: FileDto = { diagrams: [diagramDto] };
+//   const fileText = JSON.stringify(fileDto, null, 2);
+//   this.localFiles.saveFile(`${diagramDto.name}.json`, fileText);
+// }
+
+// public async saveAllDiagramsToFile(): Promise<void> {
+//   // let diagrams = await this.sync.downloadAllDiagrams();
+//   // if (!diagrams) {
+//   //   // Read from local
+//   //   diagrams = this.local.readAllDiagrams();
+//   // }
+//   //   let diagrams = this.local.readAllDiagrams();
+//   //   const fileDto = { diagrams: diagrams };
+//   //   const fileText = JSON.stringify(fileDto, null, 2);
+//   //   this.localFiles.saveFile(`diagrams.json`, fileText);
+// }

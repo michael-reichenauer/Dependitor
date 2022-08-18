@@ -1,9 +1,18 @@
 import { di, diKey, singleton } from "../di";
 import Result, { isError } from "../Result";
-import { CustomError } from "../CustomError";
+import { CustomError, NotFoundError } from "../CustomError";
 import { ApiEntity, IApi, IApiKey, Query } from "../Api";
 import { IKeyVault, IKeyVaultKey } from "../keyVault";
 import { withNoProgress } from "../Progress";
+
+// IRemoteDB supports reading and writing to the remote server db
+// Data is encrypted before sending and decrypted on receive
+export const IRemoteDBKey = diKey<IRemoteDB>();
+export interface IRemoteDB {
+  tryReadBatch(queries: Query[]): Promise<Result<Result<RemoteEntity>[]>>;
+  writeBatch(entities: RemoteEntity[]): Promise<Result<RemoteEntityRsp[]>>;
+  removeBatch(keys: string[]): Promise<Result<void>>;
+}
 
 export interface RemoteEntity {
   key: string;
@@ -22,14 +31,7 @@ export interface RemoteEntityRsp {
 
 export class NotModifiedError extends CustomError {}
 
-export const IRemoteDBKey = diKey<IRemoteDB>();
-export interface IRemoteDB {
-  tryReadBatch(queries: Query[]): Promise<Result<Result<RemoteEntity>[]>>;
-  writeBatch(entities: RemoteEntity[]): Promise<Result<RemoteEntityRsp[]>>;
-  removeBatch(keys: string[]): Promise<Result<void>>;
-}
-
-const noValueError = new RangeError("No value for key");
+// const noValueError = new RangeError("No value for key");
 const notModifiedError = new NotModifiedError("NotModifiedError:");
 
 @singleton(IRemoteDBKey)
@@ -74,14 +76,14 @@ export class RemoteDB implements IRemoteDB {
         // console.log("api entity from server", entity);
         if (!entity) {
           // The entity was never returned from remote server
-          return noValueError;
+          return new NotFoundError(entity);
         }
         if (!entity.key || !entity.etag) {
           // The entity did not have expected properties
-          return noValueError;
+          return new NotFoundError();
         }
         if (entity.status === "noValue") {
-          return noValueError;
+          return new NotFoundError();
         }
         if (entity.status === "notModified") {
           return notModifiedError;

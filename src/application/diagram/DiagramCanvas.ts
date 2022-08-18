@@ -129,7 +129,12 @@ export default class DiagramCanvas {
     console.log("open", diagramId);
     const diagramDto = await this.store.tryOpenDiagram(diagramId);
     if (isError(diagramDto)) {
-      setErrorMessage("Failed to load diagram");
+      let msg = "Failed to load diagram";
+      if (!this.store.isSyncEnabled()) {
+        msg = msg + ". Try to login and enable device sync";
+      }
+
+      setErrorMessage(msg);
       return;
     }
 
@@ -155,25 +160,24 @@ export default class DiagramCanvas {
   };
 
   commandSaveToFile = () => {
-    this.store.saveDiagramToFile();
+    // this.store.saveDiagramToFile();
   };
 
   commandOpenFile = async () => {
-    const diagramId = await this.store.loadDiagramFromFile();
-    if (isError(diagramId)) {
-      setErrorMessage("Failed to load file");
-      return;
-    }
-
-    this.commandOpenDiagram("", diagramId);
+    // const diagramId = await this.store.loadDiagramFromFile();
+    // if (isError(diagramId)) {
+    //   setErrorMessage("Failed to load file");
+    //   return;
+    // }
+    // this.commandOpenDiagram("", diagramId);
   };
 
   commandArchiveToFile = async () => {
-    try {
-      this.store.saveAllDiagramsToFile();
-    } catch (error) {
-      setErrorMessage("Failed to save all diagram");
-    }
+    // try {
+    //   this.store.saveAllDiagramsToFile();
+    // } catch (error) {
+    //   setErrorMessage("Failed to save all diagram");
+    // }
   };
 
   commandPrint = async () => {

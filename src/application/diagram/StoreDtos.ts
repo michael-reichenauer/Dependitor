@@ -14,6 +14,7 @@ export type CanvasDtos = { [id: string]: CanvasDto };
 
 export interface ApplicationDto {
   diagramInfos: DiagramInfoDtos;
+  deletedDiagrams: string[];
 }
 
 export interface DiagramInfoDto {
