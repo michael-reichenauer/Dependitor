@@ -258,7 +258,14 @@ export class Store implements IStore {
   }
 
   private onRemoteChange(keys: string[]) {
-    console.log("onRemoteChange", keys);
+    keys.forEach((key) => {
+      if (key === applicationKey) {
+        // Ensure local diagrams are removed
+        const dto = this.getApplicationDto();
+        this.db.removeLocalBatch(dto.deletedDiagrams);
+      }
+    });
+
     this.config.onRemoteChanged(keys);
   }
 

@@ -11,6 +11,7 @@ export interface ILocalDB {
   writeBatch(entities: LocalEntity[]): void;
   preRemoveBatch(keys: string[]): void; // Called when local entity removed, call confirmRemoved after sync
   confirmRemoved(keys: string[]): void; // Called after sync of removed entities
+  removeForceBatch(keys: string[]): void; // Called when local items just should be removed.
   getUnsyncedKeys(): string[]; // Get all entity keys that need sync (etag!=syncedEtag)
   getAllEntities(): LocalEntity[];
   getRemovedKeys(): string[]; // Get all removed entity keys, which have not yet been confirmed
@@ -86,6 +87,11 @@ export class LocalDB implements ILocalDB {
     let removedKeys = this.getRemovedKeys();
     removedKeys = removedKeys.filter((key) => !keys.includes(key));
     this.localStore.write(removedKey, removedKeys);
+  }
+
+  public removeForceBatch(keys: string[]): void {
+    const localKeys = this.toLocalKeys(keys);
+    this.localStore.removeBatch(localKeys);
   }
 
   public getUnsyncedKeys(): string[] {
