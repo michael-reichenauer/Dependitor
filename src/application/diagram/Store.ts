@@ -214,6 +214,9 @@ export class Store implements IStore {
       applicationDto.deletedDiagrams.push(id);
     }
 
+    // Ensure the deleted list is trimmed
+    applicationDto.deletedDiagrams = applicationDto.deletedDiagrams.slice(-50);
+
     this.db.writeBatch([{ key: applicationKey, value: applicationDto }]);
     this.db.removeBatch([id]);
   }
