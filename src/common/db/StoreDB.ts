@@ -17,7 +17,7 @@ export interface IStoreDB {
   writeBatch(entities: Entity[]): void;
   removeBatch(keys: string[]): void;
   triggerSync(): Promise<Result<void>>;
-  isSyncEnabled(): boolean;
+  isSyncEnabledOk(): boolean;
 }
 
 export interface Entity {
@@ -64,8 +64,8 @@ export class StoreDB implements IStoreDB {
     private remoteDB = di(IRemoteDBKey)
   ) {}
 
-  public isSyncEnabled(): boolean {
-    return this.configuration.isSyncEnabled;
+  public isSyncEnabledOk(): boolean {
+    return this.configuration.isSyncEnabled && this.isSyncOK;
   }
 
   // Called when remote entities should be monitored for changed by other clients

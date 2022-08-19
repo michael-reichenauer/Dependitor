@@ -18,7 +18,7 @@ import { NotFoundError } from "../../common/CustomError";
 export const IStoreKey = diKey<IStore>();
 export interface IStore {
   configure(config: Partial<Configuration>): void;
-  isSyncEnabled(): boolean;
+  isSyncEnabledOk(): boolean;
   triggerSync(): Promise<Result<void>>;
 
   openNewDiagram(): DiagramDto;
@@ -64,8 +64,8 @@ export class Store implements IStore {
 
   constructor(private db = di(IStoreDBKey)) {}
 
-  public isSyncEnabled(): boolean {
-    return this.db.isSyncEnabled();
+  public isSyncEnabledOk(): boolean {
+    return this.db.isSyncEnabledOk();
   }
 
   public configure(config: Partial<Configuration>): void {
@@ -258,6 +258,7 @@ export class Store implements IStore {
   }
 
   private onRemoteChange(keys: string[]) {
+    console.log("onRemoteChange", keys);
     this.config.onRemoteChanged(keys);
   }
 

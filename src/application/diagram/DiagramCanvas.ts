@@ -130,8 +130,13 @@ export default class DiagramCanvas {
     const diagramDto = await this.store.tryOpenDiagram(diagramId);
     if (isError(diagramDto)) {
       let msg = "Failed to load diagram";
-      if (!this.store.isSyncEnabled()) {
+      if (!this.store.isSyncEnabledOk()) {
+        // Sync is not enabled and ok, so diagram could be available after sync
         msg = msg + ". Try to login and enable device sync";
+      } else {
+        // Diagram no available locally nor remote. Lets just delete it
+        this.store.deleteDiagram(diagramId);
+        msg = msg + ". The diagram was previously deleted.";
       }
 
       setErrorMessage(msg);
