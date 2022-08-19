@@ -1,5 +1,6 @@
 import Result, { isError } from "./Result";
 import { diKey, singleton } from "./di";
+import { NotFoundError } from "./CustomError";
 
 // ILocalStore is a convenience wrapper for the localStorage api
 export const ILocalStoreKey = diKey<ILocalStore>();
@@ -22,8 +23,6 @@ export interface KeyValue {
   value: any;
 }
 
-const noValueError = new RangeError("No value for specified key");
-
 @singleton(ILocalStoreKey)
 export default class LocalStore implements ILocalStore {
   public read<T>(key: string): Result<T> {
@@ -43,13 +42,13 @@ export default class LocalStore implements ILocalStore {
     return keys.map((key: string) => {
       let valueText = localStorage.getItem(key);
       if (valueText === null) {
-        return noValueError;
+        return new NotFoundError();
       }
 
       try {
         return JSON.parse(valueText);
       } catch {
-        return noValueError;
+        return new NotFoundError();
       }
     });
   }

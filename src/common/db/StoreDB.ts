@@ -5,6 +5,7 @@ import { di, diKey, singleton } from "../di";
 import { Query } from "../Api";
 import assert from "assert";
 import { Time } from "../../utils/time";
+import { NotFoundError } from "../CustomError";
 
 // Key-value database, that syncs locally stored entities with a remote server
 export const IStoreDBKey = diKey<IStoreDB>();
@@ -16,6 +17,7 @@ export interface IStoreDB {
   writeBatch(entities: Entity[]): void;
   removeBatch(keys: string[]): void;
   triggerSync(): Promise<Result<void>>;
+  isSyncEnabled(): boolean;
 }
 
 export interface Entity {
@@ -61,6 +63,10 @@ export class StoreDB implements IStoreDB {
     private localDB = di(ILocalDBKey),
     private remoteDB = di(IRemoteDBKey)
   ) {}
+
+  public isSyncEnabled(): boolean {
+    return this.configuration.isSyncEnabled;
+  }
 
   // Called when remote entities should be monitored for changed by other clients
   public monitorRemoteEntities(keys: string[]): void {
@@ -446,7 +452,7 @@ export class StoreDB implements IStoreDB {
     // Entity not cached locally, lets try get from remote location
     if (!this.configuration.isSyncEnabled) {
       // Since sync is disabled, the trying to read fails with not found error
-      return new RangeError(`Local key ${key} not found`);
+      return new NotFoundError(`Local key ${key} not found`);
     }
 
     const remoteEntities = await this.remoteDB.tryReadBatch([{ key: key }]);
