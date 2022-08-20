@@ -18,7 +18,7 @@ import { NotFoundError } from "../../common/CustomError";
 export const IStoreKey = diKey<IStore>();
 export interface IStore {
   configure(config: Partial<Configuration>): void;
-  isSyncEnabled(): boolean;
+  isSyncEnabledOk(): boolean;
   triggerSync(): Promise<Result<void>>;
 
   openNewDiagram(): DiagramDto;
@@ -64,8 +64,8 @@ export class Store implements IStore {
 
   constructor(private db = di(IStoreDBKey)) {}
 
-  public isSyncEnabled(): boolean {
-    return this.db.isSyncEnabled();
+  public isSyncEnabledOk(): boolean {
+    return this.db.isSyncEnabledOk();
   }
 
   public configure(config: Partial<Configuration>): void {
@@ -214,6 +214,9 @@ export class Store implements IStore {
       applicationDto.deletedDiagrams.push(id);
     }
 
+    // Ensure the deleted list is trimmed
+    applicationDto.deletedDiagrams = applicationDto.deletedDiagrams.slice(-50);
+
     this.db.writeBatch([{ key: applicationKey, value: applicationDto }]);
     this.db.removeBatch([id]);
   }
@@ -258,6 +261,14 @@ export class Store implements IStore {
   }
 
   private onRemoteChange(keys: string[]) {
+    keys.forEach((key) => {
+      if (key === applicationKey) {
+        // Ensure local diagrams are removed
+        const dto = this.getApplicationDto();
+        this.db.removeLocalBatch(dto.deletedDiagrams);
+      }
+    });
+
     this.config.onRemoteChanged(keys);
   }
 

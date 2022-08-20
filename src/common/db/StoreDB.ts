@@ -16,8 +16,9 @@ export interface IStoreDB {
   tryReadLocalThenRemote<T>(key: string): Promise<Result<T>>;
   writeBatch(entities: Entity[]): void;
   removeBatch(keys: string[]): void;
+  removeLocalBatch(keys: string[]): void;
   triggerSync(): Promise<Result<void>>;
-  isSyncEnabled(): boolean;
+  isSyncEnabledOk(): boolean;
 }
 
 export interface Entity {
@@ -64,8 +65,8 @@ export class StoreDB implements IStoreDB {
     private remoteDB = di(IRemoteDBKey)
   ) {}
 
-  public isSyncEnabled(): boolean {
-    return this.configuration.isSyncEnabled;
+  public isSyncEnabledOk(): boolean {
+    return this.configuration.isSyncEnabled && this.isSyncOK;
   }
 
   // Called when remote entities should be monitored for changed by other clients
@@ -147,6 +148,10 @@ export class StoreDB implements IStoreDB {
       this.localDB.confirmRemoved(keys);
     }
     this.triggerSync();
+  }
+
+  public removeLocalBatch(keys: string[]): void {
+    this.localDB.removeForceBatch(keys);
   }
 
   // Called to trigger a sync, which are done in sequence (not parallel)
