@@ -51,7 +51,7 @@ type EncryptedPacket = { data: string; iv: string };
 export class DataCrypt {
   constructor(private crypt: ICrypt = di(ICryptKey)) {}
 
-  public generateRandomString(length: number) {
+  public generateRandomString(length: number): string {
     return Buffer.from(this.crypt.randomBytes(length))
       .toString("hex")
       .slice(0, length);

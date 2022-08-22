@@ -7,6 +7,14 @@ import { IDataCryptKey } from "./DataCrypt";
 import { IWebAuthnKey } from "./webauthn";
 import { ILocalStoreKey } from "./LocalStore";
 import timing from "./timing";
+import { logName } from "./log";
+import {
+  AuthenticatorTransportFuture,
+  PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/typescript-types";
+import { ICryptKey } from "./crypt";
+import { bufferToBase64 } from "../utils/text";
+import { NotFoundError } from "./CustomError";
 
 // IAuthenticate provides crate account and login functionality.
 export const IAuthenticateKey = diKey<IAuthenticate>();
@@ -19,9 +27,10 @@ export interface IAuthenticate {
   resetLogin(): void;
   readUserInfo(): Result<UserInfo>;
   supportLocalLogin(): Promise<boolean>;
+  specialLogin(): Promise<Result<void>>;
 }
 
-const userInfoKeyDefault = "authenticate.userInfo";
+const userInfoKey = "authenticate.userInfo";
 const userDisplayNameDefault = "Dependitor";
 
 const randomUsernameLength = 12;
@@ -31,6 +40,7 @@ export interface UserInfo {
   username: string;
   clientId: string;
   credentialId: string;
+  transports?: string[];
   wDek: string;
 }
 
@@ -43,12 +53,12 @@ const defaultUserInfo: UserInfo = {
 
 interface RegisterRsp {
   credentialId: string;
+  transports?: string[];
   user: User;
 }
 
 @singleton(IAuthenticateKey)
 export class Authenticate implements IAuthenticate {
-  private userInfoKey = userInfoKeyDefault;
   private deviceUsername = userDisplayNameDefault;
 
   constructor(
@@ -57,8 +67,38 @@ export class Authenticate implements IAuthenticate {
     private keyVault = di(IKeyVaultKey),
     private keyVaultConfigure = di(IKeyVaultConfigureKey),
     private dataCrypt = di(IDataCryptKey),
-    private localStore = di(ILocalStoreKey)
+    private localStore = di(ILocalStoreKey),
+    private crypt = di(ICryptKey)
   ) {}
+
+  public async specialLogin(): Promise<Result<void>> {
+    logName();
+
+    const userInfo = this.readUserInfo();
+    if (isError(userInfo)) {
+      console.error("failed to read user info");
+      return userInfo;
+    }
+
+    let { username, credentialId, transports, wDek } = userInfo;
+    const password = await this.localOnlyAuthenticate(credentialId, transports);
+    if (isError(password)) {
+      return password;
+    }
+
+    const user = { username, password };
+
+    // Unwrap the dek so it can be used
+    const dek = await this.dataCrypt.unwrapDataEncryptionKey(wDek, user);
+    if (isError(dek)) {
+      console.error("failed to unwrap the wDek");
+      return new AuthenticateError("AuthenticateError:", dek);
+    }
+    console.log("dek ok");
+
+    // // Make the DEK available to be used when encrypting/decrypting data when data
+    // this.keyVaultConfigure.setDataEncryptionKey(dek);
+  }
 
   public async supportLocalLogin(): Promise<boolean> {
     return await this.webAuthn.platformAuthenticatorIsAvailable();
@@ -131,11 +171,11 @@ export class Authenticate implements IAuthenticate {
   }
 
   public readUserInfo(): Result<UserInfo> {
-    return this.localStore.read<UserInfo>(this.userInfoKey);
+    return this.localStore.read<UserInfo>(userInfoKey);
   }
 
   private writeUserInfo(userInfo: UserInfo): void {
-    this.localStore.write(this.userInfoKey, userInfo);
+    this.localStore.write(userInfoKey, userInfo);
   }
 
   // Creates a new user, which is registered in the device Authenticator and in the server
@@ -147,7 +187,7 @@ export class Authenticate implements IAuthenticate {
       return registerRsp;
     }
 
-    const { credentialId, user } = registerRsp;
+    const { credentialId, user, transports } = registerRsp;
 
     let wDek: string;
     if (this.keyVault.hasDataEncryptionKey()) {
@@ -174,6 +214,7 @@ export class Authenticate implements IAuthenticate {
       username: user.username,
       clientId: clientId,
       credentialId: credentialId,
+      transports: transports,
       wDek: wDek,
     };
     this.writeUserInfo(info);
@@ -270,7 +311,11 @@ export class Authenticate implements IAuthenticate {
     }
 
     console.log("Verified registration");
-    return { credentialId: registration.id, user: user };
+    return {
+      credentialId: registration.id,
+      transports: registration.transports,
+      user: user,
+    };
   }
 
   private async authenticate(
@@ -296,12 +341,11 @@ export class Authenticate implements IAuthenticate {
       return authentication;
     }
 
-    // Extract the password, which prefixed to the user id
-    const password =
-      authentication.response.userHandle?.substring(
-        0,
-        randomKekPasswordLength
-      ) ?? "";
+    // Extract the password, which prefixed to the user id in the userHandle (at registration)
+    const password = this.extractPassword(authentication.response.userHandle);
+    if (isError(password)) {
+      return password;
+    }
 
     // Clear the user handle, since the server should not know the password prefix
     // and does not need to know the user id
@@ -322,6 +366,55 @@ export class Authenticate implements IAuthenticate {
     }
 
     console.log("Verified authentication");
+    return password;
+  }
+
+  private async localOnlyAuthenticate(
+    credentialId: string,
+    transports?: string[]
+  ): Promise<Result<string>> {
+    logName();
+
+    // The authentication needs a chalange, but we do not really verify that, we want to
+    // Retrieve the registered password, wich will be resolved once the OS has verified using
+    // biometric or pin-code.
+    const challenge = bufferToBase64(this.crypt.randomBytes(32));
+
+    const options: PublicKeyCredentialRequestOptionsJSON = {
+      challenge: challenge,
+      allowCredentials: [
+        {
+          id: credentialId,
+          type: "public-key",
+          transports: transports as AuthenticatorTransportFuture[],
+        },
+      ],
+      timeout: 60000,
+      userVerification: "required",
+    };
+
+    const t = timing();
+    const authentication = await this.webAuthn.startAuthentication(options);
+    console.log(`WebAuthn authentication: ${!isError(authentication)}, ${t()}`);
+    if (isError(authentication)) {
+      return authentication;
+    }
+    // Extract the password, which prefixed to the user id in the userHandle (at registration)
+    const password = this.extractPassword(authentication.response.userHandle);
+    if (isError(password)) {
+      return password;
+    }
+
+    return password;
+  }
+
+  private extractPassword(data?: string): Result<string> {
+    const password = data?.substring(0, randomKekPasswordLength);
+
+    if (!password || password.length !== randomKekPasswordLength) {
+      return new NotFoundError();
+    }
+
     return password;
   }
 }
