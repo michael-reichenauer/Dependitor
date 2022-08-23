@@ -1,4 +1,4 @@
-import Result, { isError, orDefault } from "../Result";
+import Result, { isError } from "../Result";
 import { di, diKey, singleton } from "../di";
 import { ILocalStore, ILocalStoreKey } from "../LocalStore";
 
