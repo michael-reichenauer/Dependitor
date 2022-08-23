@@ -15,6 +15,7 @@ import {
 import { ICryptKey } from "./crypt";
 import { bufferToBase64 } from "../utils/text";
 import { NotFoundError } from "./CustomError";
+import { IStoreDBKey } from "./db/StoreDB";
 
 // IAuthenticate provides crate account and login functionality.
 export const IAuthenticateKey = diKey<IAuthenticate>();
@@ -66,6 +67,7 @@ export class Authenticate implements IAuthenticate {
     private webAuthn = di(IWebAuthnKey),
     private keyVault = di(IKeyVaultKey),
     private keyVaultConfigure = di(IKeyVaultConfigureKey),
+    private storeDB = di(IStoreDBKey),
     private dataCrypt = di(IDataCryptKey),
     private localStore = di(ILocalStoreKey),
     private crypt = di(ICryptKey)
@@ -97,7 +99,7 @@ export class Authenticate implements IAuthenticate {
     console.log("dek ok");
 
     // // Make the DEK available to be used when encrypting/decrypting data when data
-    // this.keyVaultConfigure.setDataEncryptionKey(dek);
+    // this.setEncryption(username, dek);
   }
 
   public async supportLocalLogin(): Promise<boolean> {
@@ -105,7 +107,7 @@ export class Authenticate implements IAuthenticate {
   }
 
   public async check(): Promise<Result<void>> {
-    if (!this.keyVaultConfigure.hasDataEncryptionKey()) {
+    if (!this.keyVault.hasDataEncryptionKey()) {
       return new AuthenticateError("AuthenticateError:");
     }
 
@@ -131,7 +133,7 @@ export class Authenticate implements IAuthenticate {
   }
 
   public setLoggedIn(username: string, clientId: string, dek: CryptoKey): void {
-    this.keyVaultConfigure.setDataEncryptionKey(dek);
+    this.setEncryption(username, dek);
 
     const userInfo = orDefault(this.readUserInfo(), defaultUserInfo);
     if (username === userInfo.username) {
@@ -164,7 +166,7 @@ export class Authenticate implements IAuthenticate {
   }
 
   public resetLogin(): void {
-    this.keyVaultConfigure.clearDataEncryptionKey();
+    this.resetEncryption();
 
     // Try to logoff from server ass well (but don't await result)
     this.api.logoff();
@@ -172,6 +174,16 @@ export class Authenticate implements IAuthenticate {
 
   public readUserInfo(): Result<UserInfo> {
     return this.localStore.read<UserInfo>(userInfoKey);
+  }
+
+  private setEncryption(username: string, dek: CryptoKey) {
+    this.keyVaultConfigure.setDataEncryptionKey(dek);
+    this.storeDB.setUsername(username);
+  }
+
+  private resetEncryption() {
+    this.keyVaultConfigure.clearDataEncryptionKey();
+    this.storeDB.setUsername("");
   }
 
   private writeUserInfo(userInfo: UserInfo): void {
@@ -203,7 +215,7 @@ export class Authenticate implements IAuthenticate {
     const dek = expectValue(
       await this.dataCrypt.unwrapDataEncryptionKey(wDek, user)
     );
-    this.keyVaultConfigure.setDataEncryptionKey(dek);
+    this.setEncryption(user.username, dek);
 
     // Store the user name and wrapped DEK for the next authentication
     const clientId = !userInfo.clientId
@@ -255,7 +267,7 @@ export class Authenticate implements IAuthenticate {
     }
 
     // Make the DEK available to be used when encrypting/decrypting data when accessing server
-    this.keyVaultConfigure.setDataEncryptionKey(dek);
+    this.setEncryption(username, dek);
   }
 
   private async registerDevice(

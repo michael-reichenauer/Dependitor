@@ -10,6 +10,7 @@ import { NotFoundError } from "../CustomError";
 // Key-value database, that syncs locally stored entities with a remote server
 export const IStoreDBKey = diKey<IStoreDB>();
 export interface IStoreDB {
+  setUsername(name: string): void;
   configure(options: Partial<Configuration>): void;
   monitorRemoteEntities(keys: string[]): void;
   readLocal<T>(key: string, defaultValue: T): T;
@@ -64,6 +65,10 @@ export class StoreDB implements IStoreDB {
     private localDB = di(ILocalDBKey),
     private remoteDB = di(IRemoteDBKey)
   ) {}
+
+  public setUsername(name: string): void {
+    this.localDB.setUsername(name);
+  }
 
   public isSyncEnabledOk(): boolean {
     return this.configuration.isSyncEnabled && this.isSyncOK;
