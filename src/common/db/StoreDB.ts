@@ -151,7 +151,7 @@ export class StoreDB implements IStoreDB {
   }
 
   public removeLocalBatch(keys: string[]): void {
-    this.localDB.removeForceBatch(keys);
+    this.localDB.forceRemoveBatch(keys);
   }
 
   // Called to trigger a sync, which are done in sequence (not parallel)
