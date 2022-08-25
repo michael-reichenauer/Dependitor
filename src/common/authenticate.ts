@@ -9,6 +9,7 @@ import { ILocalStoreKey } from "./LocalStore";
 import timing from "./timing";
 import { logName } from "./log";
 import {
+  AuthenticationCredentialJSON,
   AuthenticatorTransportFuture,
   PublicKeyCredentialRequestOptionsJSON,
 } from "@simplewebauthn/typescript-types";
@@ -16,6 +17,7 @@ import { ICryptKey } from "./crypt";
 import { bufferToBase64 } from "../utils/text";
 import { NotFoundError } from "./CustomError";
 import { IStoreDBKey } from "./db/StoreDB";
+import { Time } from "../utils/time";
 
 // IAuthenticate provides crate account and login functionality.
 export const IAuthenticateKey = diKey<IAuthenticate>();
@@ -354,7 +356,7 @@ export class Authenticate implements IAuthenticate {
     }
 
     // Extract the password, which prefixed to the user id in the userHandle (at registration)
-    const password = this.extractPassword(authentication.response.userHandle);
+    const password = this.extractPassword(authentication);
     if (isError(password)) {
       return password;
     }
@@ -387,9 +389,9 @@ export class Authenticate implements IAuthenticate {
   ): Promise<Result<string>> {
     logName();
 
-    // The authentication needs a chalange, but we do not really verify that, we want to
-    // Retrieve the registered password, wich will be resolved once the OS has verified using
-    // biometric or pin-code.
+    // The authentication needs a challenge, but we do not really need to verify that when we
+    // retrieve the registered password. The authentication response will only be returned by the
+    // OS ofter user is verified using biometric or pin-code.
     const challenge = bufferToBase64(this.crypt.randomBytes(32));
 
     const options: PublicKeyCredentialRequestOptionsJSON = {
@@ -401,18 +403,18 @@ export class Authenticate implements IAuthenticate {
           transports: transports as AuthenticatorTransportFuture[],
         },
       ],
-      timeout: 60000,
+      timeout: 60 * Time.second,
       userVerification: "required",
     };
 
-    const t = timing();
     const authentication = await this.webAuthn.startAuthentication(options);
-    console.log(`WebAuthn authentication: ${!isError(authentication)}, ${t()}`);
+    console.log(`WebAuthn authentication: ${!isError(authentication)}`);
     if (isError(authentication)) {
       return authentication;
     }
+
     // Extract the password, which prefixed to the user id in the userHandle (at registration)
-    const password = this.extractPassword(authentication.response.userHandle);
+    const password = this.extractPassword(authentication);
     if (isError(password)) {
       return password;
     }
@@ -420,8 +422,14 @@ export class Authenticate implements IAuthenticate {
     return password;
   }
 
-  private extractPassword(data?: string): Result<string> {
-    const password = data?.substring(0, randomKekPasswordLength);
+  // extractPassword returns the password embedded in the authentication response user handle,
+  // which was specified at registration
+  private extractPassword(
+    authentication: AuthenticationCredentialJSON
+  ): Result<string> {
+    // The password was embedded in the response user handle
+    const userHandle = authentication.response.userHandle;
+    const password = userHandle?.substring(0, randomKekPasswordLength);
 
     if (!password || password.length !== randomKekPasswordLength) {
       return new NotFoundError();

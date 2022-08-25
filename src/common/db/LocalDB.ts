@@ -33,25 +33,30 @@ export interface LocalEntity {
   version: number;
 }
 
-const metaPrefix = "__"; // Prefix for meta keys like e.g. removed keys
-const removedKey = metaPrefix + "removedKeys"; // Key to store removed entities that are not yet synced upp
+const removedKey = "removedKeys"; // Key to store removed entities that are not yet synced upp
+const unsyncedKey = "unsyncedKeys"; // Key to store unsynced entities that are not yet synced upp
 const defaultUserName = "";
 const prefix = "db.";
 const defaultName = prefix + defaultUserName; // key prefix for local db entities for default user
+const metaPrefixX = "dbm.";
+const defaultMetaName = metaPrefixX + defaultUserName; // key prefix for local db entities for default user
 
 @singleton(ILocalDBKey)
 export class LocalDB implements ILocalDB {
-  private subStore: LocalSubStore;
+  private entitiesStore: LocalSubStore;
+  private metaStore: LocalSubStore;
 
   constructor(
     readonly localStore = di(ILocalStoreKey),
     readonly keyVault = di(IKeyVaultKey)
   ) {
-    this.subStore = new LocalSubStore(defaultName, localStore);
+    this.entitiesStore = new LocalSubStore(defaultName, localStore);
+    this.metaStore = new LocalSubStore(defaultMetaName, localStore);
   }
 
   setUsername(name: string): void {
-    this.subStore = new LocalSubStore(prefix + name, this.localStore);
+    this.entitiesStore = new LocalSubStore(prefix + name, this.localStore);
+    this.metaStore = new LocalSubStore(metaPrefixX + name, this.localStore);
   }
 
   public tryReadValue<T>(key: string): Result<T> {
@@ -64,7 +69,7 @@ export class LocalDB implements ILocalDB {
   }
 
   public tryReadBatch(keys: string[]): Result<LocalEntity>[] {
-    return this.subStore.readBatch(keys);
+    return this.entitiesStore.readBatch(keys);
   }
 
   public write(entity: LocalEntity): void {
@@ -76,16 +81,14 @@ export class LocalDB implements ILocalDB {
       key: entity.key,
       value: entity,
     }));
-    this.subStore.writeBatch(localEntities);
+    this.entitiesStore.writeBatch(localEntities);
 
-    // Ensure possible previously removed keys are no longer considered removed
-    const keys = entities.map((entity) => entity.key);
-    this.confirmRemoved(keys);
+    this.updateUnsyncedKeys(entities);
   }
 
   // Called when removing local entities. Call confirmRemoved after sync
   public preRemoveBatch(keys: string[]): void {
-    this.subStore.removeBatch(keys);
+    this.entitiesStore.removeBatch(keys);
 
     // Store removed keys until confirmRemoved is called (after syncing)
     const removedKeys = this.getRemovedKeys();
@@ -93,41 +96,67 @@ export class LocalDB implements ILocalDB {
     if (newRemovedKeys.length === 0) {
       return;
     }
+
     removedKeys.push(...newRemovedKeys);
-    this.subStore.write(removedKey, removedKeys);
+    this.metaStore.write(removedKey, removedKeys);
   }
 
   // Called after sync when remote server also has removed the keys
   public confirmRemoved(keys: string[]): void {
-    let removedKeys = this.getRemovedKeys();
-    removedKeys = removedKeys.filter((key) => !keys.includes(key));
-    this.subStore.write(removedKey, removedKeys);
+    // remove confirmed keys from list of removed keys
+    const removedKeys = this.getRemovedKeys().filter(
+      (key) => !keys.includes(key)
+    );
+    this.metaStore.write(removedKey, removedKeys);
   }
 
+  // Remove entities without supporting sync with remote by marking them as removed
   public forceRemoveBatch(keys: string[]): void {
-    this.subStore.removeBatch(keys);
+    this.entitiesStore.removeBatch(keys);
   }
 
   public getUnsyncedKeys(): string[] {
-    const unSyncedKeys = this.getAllEntities()
-      .filter((entity) => entity.etag !== entity.syncedEtag)
-      .map((entity: LocalEntity) => entity.key);
-    return unSyncedKeys;
+    return this.metaStore.readOr<string[]>(unsyncedKey, []);
   }
 
   public getAllEntities(): LocalEntity[] {
-    return this.subStore.readBatch(this.entityKeys());
+    return this.entitiesStore.readBatch(this.entitiesStore.keys());
   }
 
   public getRemovedKeys(): string[] {
-    return this.subStore.readOr<string[]>(removedKey, []);
+    return this.metaStore.readOr<string[]>(removedKey, []);
   }
 
   public clear(): void {
-    this.subStore.clear();
+    this.entitiesStore.clear();
+    this.metaStore.clear();
   }
 
-  private entityKeys(): string[] {
-    return this.subStore.keys().filter((key) => !key.startsWith(metaPrefix));
+  // updates the meta.unsynced keys list with unsynced entities
+  private updateUnsyncedKeys(entities: LocalEntity[]): void {
+    let unsyncedKeys = this.getUnsyncedKeys();
+
+    entities.forEach((entity) => {
+      const key = entity.key;
+
+      if (this.isUnsynced(entity)) {
+        // Entity unsynced, add to unsynced if needed
+        if (!unsyncedKeys.includes(key)) {
+          unsyncedKeys.push(key);
+        }
+      } else {
+        // Entity synced, remove from unsynced if needed
+        const index = unsyncedKeys.indexOf(key);
+        if (index > -1) {
+          unsyncedKeys.splice(index, 1);
+        }
+      }
+    });
+
+    this.metaStore.write(unsyncedKey, unsyncedKeys);
+  }
+
+  private isUnsynced(entity: LocalEntity): boolean {
+    return entity.etag !== entity.syncedEtag;
   }
 }

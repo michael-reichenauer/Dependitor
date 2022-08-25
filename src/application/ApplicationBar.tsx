@@ -28,6 +28,7 @@ import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { showPrompt } from "./../common/PromptDialog";
 import { di } from "../common/di";
 import { IAuthenticateKey } from "../common/authenticate";
+import { withProgress } from "../common/Progress";
 
 type ApplicationBarProps = {
   height: number;
@@ -121,7 +122,9 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
         <Button
           tooltip="Try login"
           icon={<AddToHomeScreenIcon className={styleAlways()} />}
-          onClick={() => di(IAuthenticateKey).specialLogin()}
+          onClick={() =>
+            withProgress(() => di(IAuthenticateKey).specialLogin())
+          }
         />
 
         <Box m={1} className={style()} />

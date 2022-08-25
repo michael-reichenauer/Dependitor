@@ -27,6 +27,13 @@ const authenticatorLoginDuration = 3 * util.minute
 const cryptoAlgorithm = "aes-256-cbc";
 
 
+// auth supports a wrapper to the WebAuthn api and uses SimpleWebAuthn wrapper lib for 
+// easier access 
+// Common: https://github.com/MasterKale/SimpleWebAuthn 
+// Client:  https://github.com/MasterKale/SimpleWebAuthn/tree/master/packages/browser
+// Server: https://github.com/MasterKale/SimpleWebAuthn/tree/master/packages/server
+
+
 // Call in every server api function to verify that client has expected api key,
 // Which changes for every build
 exports.verifyApiKey = context => {

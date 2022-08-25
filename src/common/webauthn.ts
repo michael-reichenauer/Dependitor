@@ -17,6 +17,11 @@ export class WebAuthnError extends CustomError {}
 export class WebAuthnCanceledError extends WebAuthnError {}
 export class WebAuthnNeedReloadError extends WebAuthnError {}
 
+// IWebAuthn supports a wrapper to the WebAuthn api and uses SimpleWebAuthn wrapper lib for
+// easier access
+// Common: https://github.com/MasterKale/SimpleWebAuthn
+// Client:  https://github.com/MasterKale/SimpleWebAuthn/tree/master/packages/browser
+// Server: https://github.com/MasterKale/SimpleWebAuthn/tree/master/packages/server
 export const IWebAuthnKey = diKey<IWebAuthn>();
 export interface IWebAuthn {
   platformAuthenticatorIsAvailable(): Promise<boolean>;
