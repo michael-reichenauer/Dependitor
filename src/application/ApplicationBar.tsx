@@ -21,13 +21,10 @@ import HourglassEmptyIcon from "@material-ui/icons/HourglassEmpty";
 import UndoIcon from "@material-ui/icons/Undo";
 import RedoIcon from "@material-ui/icons/Redo";
 import FilterCenterFocusIcon from "@material-ui/icons/FilterCenterFocus";
-import AddToHomeScreenIcon from "@material-ui/icons/AddToHomeScreen";
-
 import { useCanRedo, useCanUndo, useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { showPrompt } from "./../common/PromptDialog";
 import { di } from "../common/di";
-import { IAuthenticateKey } from "../common/authenticate";
 
 type ApplicationBarProps = {
   height: number;
@@ -118,11 +115,11 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
           icon={<FilterCenterFocusIcon className={styleAlways()} />}
           onClick={() => PubSub.publish("canvas.ShowTotalDiagram")}
         />
-        <Button
+        {/* <Button
           tooltip="Try login"
           icon={<AddToHomeScreenIcon className={styleAlways()} />}
           onClick={() => di(IAuthenticateKey).specialLogin()}
-        />
+        /> */}
 
         <Box m={1} className={style()} />
         <Typography
