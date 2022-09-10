@@ -1,4 +1,5 @@
 // Some handy utility functions
+import cryptoRandomString from "crypto-random-string";
 
 // Returns a random number between min and max
 export const random = (min: number, max: number): number => {
@@ -8,15 +9,9 @@ export const random = (min: number, max: number): number => {
 };
 
 export const randomString = (count: number): string => {
-  let randomText = "";
-  const randomBytes = crypto.getRandomValues(new Uint8Array(count));
-  let characters =
+  const characters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789";
-
-  for (var i = 0; i < count; i++) {
-    randomText += characters.charAt(randomBytes[i] % characters.length);
-  }
-  return randomText;
+  return cryptoRandomString({ length: count, characters: characters });
 };
 
 export function stackTrace(): string {

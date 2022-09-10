@@ -1,3 +1,4 @@
+import cryptoRandomString from "crypto-random-string";
 import { ICryptKey } from "../common/crypt";
 import { di, diKey, singleton } from "../common/di";
 import Result from "../common/Result";
@@ -49,9 +50,10 @@ export class AuthenticatorProtocol implements IAuthenticatorProtocol {
   constructor(private crypt = di(ICryptKey)) {}
 
   public generateAuthenticateCode(): string {
-    const randomBytes = crypto.getRandomValues(new Uint8Array(codeLength));
-
-    return arrayToString(randomBytes, codeCharacters);
+    return cryptoRandomString({
+      length: codeLength,
+      characters: codeCharacters,
+    });
   }
 
   public hasAuthenticateCode(): boolean {
