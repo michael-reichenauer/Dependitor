@@ -69,7 +69,7 @@ export function base64ToBuffer(base64URLString: string): ArrayBuffer {
 
 // StringFormat formats a message with place holders and args like
 // e.g.: StringFormat("Some {0} text with {1} args", name, count);
-export function StringFormat(message: string, ...args: any[]): string {
+export function stringFormat(message: string, ...args: any[]): string {
   // iterate over the placeholders and replace with corresponding arg
   return message.replace(/{([0-9]+)}/g, function (match, index) {
     return typeof args[index] == "undefined" ? match : args[index];
