@@ -26,7 +26,7 @@ import {
   WebAuthnNeedReloadError,
 } from "../common/webauthn";
 import { withProgress } from "../common/Progress";
-import { showInfoAlert } from "../common/AlertDialog";
+import { showInfoAlert, showQuestionAlert } from "../common/AlertDialog";
 import { LoginProvider } from "./LoginProvider";
 import { showLoginDlg } from "./LoginDlg";
 
@@ -165,6 +165,10 @@ export class Online implements IOnline {
       if (isError(checkRsp, AuthenticateError)) {
         // Authentication is needed, showing the authentication dialog or sync enable dlg
         if (!skipLocalLogin && this.authenticate.isLocalLoginEnabled()) {
+          if (!(await this.showLoginPrompt())) {
+            return;
+          }
+
           return this.loginOnLocalDevice();
         }
         showLoginDlg(new LoginProvider(this));
@@ -345,5 +349,16 @@ export class Online implements IOnline {
     }
 
     return "Internal server error";
+  }
+
+  async showLoginPrompt(): Promise<boolean> {
+    return await showQuestionAlert(
+      "Login Device Sync",
+      `Would you like log in to enable device sync?`,
+      {
+        okText: "Yes",
+        cancelText: "No",
+      }
+    );
   }
 }
