@@ -83,10 +83,20 @@ exports.removeBatch = async (context, body, userId) => {
         // context.log('keys:', keys, tableName)
 
         const entityItems = keys.map(key => table.toDeleteEntity(key, dataPartitionKey))
-        const batch = new azure.TableBatch()
-        entityItems.forEach(entity => batch.deleteEntity(entity))
 
-        await table.executeBatch(tableName, batch)
+        // Removing items individually to handle already removed items
+        for (let i = 0; i < entityItems.length; i++) {
+            const entity = entityItems[i];
+            try {
+                await table.deleteEntity(tableName, entity)
+            } catch (err) {
+                if (err.code === 'ResourceNotFound') {
+                    // Element already removed, not an error
+                    continue
+                }
+                throw err
+            }
+        }
 
         return ''
     } catch (err) {

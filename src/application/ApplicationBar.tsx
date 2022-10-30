@@ -21,7 +21,6 @@ import HourglassEmptyIcon from "@material-ui/icons/HourglassEmpty";
 import UndoIcon from "@material-ui/icons/Undo";
 import RedoIcon from "@material-ui/icons/Redo";
 import FilterCenterFocusIcon from "@material-ui/icons/FilterCenterFocus";
-
 import { useCanRedo, useCanUndo, useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { showPrompt } from "./../common/PromptDialog";
@@ -116,6 +115,11 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
           icon={<FilterCenterFocusIcon className={styleAlways()} />}
           onClick={() => PubSub.publish("canvas.ShowTotalDiagram")}
         />
+        {/* <Button
+          tooltip="Try login"
+          icon={<AddToHomeScreenIcon className={styleAlways()} />}
+          onClick={() => di(IAuthenticateKey).specialLogin()}
+        /> */}
 
         <Box m={1} className={style()} />
         <Typography
