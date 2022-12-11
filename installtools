@@ -1,0 +1,18 @@
+#!/bin/bash
+
+echo ""
+echo "Updating apt ..."
+sudo apt update -q -y
+echo ""
+echo "Installing mc ..."
+sudo apt install -q mc -y 1>/dev/null
+echo ""
+echo "Installing lnav ..."
+sudo apt install -q lnav -y 1>/dev/null
+
+echo ""
+echo "Install gmd ..."
+mkdir ~/gmd; wget -q -O ~/gmd/gmd "https://github.com/michael-reichenauer/gmd/releases/download/v0.30.42.555/gmd_linux" && chmod +x ~/gmd/gmd
+echo 'export PATH=$PATH:~/gmd' >>~/.profile
+. ~/.profile
+gmd --update
