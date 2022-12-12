@@ -1,5 +1,5 @@
 import Colors from "./diagram/Colors";
-import React, { useState, useEffect } from "react";
+import React, {  FC, useState, useEffect } from "react";
 import { atom, useAtom } from "jotai";
 import PubSub from "pubsub-js";
 import { makeStyles } from "@material-ui/core/styles";
@@ -13,8 +13,9 @@ import {
   Menu,
   MenuItem,
   Tooltip,
+  TextField,
 } from "@material-ui/core";
-// import SearchBar from "material-ui-search-bar";
+
 import {
   defaultIconKey,
   greenNumberIconKey,
@@ -27,6 +28,7 @@ import CheckIcon from "@material-ui/icons/Check";
 import CheckBoxOutlineBlank from "@material-ui/icons/CheckBoxOutlineBlank";
 import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
 
+
 const subItemsSize = 12;
 const mruSize = 8;
 const iconsSize = 30;
@@ -38,6 +40,26 @@ const defaultIconSets = ["Azure", "Aws", "OSA"];
 
 const nodesAtom = atom(false);
 const useNodes = () => useAtom(nodesAtom);
+
+type SearchBarPar = {
+  value:string;
+  onChange: any;
+};
+
+const SearchBar:FC<SearchBarPar> = ({ value, onChange}) => (
+  <form>
+      <TextField fullWidth 
+        id="search-bar"
+        className="text"
+        onInput={(e:any) => { onChange(e.target.value); }}
+        label=""
+        defaultValue={value}
+        variant="outlined"
+        placeholder="Search..."
+        size="small"
+      />
+  </form>
+);
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -262,11 +284,10 @@ export default function Nodes() {
           </MenuItem>
         </Menu>
 
-        {/* <SearchBar
-          value={filter}
-          onChange={(searchVal) => onChangeSearch(searchVal)}
-          onCancelSearch={() => cancelSearch()}
-        /> */}
+        { <SearchBar 
+            value={filter}
+            onChange={(searchVal:string) => onChangeSearch(searchVal)}
+        /> }
 
         {NodesList(iconSets, mru, filter, groupType, clickedIconItem)}
       </Box>
