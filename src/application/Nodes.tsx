@@ -96,7 +96,9 @@ export default function Nodes() {
   }
 
   // Handle search
+  // eslint-disable-next-line 
   const onChangeSearch = (value: string) => setFilter(value.toLowerCase());
+  // eslint-disable-next-line 
   const cancelSearch = () => setFilter("");
 
   const titleType = groupType ? "Container" : "Icon";
