@@ -18,7 +18,6 @@ import {
   AuthenticatorRsp,
   IAuthenticatorProtocolKey,
 } from "./AuthenticatorProtocol";
-//const uaParser = require("ua-parser-js");
 
 // IAuthenticatorClient is the client  the Dependitor app uses when authenticating
 export const IAuthenticatorClientKey = diKey<IAuthenticatorClient>();

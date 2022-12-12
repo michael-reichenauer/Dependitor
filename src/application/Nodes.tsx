@@ -14,7 +14,7 @@ import {
   MenuItem,
   Tooltip,
 } from "@material-ui/core";
-import SearchBar from "material-ui-search-bar";
+// import SearchBar from "material-ui-search-bar";
 import {
   defaultIconKey,
   greenNumberIconKey,
@@ -260,11 +260,11 @@ export default function Nodes() {
           </MenuItem>
         </Menu>
 
-        <SearchBar
+        {/* <SearchBar
           value={filter}
           onChange={(searchVal) => onChangeSearch(searchVal)}
           onCancelSearch={() => cancelSearch()}
-        />
+        /> */}
 
         {NodesList(iconSets, mru, filter, groupType, clickedIconItem)}
       </Box>
