@@ -153,11 +153,7 @@ const Button: FC<ButtonProps> = ({
   return (
     <Tooltip title={tooltip} className={className} arrow>
       <span>
-        <IconButton
-          disabled={disabled}
-          onClick={onClick}
-          style={{ padding: 5 }}
-        >
+        <IconButton disabled={disabled} onClick={onClick} style={{ padding: 5 }} size="large">
           {icon}
         </IconButton>
       </span>

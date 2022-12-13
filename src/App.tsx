@@ -14,7 +14,14 @@ import { isAuthenticatorApp } from "./authenticator/AuthenticatorProtocol";
 import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
 import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 import { restoreVirtualConsoleState } from "./common/virtualConsole";
-import { ThemeProvider, createMuiTheme } from '@mui/material/styles';
+import { ThemeProvider, Theme, StyledEngineProvider, createMuiTheme } from '@mui/material/styles';
+
+
+declare module '@mui/styles/defaultTheme' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface DefaultTheme extends Theme {}
+}
+
 
 const theme = createMuiTheme();
 
@@ -41,8 +48,8 @@ const App: React.FC = () => {
     );
   }
 
-  return (
-    <>
+  return <>
+    <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>
         <ApplicationBar height={55} />
         <Diagram width={size.width} height={size.height - 55} />
@@ -54,8 +61,8 @@ const App: React.FC = () => {
         <NodeLabelDialog />
         <Activity />
       </ThemeProvider>
-    </>
-  );
+    </StyledEngineProvider>
+  </>;
 };
 
 export default App;

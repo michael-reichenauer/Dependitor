@@ -111,21 +111,19 @@ export function ApplicationMenu() {
     ),
   ];
 
-  return (
-    <>
-      <Tooltip title="Customize and control">
-        <IconButton
-          edge="start"
-          color="inherit"
-          onClick={(e: any) => setMenu(e.currentTarget)}
-        >
-          <MenuIcon />
-        </IconButton>
-      </Tooltip>
+  return <>
+    <Tooltip title="Customize and control">
+      <IconButton
+        edge="start"
+        color="inherit"
+        onClick={(e: any) => setMenu(e.currentTarget)}
+        size="large">
+        <MenuIcon />
+      </IconButton>
+    </Tooltip>
 
-      <AppMenu anchorEl={menu} items={menuItems} onClose={setMenu} />
-    </>
-  );
+    <AppMenu anchorEl={menu} items={menuItems} onClose={setMenu} />
+  </>;
 }
 
 function renameDiagram(titleText: string) {
