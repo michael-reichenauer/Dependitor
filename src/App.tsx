@@ -16,15 +16,12 @@ import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 import { restoreVirtualConsoleState } from "./common/virtualConsole";
 import { ThemeProvider, Theme, StyledEngineProvider, createMuiTheme } from '@mui/material/styles';
 
-
 declare module '@mui/styles/defaultTheme' {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface DefaultTheme extends Theme {}
+  interface DefaultTheme extends Theme { }
 }
 
-
 const theme = createMuiTheme();
-
 
 restoreVirtualConsoleState();
 
@@ -39,11 +36,13 @@ const App: React.FC = () => {
   if (isAuthenticatorApp()) {
     return (
       <>
-        <AuthenticatorBar height={55} />
-        <AuthenticatorPage />
-        <PromptDialog />
-        <About />
-        <AlertDialog />
+        <ThemeProvider theme={theme}>
+          <AuthenticatorBar height={55} />
+          <AuthenticatorPage />
+          <PromptDialog />
+          <About />
+          <AlertDialog />
+        </ThemeProvider>
       </>
     );
   }
