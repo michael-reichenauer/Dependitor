@@ -273,7 +273,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
             authenticator: deviceAuthenticator,
             requireUserVerification: true,
         };
-        const verification = SimpleWebAuthnServer.verifyAuthenticationResponse(verificationOptions);
+        const verification = await SimpleWebAuthnServer.verifyAuthenticationResponse(verificationOptions);
 
         const { verified, authenticationInfo } = verification;
 
