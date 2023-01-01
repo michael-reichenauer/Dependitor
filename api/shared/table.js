@@ -1,9 +1,12 @@
-const azure = require('azure-storage');
-const util = require('../shared/util.js');
+// const azure = require('azure-storage');
+// const util = require('../shared/util.js');
+const { TableServiceClient, TableClient } = require("@azure/data-tables");
 
-const tableService = azure.createTableService();
+// const tableService = azure.createTableService();
 
-const entGen = azure.TableUtilities.entityGenerator;
+// const entGen = azure.TableUtilities.entityGenerator;
+
+// const tableService2 = TableServiceClient.fromConnectionString("UseDevelopmentStorage=true;");
 
 // /**
 //  * The default credential will use the user-assigned managed identity with the specified client ID.
@@ -27,136 +30,171 @@ const entGen = azure.TableUtilities.entityGenerator;
 //     "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=https://127.0.0.1:10002/devstoreaccount1;", "table-name"
 //   );
 
-
-exports.String = (value) => {
-    return entGen.String(value)
-}
-
-exports.toDeleteEntity = (key, partitionKey) => {
-    const item = {
-        RowKey: entGen.String(key),
-        PartitionKey: entGen.String(partitionKey),
-    }
-
-    return item
-}
-
-exports.createTableIfNotExists = (tableName) => {
-    const stack = util.stackTrace()
-    return new Promise(function (resolve, reject) {
-        tableService.createTableIfNotExists(tableName, function (error, result) {
-            if (error) {
-                reject(withStack(error, stack));
-            }
-            else {
-                resolve(result);
-            }
-        })
-    });
-}
-
-exports.executeBatch = (tableName, batch) => {
-    const stack = util.stackTrace()
-    return new Promise(function (resolve, reject) {
-        tableService.executeBatch(tableName, batch, function (error, result) {
-            if (error) {
-                reject(withStack(error, stack));
-            }
-            else {
-                resolve(result);
-            }
-        })
-    })
-}
-
-exports.insertEntity = (tableName, item) => {
-    const stack = util.stackTrace()
-    return new Promise(function (resolve, reject) {
-        tableService.insertEntity(tableName, item, function (error, result) {
-            if (error) {
-                reject(withStack(error, stack));
-            }
-            else {
-                resolve(result);
-            }
-        })
-    })
-}
-
-exports.deleteEntity = (tableName, item) => {
-    const stack = util.stackTrace()
-    return new Promise(function (resolve, reject) {
-        tableService.deleteEntity(tableName, item, function (error, result) {
-            if (error) {
-                reject(withStack(error, stack));
-            }
-            else {
-                resolve(result);
-            }
-        })
-    })
-}
-
-exports.insertOrReplaceEntity = (tableName, item) => {
-    const stack = util.stackTrace()
-    return new Promise(function (resolve, reject) {
-        tableService.insertOrReplaceEntity(tableName, item, function (error, result) {
-            if (error) {
-                reject(withStack(error, stack));
-            }
-            else {
-                resolve(result);
-            }
-        })
-    })
+exports.service = () => {
+    return TableServiceClient.fromConnectionString("UseDevelopmentStorage=true;");
 }
 
 
-exports.retrieveEntity = (tableName, partitionKey, rowKey) => {
-    const stack = util.stackTrace()
-    return new Promise(function (resolve, reject) {
-        tableService.retrieveEntity(tableName, partitionKey, rowKey, function (error, result, response) {
-            if (error) {
-                reject(withStack(error, stack));
-            }
-            else {
-                resolve(response.body);
-            }
-        })
-    })
+exports.client = (tableName) => {
+    return TableClient.fromConnectionString("UseDevelopmentStorage=true", tableName);
 }
 
 
-exports.queryEntities = (tableName, tableQuery, continuationToken) => {
-    const stack = util.stackTrace()
-    return new Promise(function (resolve, reject) {
-        tableService.queryEntities(tableName, tableQuery, continuationToken, function (error, result, response) {
-            if (error) {
-                reject(withStack(error, stack));
-            }
-            else {
-                resolve(response.body.value);
-            }
-        })
-    })
-}
 
-exports.deleteTableIfExists = (tableName) => {
-    const stack = util.stackTrace()
-    return new Promise(function (resolve, reject) {
-        tableService.deleteTableIfExists(tableName, function (error, result) {
-            if (error) {
-                reject(withStack(error, stack));
-            }
-            else {
-                resolve();
-            }
-        })
-    })
-}
+// exports.String = (value) => {
+//     return entGen.String(value)
+// }
+
+// exports.toDeleteEntity = (key, partitionKey) => {
+//     const item = {
+//         RowKey: entGen.String(key),
+//         PartitionKey: entGen.String(partitionKey),
+//     }
+
+//     return item
+// }
+
+// exports.createTableIfNotExistsXX = (tableName) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.createTableIfNotExists(tableName, function (error, result) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve(result);
+//             }
+//         })
+//     });
+// }
+
+// exports.executeBatch = (tableName, batch) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.executeBatch(tableName, batch, function (error, result) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve(result);
+//             }
+//         })
+//     })
+// }
+
+// exports.insertEntity = (tableName, item) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.insertEntity(tableName, item, function (error, result) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve(result);
+//             }
+//         })
+//     })
+// }
+
+// exports.insertEntity2 = (tableName, item) => {
+//     const stack = util.stackTrace()
+//     return tableService2.insertEntity()
+//     })
+// }
+
+
+// exports.deleteEntity = (tableName, item) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.deleteEntity(tableName, item, function (error, result) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve(result);
+//             }
+//         })
+//     })
+// }
+
+// exports.insertOrReplaceEntity = (tableName, item) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.insertOrReplaceEntity(tableName, item, function (error, result) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve(result);
+//             }
+//         })
+//     })
+// }
+
+
+// exports.retrieveEntity = (tableName, partitionKey, rowKey) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.retrieveEntity(tableName, partitionKey, rowKey, function (error, result, response) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve(response.body);
+//             }
+//         })
+//     })
+// }
+
+// exports.retrieveEntity = (tableName, partitionKey, rowKey) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.retrieveEntity(tableName, partitionKey, rowKey, function (error, result, response) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve(response.body);
+//             }
+//         })
+//     })
+// }
+
+
+// exports.queryEntities = (tableName, tableQuery, continuationToken) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.queryEntities(tableName, tableQuery, continuationToken, function (error, result, response) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve(response.body.value);
+//             }
+//         })
+//     })
+// }
+
+// exports.deleteTableIfExists = (tableName) => {
+//     const stack = util.stackTrace()
+//     return new Promise(function (resolve, reject) {
+//         tableService.deleteTableIfExists(tableName, function (error, result) {
+//             if (error) {
+//                 reject(withStack(error, stack));
+//             }
+//             else {
+//                 resolve();
+//             }
+//         })
+//     })
+// }
+
+// exports.deleteTable = (tableName) => {
+//     return tableService2.deleteTable(tableName);
+// }
 
 // Adjust the stack trace of the error to match the stack before the promise call
-function withStack(error, stack) {
-    error.stack = `${error.name}: ${error.message} \n${stack}`
-    return error
-}
+// function withStack(error, stack) {
+//     error.stack = `${error.name}: ${error.message} \n${stack}`
+//     return error
+// }

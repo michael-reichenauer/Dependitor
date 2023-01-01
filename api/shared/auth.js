@@ -1,11 +1,10 @@
-const azure = require('azure-storage');
+const { odata, TableTransaction } = require("@azure/data-tables");
 const crypto = require("crypto")
 const base64url = require("base64url")
 const SimpleWebAuthnServer = require('@simplewebauthn/server');
 const table = require('../shared/table.js');
 const util = require('../shared/util.js');
 const config = require('../config.js');
-
 
 const ServiceName = 'Dependitor';
 const defaultTransports = ['internal', 'usb', 'ble', 'nfc'] // possible: ['internal', 'usb', 'ble', 'nfc']
@@ -49,16 +48,22 @@ exports.check = async (context, body, userId) => {
 exports.loginDeviceSet = async (context, body, userId) => {
     try {
         const { channelId, authData } = body
-        await table.createTableIfNotExists(authenticatorTableName)
-        await clearOldAuthenticatorChannels()
-
+        await table.service().createTable(authenticatorTableName)
+        await clearOldAuthenticatorChannels(context)
 
         // Creating a new client id and session for the other device 
-        const sessionId = await createSession(userId)
+        const sessionId = await createSession(context, userId)
 
         // Store data for other device to retrieve using the loginDevice() call
-        const entity = toAuthenticatorAuthTableEntity(channelId, authData, sessionId)
-        await table.insertEntity(authenticatorTableName, entity)
+        //const entity = toAuthenticatorAuthTableEntity(channelId, authData, sessionId)
+        const entity = {
+            partitionKey: authenticatorPartitionKey,
+            rowKey: channelId,
+            authData: authData,
+            sessionId: sessionId,
+        }
+
+        await table.client(authenticatorTableName).createEntity(entity)
 
         return {}
     } catch (error) {
@@ -73,7 +78,8 @@ exports.loginDevice = async (context, body) => {
         const { channelId } = body
 
         try {
-            const entity = await table.retrieveEntity(authenticatorTableName, authenticatorPartitionKey, channelId)
+            const entity = await table.client(authenticatorTableName).getEntity(authenticatorPartitionKey, channelId)
+
             if (entity.authData) {
                 const expireDate = util.currentDateAdd(authenticatorLoginDuration);
                 const entityDate = Date.parse(entity.Timestamp)
@@ -98,7 +104,7 @@ exports.loginDevice = async (context, body) => {
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     try {
         // Make sure the user table exists.
-        await table.createTableIfNotExists(usersTableName)
+        await table.service().createTable(usersTableName)
 
         let { username } = data
         if (!username) {
@@ -196,7 +202,7 @@ exports.verifyWebAuthnRegistration = async (context, data) => {
         await insertOrReplaceUser(userId, user, username)
 
 
-        const sessionId = await createSession(userId)
+        const sessionId = await createSession(context, userId)
         const cookies = createCookies(sessionId)
 
         return { response: { verified: verified }, cookies: cookies }
@@ -286,7 +292,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
         await insertOrReplaceUser(userId, user, username)
 
-        const sessionId = await createSession(userId)
+        const sessionId = await createSession(context, userId)
         const cookies = createCookies(sessionId)
 
         return { response: { verified }, cookies: cookies };
@@ -298,7 +304,7 @@ exports.verifyWebAuthnAuthentication = async (context, data) => {
 
 exports.logoff = async (context, data, userId) => {
     try {
-        await clearOldSessions()
+        await clearOldSessions(context)
 
         const cookies = [
             {
@@ -324,7 +330,8 @@ const getLoginUserId = async (context) => {
             throw new Error(util.authenticateError)
         }
 
-        const entity = await table.retrieveEntity(sessionsTableName, sessionsPartitionKey, sessionId)
+        // const entity = await table.retrieveEntity(sessionsTableName, sessionsPartitionKey, sessionId)
+        const entity = await table.client(sessionsTableName).getEntity(sessionsPartitionKey, sessionId);
         const expireDate = util.currentDateAdd(sessionDuration);
         const entityDate = Date.parse(entity.Timestamp)
         if (entityDate > expireDate) {
@@ -340,7 +347,8 @@ exports.getLoginUserId = getLoginUserId
 
 
 async function retrieveUser(userId, username) {
-    const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
+    // const userTableEntity = await table.retrieveEntity(usersTableName, userPartitionKey, userId)
+    const userTableEntity = await table.client(usersTableName).getEntity(userPartitionKey, userId);
 
     // Simple decryption of user date based on user name, which is not stored by server in clear text
     const userJson = decrypt(userTableEntity.user, username, username)
@@ -375,24 +383,37 @@ async function insertOrReplaceUser(userId, user, username) {
     // Simple encryption of user data based on user name, which is not stored by server in clear text
     const userJsonData = encrypt(userJson, username, username)
 
-    const userItem = toUserTableEntity(userId, userJsonData)
-    await table.insertOrReplaceEntity(usersTableName, userItem)
+    const entity = {
+        partitionKey: userPartitionKey,
+        rowKey: userId,
+        user: userJsonData,
+    }
+
+    await table.client(usersTableName).upsertEntity(entity, "Replace")
 }
 
 
-async function createSession(userId) {
+async function createSession(context, userId) {
     // Create user data table if it does not already exist
     const dataTableName = dataBaseTableName + userId
-    await table.createTableIfNotExists(dataTableName)
-    await table.createTableIfNotExists(sessionsTableName)
+    await table.service().createTable(dataTableName)
+    await table.service().createTable(sessionsTableName)
 
     // Clear previous sessions from this client
-    await clearOldSessions()
+    await clearOldSessions(context)
 
     // Create new session id and store
     const sessionId = makeRandomId()
-    const sessionTableEntity = toSessionTableEntity(sessionId, userId)
-    await table.insertEntity(sessionsTableName, sessionTableEntity)
+    //const sessionTableEntity = toSessionTableEntity(sessionId, userId)
+    const sessionTableEntity = {
+        partitionKey: sessionsPartitionKey,
+        rowKey: sessionId,
+        userId: userId,
+    }
+
+    await table.client(sessionsTableName).createEntity(sessionTableEntity)
+
+    // await table.insertEntity(sessionsTableName, sessionTableEntity)
 
     return sessionId
 }
@@ -416,46 +437,78 @@ function createCookies(sessionId) {
 // // // -----------------------------------------------------------------
 
 
-async function clearOldSessions() {
+async function clearOldSessions(context) {
     // Get all existing sessions for the client or very old sessions
     let dateVal = new Date(new Date().getTime() - sessionDuration);
-    let tableQuery = new azure.TableQuery()
-        .where('PartitionKey == ?string? && Timestamp <= ?date?',
-            sessionsPartitionKey, dateVal);
+    // let tableQuery = new azure.TableQuery()
+    //     .where('PartitionKey == ?string? && Timestamp <= ?date?',
+    //         sessionsPartitionKey, dateVal);
 
-    const items = await table.queryEntities(sessionsTableName, tableQuery, null)
-    const keys = items.map(item => item.RowKey)
+    //const items = await table.queryEntities(sessionsTableName, tableQuery, null)
+
+    const entities = table.client(sessionsTableName).listEntities({
+        queryOptions: { filter: odata`PartitionKey eq ${sessionsPartitionKey} && Timestamp le ${dateVal}` }
+    })
+
+    const items = []
+    for await (const entity of entities) {
+        items.push(entity);
+    }
+
+    context.log("clearOldSessions: items", items);
+
+
+    const keys = items.map(item => item.rowKey)
     if (keys.length === 0) {
         return
     }
 
     // Remove these entities
-    const entityItems = keys.map(key => table.toDeleteEntity(key, sessionsPartitionKey))
-    const batch = new azure.TableBatch()
-    entityItems.forEach(entity => batch.deleteEntity(entity))
-    await table.executeBatch(sessionsTableName, batch)
+    const transaction = new TableTransaction();
+    keys.forEach(key => transaction.deleteEntity(sessionsPartitionKey, key))
+    await table.client(sessionsTableName).submitTransaction(transaction.actions);
+
+
+    // const entityItems = keys.map(key => table.toDeleteEntity(key, sessionsPartitionKey))
+    // const batch = new azure.TableBatch()
+    // entityItems.forEach(entity => batch.deleteEntity(entity))
+    // await table.executeBatch(sessionsTableName, batch)
 }
 
-async function clearOldAuthenticatorChannels() {
+async function clearOldAuthenticatorChannels(context) {
     // Get all old channels
     let dateVal = new Date(new Date().getTime() - (5 * util.minute));
-    let tableQuery = new azure.TableQuery()
-        .where('PartitionKey == ?string? && Timestamp <= ?date?',
-            authenticatorPartitionKey, dateVal);
+    // let tableQuery = new azure.TableQuery()
+    //     .where('PartitionKey == ?string? && Timestamp <= ?date?',
+    //         authenticatorPartitionKey, dateVal);
 
-    const items = await table.queryEntities(authenticatorTableName, tableQuery, null)
-    const keys = items.map(item => item.RowKey)
+    // const items = await table.queryEntities(authenticatorTableName, tableQuery, null)
+    const entities = table.client(authenticatorTableName).listEntities({
+        queryOptions: { filter: odata`PartitionKey eq ${authenticatorPartitionKey} && Timestamp le ${dateVal}` }
+    })
+
+    const items = []
+    for await (const entity of entities) {
+        items.push(entity);
+    }
+
+    // context.log("clearOldAuthenticatorChannels: items", items);
+
+    const keys = items.map(item => item.rowKey)
     if (keys.length === 0) {
         return
     }
 
     // Remove these entities
-    const entityItems = keys.map(key => table.toDeleteEntity(key, authenticatorPartitionKey))
-    const batch = new azure.TableBatch()
-    entityItems.forEach(entity => batch.deleteEntity(entity))
-    await table.executeBatch(authenticatorTableName, batch)
-}
+    const transaction = new TableTransaction();
+    keys.forEach(key => transaction.deleteEntity(authenticatorPartitionKey, key))
+    await table.client(authenticatorTableName).submitTransaction(transaction.actions);
 
+    // const entityItems = keys.map(key => table.toDeleteEntity(key, authenticatorPartitionKey))
+    // const batch = new azure.TableBatch()
+    // entityItems.forEach(entity => batch.deleteEntity(entity))
+    // await table.executeBatch(authenticatorTableName, batch)
+}
 
 
 function getCookie(name, context) {
@@ -502,35 +555,35 @@ function randomString(count) {
 
 
 
-function toUserTableEntity(userId, user) {
-    return {
-        RowKey: table.String(userId),
-        PartitionKey: table.String(userPartitionKey),
+// function toUserTableEntity(userId, user) {
+//     return {
+//         RowKey: table.String(userId),
+//         PartitionKey: table.String(userPartitionKey),
 
-        user: table.String(user),
-    }
-}
-
-
-function toAuthenticatorAuthTableEntity(id, authData, sessionId) {
-    return {
-        RowKey: table.String(id),
-        PartitionKey: table.String(authenticatorPartitionKey),
-
-        authData: table.String(authData),
-        sessionId: table.String(sessionId),
-    }
-}
+//         user: table.String(user),
+//     }
+// }
 
 
-function toSessionTableEntity(sessionId, userId) {
-    return {
-        RowKey: table.String(sessionId),
-        PartitionKey: table.String(sessionsPartitionKey),
+// function toAuthenticatorAuthTableEntity(id, authData, sessionId) {
+//     return {
+//         RowKey: table.String(id),
+//         PartitionKey: table.String(authenticatorPartitionKey),
 
-        userId: table.String(userId),
-    }
-}
+//         authData: table.String(authData),
+//         sessionId: table.String(sessionId),
+//     }
+// }
+
+
+// function toSessionTableEntity(sessionId, userId) {
+//     return {
+//         RowKey: table.String(sessionId),
+//         PartitionKey: table.String(sessionsPartitionKey),
+
+//         userId: table.String(userId),
+//     }
+// }
 
 
 function sha256(message) {
