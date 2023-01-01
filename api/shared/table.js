@@ -2,6 +2,8 @@
 // const util = require('../shared/util.js');
 const { TableServiceClient, TableClient } = require("@azure/data-tables");
 
+
+
 // const tableService = azure.createTableService();
 
 // const entGen = azure.TableUtilities.entityGenerator;
@@ -31,14 +33,12 @@ const { TableServiceClient, TableClient } = require("@azure/data-tables");
 //   );
 
 exports.service = () => {
-    return TableServiceClient.fromConnectionString("UseDevelopmentStorage=true;");
+    return TableServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
 }
-
 
 exports.client = (tableName) => {
-    return TableClient.fromConnectionString("UseDevelopmentStorage=true", tableName);
+    return TableClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING, tableName);
 }
-
 
 
 // exports.String = (value) => {
