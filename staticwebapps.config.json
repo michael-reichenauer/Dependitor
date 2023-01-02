@@ -10,7 +10,7 @@
       }
     },
     {
-      "route": "/static/*.{png,jpg,gif,svg}",
+      "route": "/*.{png,jpg,gif,svg}",
       "headers": {
         "Cache-Control": "public, max-age=604800, immutable"
       }
