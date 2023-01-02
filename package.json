@@ -5,8 +5,8 @@
   "dependencies": {
     "@material-ui/core": "^4.12.4",
     "@material-ui/icons": "^4.11.3",
-    "@simplewebauthn/browser": "^5.2.1",
-    "@simplewebauthn/typescript-types": "^5.2.1",
+    "@simplewebauthn/browser": "^6.2.2",
+    "@simplewebauthn/typescript-types": "^6.3.0-alpha.1",
     "@types/humanize-duration": "^3.27.1",
     "@types/jest": "^27.5.1",
     "@types/node": "^16.11.36",
@@ -16,6 +16,7 @@
     "axios": "^0.21.1",
     "cuid": "^2.1.8",
     "draw2d": "^1.0.38",
+    "eslint-config-react-app": "^7.0.1",
     "file-saver": "^2.0.5",
     "formik": "^2.2.9",
     "formik-material-ui": "^3.0.1",
@@ -34,7 +35,7 @@
     "react-window": "^1.8.7",
     "shifty": "^2.17.1",
     "vconsole": "^3.14.6",
-    "web-vitals": "^0.2.4"
+    "web-vitals": "^3.1.0"
   },
   "devDependencies": {
     "@azure/static-web-apps-cli": "^0.6.0",
