@@ -41,6 +41,8 @@ export const useAppVersionMonitor = () => {
         console.info(
           `Local version:  '${localSha.substring(0, 6)}' '${localBuildTime}'`
         );
+        console.info("pre2");
+        
         // console.log(`Checking remote, active=${isActive} ...`)
         const manifest = (
           await axios.get("/manifest.json", { timeout: 20 * Time.second })
