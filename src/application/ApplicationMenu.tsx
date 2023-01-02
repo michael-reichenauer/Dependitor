@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import PubSub from "pubsub-js";
-import IconButton from "@material-ui/core/IconButton";
-import MenuIcon from "@material-ui/icons/Menu";
-import Tooltip from "@material-ui/core/Tooltip";
+import IconButton from "@mui/material/IconButton";
+import MenuIcon from "@mui/icons-material/Menu";
+import Tooltip from "@mui/material/Tooltip";
 import { AppMenu, menuItem, menuParentItem } from "../common/Menus";
 import { IStoreKey } from "./diagram/Store";
 import { useAbout } from "./About";
