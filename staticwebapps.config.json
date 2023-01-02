@@ -1,1 +1,19 @@
-{}
+{
+  "routes": [
+    {
+      "navigationFallback": {
+        "rewrite": "/index.html",
+        "exclude": [
+          "/*.{png,jpg,gif,svg}",
+          "/css/*"
+        ]
+      }
+    },
+    {
+      "route": "/*.{png,jpg,gif,svg}",
+      "headers": {
+        "Cache-Control": "public, max-age=604800, immutable"
+      }
+    }
+  ]
+}
