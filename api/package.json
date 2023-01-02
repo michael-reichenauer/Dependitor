@@ -10,6 +10,7 @@
     "test": "echo \"No tests yet...\""
   },
   "dependencies": {
+    "@azure/data-tables": "^13.2.0",
     "@simplewebauthn/server": "^6.2.2",
     "azure-storage": "^2.10.4",
     "base64url": "^3.0.1",
