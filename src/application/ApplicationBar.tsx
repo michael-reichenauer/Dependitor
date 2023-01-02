@@ -7,20 +7,20 @@ import {
   IconButton,
   Tooltip,
   Box,
-} from "@material-ui/core";
+} from "@mui/material";
 
-import makeStyles from "@material-ui/core/styles/makeStyles";
+import { makeStyles } from "@mui/styles";
 import { ApplicationMenu } from "./ApplicationMenu";
-import AddBoxOutlinedIcon from "@material-ui/icons/AddBoxOutlined";
-import QueueOutlinedIcon from "@material-ui/icons/QueueOutlined";
+import AddBoxOutlinedIcon from "@mui/icons-material/AddBoxOutlined";
+import QueueOutlinedIcon from "@mui/icons-material/QueueOutlined";
 
-import SyncIcon from "@material-ui/icons/Sync";
-import SyncProblemIcon from "@material-ui/icons/SyncProblem";
-import SyncDisabledIcon from "@material-ui/icons/SyncDisabled";
-import HourglassEmptyIcon from "@material-ui/icons/HourglassEmpty";
-import UndoIcon from "@material-ui/icons/Undo";
-import RedoIcon from "@material-ui/icons/Redo";
-import FilterCenterFocusIcon from "@material-ui/icons/FilterCenterFocus";
+import SyncIcon from "@mui/icons-material/Sync";
+import SyncProblemIcon from "@mui/icons-material/SyncProblem";
+import SyncDisabledIcon from "@mui/icons-material/SyncDisabled";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import UndoIcon from "@mui/icons-material/Undo";
+import RedoIcon from "@mui/icons-material/Redo";
+import FilterCenterFocusIcon from "@mui/icons-material/FilterCenterFocus";
 import { useCanRedo, useCanUndo, useDiagramName } from "./Diagram";
 import { IOnlineKey, SyncState, useSyncMode } from "./Online";
 import { showPrompt } from "./../common/PromptDialog";
@@ -59,7 +59,7 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
           <Button
             tooltip={`Trying to connect, please wait`}
             icon={<HourglassEmptyIcon style={{ color: "gray" }} />}
-            onClick={() => {}}
+            onClick={() => { }}
           />
         )}
         {syncMode === SyncState.Enabled && (
@@ -153,11 +153,7 @@ const Button: FC<ButtonProps> = ({
   return (
     <Tooltip title={tooltip} className={className} arrow>
       <span>
-        <IconButton
-          disabled={disabled}
-          onClick={onClick}
-          style={{ padding: 5 }}
-        >
+        <IconButton disabled={disabled} onClick={onClick} style={{ padding: 5 }} size="large">
           {icon}
         </IconButton>
       </span>
@@ -165,7 +161,7 @@ const Button: FC<ButtonProps> = ({
   );
 };
 
-const useAppBarStyles = makeStyles((theme) => ({
+const useAppBarStyles = makeStyles((theme: any) => ({
   root: {
     flexGrow: 1,
   },
