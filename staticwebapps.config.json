@@ -3,7 +3,10 @@
     {
       "navigationFallback": {
         "rewrite": "/index.html",
-        "exclude": ["/static/*.{png,jpg,gif,svg}", "/css/*"]
+        "exclude": [
+          "/*.{png,jpg,gif,svg}",
+          "/css/*"
+        ]
       }
     },
     {
