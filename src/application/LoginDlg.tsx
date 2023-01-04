@@ -211,7 +211,7 @@ const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
   // Make the QR clickable in developer mode
   const qrElement = true ? (
     <Link href={url} target="_blank">
-      {/* <QRCode value={url} /> */}
+      <QRCode value={url} />
       <Typography
         style={{
           fontSize: "14px",
