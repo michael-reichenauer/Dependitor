@@ -38,10 +38,6 @@ const initialQrGuideText =
   "Scan QR code on your mobile to setup sync with your other devices.";
 
 export function showLoginDlg(provider: ILoginProvider) {
-  // showQuestionAlert(
-  //   "Delete",
-  //   "Do you really want to delete the current diagram?"
-  // )
   setLoginFunc(provider);
 }
 
@@ -100,8 +96,8 @@ export const LoginDlg: FC = () => {
           Setup Device Sync
         </Typography>
 
-        {/* <QRCodeGuideText text={initialQrGuideText} />
-        <QRCodeElement url={qrCodeUrl} /> */}
+        <QRCodeGuideText text={initialQrGuideText} />
+        {/* <QRCodeElement url={qrCodeUrl} /> */}
 
         {isMobileDevice && <MobileLoginButton onClick={loginLocal} />}
         <CancelButton onClick={cancel} />
