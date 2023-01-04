@@ -1,4 +1,5 @@
 #!/bin/bash
+# test
 
 echo ""
 echo "Updating apt ..."
