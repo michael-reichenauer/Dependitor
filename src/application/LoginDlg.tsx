@@ -27,7 +27,7 @@ import { showQuestionAlert } from "../common/AlertDialog";
 const dialogWidth = 290;
 const dialogHeight = 410;
 
-// const deviceSyncCanceledMsg = "Authentication canceled";
+// const deviceSyncCanceledMsg = "Authentication canceled";.
 const deviceSyncFailedMsg = "Failed to enable device sync";
 const authenticationNotAcceptedMsg =
   "Authentication was denied by the authenticator";
