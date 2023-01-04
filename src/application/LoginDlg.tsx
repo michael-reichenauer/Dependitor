@@ -24,6 +24,7 @@ import { di } from "../common/di";
 import { useLocalStorage } from "../common/useLocalStorage";
 import { showQuestionAlert } from "../common/AlertDialog";
 
+
 const dialogWidth = 290;
 const dialogHeight = 410;
 
@@ -35,9 +36,14 @@ const initialQrGuideText =
   "Scan QR code on your mobile to setup sync with your other devices.";
 
 export function showLoginDlg(provider: ILoginProvider) {
-  setLoginFunc(provider);
+  showQuestionAlert(
+    "Delete",
+    "Do you really want to delete the current diagram?"
+  )
+  // setLoginFunc(provider);
 }
 
+// eslint-disable-next-line
 let setLoginFunc: SetAtom<ILoginProvider> = () => { };
 type loginProvider = ILoginProvider | null;
 const loginAtom = atom(null as loginProvider);
