@@ -11,8 +11,10 @@ import {
 } from "@mui/material";
 import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
+// eslint-disable-next-line
 import { QRCode } from "react-qrcode-logo";
 import { setErrorMessage } from "../common/MessageSnackbar";
+// eslint-disable-next-line
 import { isDeveloperMode, isMobileDevice } from "../utils/build";
 import {
   AuthenticatorCanceledError,
@@ -207,12 +209,30 @@ type QRCodeProps = {
 
 const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
   // Make the QR clickable in developer mode
-  const qrElement = isDeveloperMode ? (
+  const qrElement = true ? (
     <Link href={url} target="_blank">
-      <QRCode value={url} />
+      {/* <QRCode value={url} /> */}
+      <Typography
+        style={{
+          fontSize: "14px",
+          paddingTop: 5,
+          lineHeight: 1,
+        }}
+      >
+        {url}
+      </Typography>
     </Link>
   ) : (
-    <QRCode value={url} />
+    <Typography
+      style={{
+        fontSize: "14px",
+        paddingTop: 5,
+        lineHeight: 1,
+      }}
+    >
+      {url}
+    </Typography>
+    // <QRCode value={url} />
   );
 
   return (
