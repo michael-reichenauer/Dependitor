@@ -32,15 +32,17 @@ const dialogHeight = 410;
 const deviceSyncFailedMsg = "Failed to enable device sync";
 const authenticationNotAcceptedMsg =
   "Authentication was denied by the authenticator";
+
+// eslint-disable-next-line 
 const initialQrGuideText =
   "Scan QR code on your mobile to setup sync with your other devices.";
 
 export function showLoginDlg(provider: ILoginProvider) {
-  showQuestionAlert(
-    "Delete",
-    "Do you really want to delete the current diagram?"
-  )
-  // setLoginFunc(provider);
+  // showQuestionAlert(
+  //   "Delete",
+  //   "Do you really want to delete the current diagram?"
+  // )
+  setLoginFunc(provider);
 }
 
 // eslint-disable-next-line
@@ -87,6 +89,7 @@ export const LoginDlg: FC = () => {
     setLogin(null);
   };
 
+  // eslint-disable-next-line 
   const qrCodeUrl = login?.getAuthenticatorUrl() ?? "";
 
   return (
@@ -97,8 +100,8 @@ export const LoginDlg: FC = () => {
           Setup Device Sync
         </Typography>
 
-        <QRCodeGuideText text={initialQrGuideText} />
-        <QRCodeElement url={qrCodeUrl} />
+        {/* <QRCodeGuideText text={initialQrGuideText} />
+        <QRCodeElement url={qrCodeUrl} /> */}
 
         {isMobileDevice && <MobileLoginButton onClick={loginLocal} />}
         <CancelButton onClick={cancel} />
@@ -193,6 +196,7 @@ type QRCodeGuideTextProps = {
   text: string;
 };
 
+// eslint-disable-next-line 
 const QRCodeGuideText: FC<QRCodeGuideTextProps> = ({ text }) => {
   return (
     <Typography
@@ -211,6 +215,8 @@ type QRCodeProps = {
   url: string;
 };
 
+
+// eslint-disable-next-line 
 const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
   // Make the QR clickable in developer mode
   const qrElement = isDeveloperMode ? (
