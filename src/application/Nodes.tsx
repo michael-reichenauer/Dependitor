@@ -14,7 +14,7 @@ import {
   MenuItem,
   Tooltip,
 } from "@material-ui/core";
-import SearchBar from "material-ui-search-bar";
+// import SearchBar from "material-ui-search-bar";
 import {
   defaultIconKey,
   greenNumberIconKey,
@@ -96,7 +96,9 @@ export default function Nodes() {
   }
 
   // Handle search
+  // eslint-disable-next-line
   const onChangeSearch = (value: string) => setFilter(value.toLowerCase());
+  // eslint-disable-next-line
   const cancelSearch = () => setFilter("");
 
   const titleType = groupType ? "Container" : "Icon";
@@ -260,11 +262,11 @@ export default function Nodes() {
           </MenuItem>
         </Menu>
 
-        <SearchBar
+        {/* <SearchBar
           value={filter}
           onChange={(searchVal) => onChangeSearch(searchVal)}
           onCancelSearch={() => cancelSearch()}
-        />
+        /> */}
 
         {NodesList(iconSets, mru, filter, groupType, clickedIconItem)}
       </Box>
