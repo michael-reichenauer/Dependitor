@@ -30,6 +30,7 @@ type ApplicationBarProps = {
   height: number;
 };
 
+// .
 export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
   const online = di(IOnlineKey);
   const classes = useAppBarStyles();
@@ -59,7 +60,7 @@ export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
           <Button
             tooltip={`Trying to connect, please wait`}
             icon={<HourglassEmptyIcon style={{ color: "gray" }} />}
-            onClick={() => {}}
+            onClick={() => { }}
           />
         )}
         {syncMode === SyncState.Enabled && (
