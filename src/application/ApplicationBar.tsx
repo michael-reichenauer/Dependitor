@@ -30,7 +30,7 @@ type ApplicationBarProps = {
   height: number;
 };
 
-// .
+// ..
 export const ApplicationBar: FC<ApplicationBarProps> = ({ height }) => {
   const online = di(IOnlineKey);
   const classes = useAppBarStyles();
