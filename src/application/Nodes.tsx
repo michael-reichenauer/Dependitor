@@ -104,7 +104,7 @@ export default function Nodes() {
 
   // @ts-ignore
   useEffect(() => {
-    // Listen for nodes.showDialog commands to show this Nodes dialog
+    // Listen for nodes.showDialog commands to show this Nodes dialog.
     PubSub.subscribe("nodes.showDialog", (_, data) => {
       setShow(data);
       setGroupType(!!data.group);
