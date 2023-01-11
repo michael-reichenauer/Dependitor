@@ -14,6 +14,7 @@
     "@types/react-dom": "^17.0.17",
     "assert": "^2.0.0",
     "axios": "^0.21.1",
+    "buffer": "^6.0.3",
     "cuid": "^2.1.8",
     "draw2d": "^1.0.38",
     "file-saver": "^2.0.5",
@@ -37,7 +38,6 @@
     "web-vitals": "^0.2.4"
   },
   "devDependencies": {
-    "@azure/static-web-apps-cli": "^0.6.0",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
