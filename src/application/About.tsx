@@ -22,6 +22,7 @@ const aboutAtom = atom(false);
 export const useAbout: () => [boolean, SetAtom<boolean>] = () =>
   useAtom(aboutAtom);
 
+// About
 const About: React.FC = () => {
   const [show, setShow] = useAbout();
   const versionText = `version: ${localBuildTime} (${localShortSha})`;
