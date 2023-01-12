@@ -1,7 +1,7 @@
 import React, { FC } from "react";
-import { Typography, AppBar, Toolbar } from "@material-ui/core";
+import { Typography, AppBar, Toolbar } from "@mui/material";
 
-import makeStyles from "@material-ui/core/styles/makeStyles";
+import { makeStyles } from "@mui/styles";
 // import { AuthenticatorMenu } from "./AuthenticatorMenu";
 
 type ApplicationBarProps = {
