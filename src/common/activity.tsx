@@ -1,5 +1,4 @@
-import { Backdrop } from "@mui/material";
-import { makeStyles } from "@mui/styles";
+import { Backdrop, makeStyles } from "@material-ui/core";
 import React from "react";
 import { useEffect, useState } from "react";
 import { durationString, Time } from "../utils/time";
@@ -24,7 +23,7 @@ const monitorEvents = [
 export const activityEventName = "customActivityChange";
 
 export default function Activity() {
-  const classes: any = useStyles();
+  const classes = useStyles();
   const [isActive] = useActivity();
 
   return (
@@ -174,7 +173,7 @@ export function useActivityChanged() {
   return isChanged;
 }
 
-const useStyles = makeStyles((theme: any): any => ({
+const useStyles = makeStyles((theme) => ({
   backdrop: {
     zIndex: theme.zIndex.drawer + 1,
     color: "#ffff",

@@ -1,5 +1,5 @@
 import React from "react";
-import { ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
+import { ListItemIcon, ListItemText, Menu, MenuItem } from "@material-ui/core";
 import NestedMenuItem from "material-ui-nested-menu-item";
 
 const padding = 3;

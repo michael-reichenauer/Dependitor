@@ -15,7 +15,7 @@ import {
   grey,
   red,
   yellow,
-} from "@mui/material/colors";
+} from "@material-ui/core/colors";
 import { Color2d } from "./draw2dTypes";
 
 export const ConfigColor = brown;

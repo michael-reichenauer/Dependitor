@@ -3,9 +3,9 @@ import {
   Backdrop,
   CircularProgress,
   Fade,
-} from "@mui/material";
+  makeStyles,
+} from "@material-ui/core";
 import { atom, useAtom } from "jotai";
-import { makeStyles } from "@mui/styles";
 
 const progressAtom = atom(false);
 let setProgressFunc: any = null;
@@ -45,7 +45,7 @@ export async function withNoProgress<T>(
 }
 
 export default function Progress() {
-  const classes: any = useStyles();
+  const classes = useStyles();
   const [isProgress] = useProgress();
 
   return (
@@ -93,7 +93,7 @@ const useProgress = () => {
   return [isProgress, set];
 };
 
-const useStyles = makeStyles((theme: any): any => ({
+const useStyles = makeStyles((theme) => ({
   backdrop: {
     zIndex: theme.zIndex.drawer + 1,
     color: "#fff",

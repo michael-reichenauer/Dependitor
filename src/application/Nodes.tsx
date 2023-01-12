@@ -1,8 +1,8 @@
 import Colors from "./diagram/Colors";
-import React, { FC, useState, useEffect } from "react";
+import React, {  FC, useState, useEffect } from "react";
 import { atom, useAtom } from "jotai";
 import PubSub from "pubsub-js";
-import { makeStyles } from "@mui/styles";
+import { makeStyles } from "@material-ui/core/styles";
 import {
   Box,
   Dialog,
@@ -14,7 +14,7 @@ import {
   MenuItem,
   Tooltip,
   TextField,
-} from "@mui/material";
+} from "@material-ui/core";
 
 import {
   defaultIconKey,
@@ -24,9 +24,9 @@ import {
 } from "../common/icons";
 import { FixedSizeList } from "react-window";
 import { useLocalStorage } from "../common/useLocalStorage";
-import CheckIcon from "@mui/icons-material/Check";
-import CheckBoxOutlineBlank from "@mui/icons-material/CheckBoxOutlineBlank";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import CheckIcon from "@material-ui/icons/Check";
+import CheckBoxOutlineBlank from "@material-ui/icons/CheckBoxOutlineBlank";
+import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
 
 
 const subItemsSize = 12;
@@ -42,26 +42,26 @@ const nodesAtom = atom(false);
 const useNodes = () => useAtom(nodesAtom);
 
 type SearchBarPar = {
-  value: string;
+  value:string;
   onChange: any;
 };
 
-const SearchBar: FC<SearchBarPar> = ({ value, onChange }) => (
+const SearchBar:FC<SearchBarPar> = ({ value, onChange}) => (
   <form>
-    <TextField fullWidth
-      id="search-bar"
-      className="text"
-      onInput={(e: any) => { onChange(e.target.value); }}
-      label=""
-      defaultValue={value}
-      variant="outlined"
-      placeholder="Search..."
-      size="small"
-    />
+      <TextField fullWidth 
+        id="search-bar"
+        className="text"
+        onInput={(e:any) => { onChange(e.target.value); }}
+        label=""
+        defaultValue={value}
+        variant="outlined"
+        placeholder="Search..."
+        size="small"
+      />
   </form>
 );
 
-const useStyles = makeStyles((theme: any) => ({
+const useStyles = makeStyles((theme) => ({
   root: {
     width: "100%",
     maxWidth: 360,
@@ -284,10 +284,10 @@ export default function Nodes() {
           </MenuItem>
         </Menu>
 
-        {<SearchBar
-          value={filter}
-          onChange={(searchVal: string) => onChangeSearch(searchVal)}
-        />}
+        { <SearchBar 
+            value={filter}
+            onChange={(searchVal:string) => onChangeSearch(searchVal)}
+        /> }
 
         {NodesList(iconSets, mru, filter, groupType, clickedIconItem)}
       </Box>

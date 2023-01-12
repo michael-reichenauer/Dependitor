@@ -1,15 +1,15 @@
 import React from "react";
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import TextField from "@mui/material/TextField";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
+import Button from "@material-ui/core/Button";
+import Dialog from "@material-ui/core/Dialog";
+import TextField from "@material-ui/core/TextField";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
 import draw2d from "draw2d";
 import { atom, useAtom } from "jotai";
 import Connection from "./Connection";
 import Colors from "./Colors";
-import { makeStyles } from "@mui/styles";
+import { makeStyles } from "@material-ui/core";
 import { Figure2d } from "./draw2dTypes";
 
 const labelAtom = atom(null);
@@ -129,7 +129,7 @@ export default function LabelEditorDialog() {
           minRows={2}
           defaultValue={label?.name ?? ""}
           onChange={handleNameFieldChange}
-        //onKeyPress={catchReturn}
+          //onKeyPress={catchReturn}
         />
         <TextField
           id="description"

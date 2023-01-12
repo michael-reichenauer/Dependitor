@@ -8,7 +8,7 @@ import {
   Link,
   Tooltip,
   Typography,
-} from "@mui/material";
+} from "@material-ui/core";
 import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
 import { QRCode } from "react-qrcode-logo";
@@ -38,7 +38,7 @@ export function showLoginDlg(provider: ILoginProvider) {
   setLoginFunc(provider);
 }
 
-let setLoginFunc: SetAtom<ILoginProvider> = () => { };
+let setLoginFunc: SetAtom<ILoginProvider> = () => {};
 type loginProvider = ILoginProvider | null;
 const loginAtom = atom(null as loginProvider);
 const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
@@ -84,7 +84,7 @@ export const LoginDlg: FC = () => {
   const qrCodeUrl = login?.getAuthenticatorUrl() ?? "";
 
   return (
-    <Dialog open={login !== null} onClose={() => { }}>
+    <Dialog open={login !== null} onClose={() => {}}>
       <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
         <LinearProgress style={{ marginBottom: 5 }} />
         <Typography variant="h5" style={{ paddingBottom: 0 }}>

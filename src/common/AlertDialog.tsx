@@ -1,18 +1,18 @@
 import React, { FC } from "react";
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import InfoIcon from "@mui/icons-material/Info";
-import ErrorIcon from "@mui/icons-material/Error";
-import HelpIcon from "@mui/icons-material/Help";
-import WarningIcon from "@mui/icons-material/Warning";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import Button from "@material-ui/core/Button";
+import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import InfoIcon from "@material-ui/icons/Info";
+import ErrorIcon from "@material-ui/icons/Error";
+import HelpIcon from "@material-ui/icons/Help";
+import WarningIcon from "@material-ui/icons/Warning";
+import CheckCircleIcon from "@material-ui/icons/CheckCircle";
 import { atom, useAtom } from "jotai";
-import { Box } from "@mui/material";
-import { blue, green, red, yellow } from "@mui/material/colors";
+import { Box } from "@material-ui/core";
+import { blue, green, red, yellow } from "@material-ui/core/colors";
 
 const alertAtom = atom(null);
 let setAlertFunc: any = null;
@@ -144,7 +144,7 @@ export default function AlertDialog() {
   };
 
   return (
-    <Dialog open={!!alert} onClose={() => { }}>
+    <Dialog open={!!alert} onClose={() => {}}>
       <DialogTitle>
         <Box display="flex" alignItems="center">
           <Box>
