@@ -14,6 +14,10 @@ import { isAuthenticatorApp } from "./authenticator/AuthenticatorProtocol";
 import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
 import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 import { restoreVirtualConsoleState } from "./common/virtualConsole";
+import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles';
+
+const theme = createMuiTheme();
+
 
 restoreVirtualConsoleState();
 
@@ -39,15 +43,17 @@ const App: React.FC = () => {
 
   return (
     <>
-      <ApplicationBar height={55} />
-      <Diagram width={size.width} height={size.height - 55} />
-      <About />
-      <LoginDlg />
-      <Nodes />
-      <AlertDialog />
-      <PromptDialog />
-      <NodeLabelDialog />
-      <Activity />
+      <ThemeProvider theme={theme}>
+        <ApplicationBar height={55} />
+        <Diagram width={size.width} height={size.height - 55} />
+        <About />
+        <LoginDlg />
+        <Nodes />
+        <AlertDialog />
+        <PromptDialog />
+        <NodeLabelDialog />
+        <Activity />
+      </ThemeProvider>
     </>
   );
 };
