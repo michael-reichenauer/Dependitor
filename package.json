@@ -5,8 +5,8 @@
   "dependencies": {
     "@material-ui/core": "^4.12.4",
     "@material-ui/icons": "^4.11.3",
-    "@simplewebauthn/browser": "^5.2.1",
-    "@simplewebauthn/typescript-types": "^5.2.1",
+    "@simplewebauthn/browser": "^6.2.2",
+    "@simplewebauthn/typescript-types": "^6.3.0-alpha.1",
     "@types/humanize-duration": "^3.27.1",
     "@types/jest": "^27.5.1",
     "@types/node": "^16.11.36",
@@ -35,7 +35,7 @@
     "react-window": "^1.8.7",
     "shifty": "^2.17.1",
     "vconsole": "^3.14.6",
-    "web-vitals": "^0.2.4"
+    "web-vitals": "^3.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.16.4",
