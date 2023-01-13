@@ -438,35 +438,34 @@ function createCookies(sessionId) {
 
 
 async function clearOldSessions(context) {
-    // // Get all existing sessions for the client or very old sessions
-    // let dateVal = new Date(new Date().getTime() - sessionDuration);
-    // // let tableQuery = new azure.TableQuery()
-    // //     .where('PartitionKey == ?string? && Timestamp <= ?date?',
-    // //         sessionsPartitionKey, dateVal);
+    // Get all existing sessions for the client or very old sessions
+    let dateVal = new Date(new Date().getTime() - sessionDuration);
+    // let tableQuery = new azure.TableQuery()
+    //     .where('PartitionKey == ?string? && Timestamp <= ?date?',
+    //         sessionsPartitionKey, dateVal);
 
-    // //const items = await table.queryEntities(sessionsTableName, tableQuery, null)
+    //const items = await table.queryEntities(sessionsTableName, tableQuery, null)
 
-    // const entities = table.client(sessionsTableName).listEntities({
-    //     queryOptions: { filter: odata`PartitionKey eq ${sessionsPartitionKey} && Timestamp le ${dateVal}` }
-    // })
+    const entities = table.client(sessionsTableName).listEntities({
+        queryOptions: { filter: odata`PartitionKey eq ${sessionsPartitionKey} && Timestamp le ${dateVal}` }
+    })
 
-    // const items = []
-    // for await (const entity of entities) {
-    //     items.push(entity);
-    // }
+    const items = []
+    for await (const entity of entities) {
+        items.push(entity);
+    }
 
-    // context.log("clearOldSessions: items", items);
+    context.log("clearOldSessions: items", items);
 
+    const keys = items.map(item => item.rowKey)
+    if (keys.length === 0) {
+        return
+    }
 
-    // const keys = items.map(item => item.rowKey)
-    // if (keys.length === 0) {
-    //     return
-    // }
-
-    // // Remove these entities
-    // const transaction = new TableTransaction();
-    // keys.forEach(key => transaction.deleteEntity(sessionsPartitionKey, key))
-    // await table.client(sessionsTableName).submitTransaction(transaction.actions);
+    // Remove these entities
+    const transaction = new TableTransaction();
+    keys.forEach(key => transaction.deleteEntity(sessionsPartitionKey, key))
+    await table.client(sessionsTableName).submitTransaction(transaction.actions);
 
 
     // const entityItems = keys.map(key => table.toDeleteEntity(key, sessionsPartitionKey))
@@ -476,33 +475,33 @@ async function clearOldSessions(context) {
 }
 
 async function clearOldAuthenticatorChannels(context) {
-    // // Get all old channels
-    // let dateVal = new Date(new Date().getTime() - (5 * util.minute));
-    // // let tableQuery = new azure.TableQuery()
-    // //     .where('PartitionKey == ?string? && Timestamp <= ?date?',
-    // //         authenticatorPartitionKey, dateVal);
+    // Get all old channels
+    let dateVal = new Date(new Date().getTime() - (5 * util.minute));
+    // let tableQuery = new azure.TableQuery()
+    //     .where('PartitionKey == ?string? && Timestamp <= ?date?',
+    //         authenticatorPartitionKey, dateVal);
 
-    // // const items = await table.queryEntities(authenticatorTableName, tableQuery, null)
-    // const entities = table.client(authenticatorTableName).listEntities({
-    //     queryOptions: { filter: odata`PartitionKey eq ${authenticatorPartitionKey} && Timestamp le ${dateVal}` }
-    // })
+    // const items = await table.queryEntities(authenticatorTableName, tableQuery, null)
+    const entities = table.client(authenticatorTableName).listEntities({
+        queryOptions: { filter: odata`PartitionKey eq ${authenticatorPartitionKey} && Timestamp le ${dateVal}` }
+    })
 
-    // const items = []
-    // for await (const entity of entities) {
-    //     items.push(entity);
-    // }
+    const items = []
+    for await (const entity of entities) {
+        items.push(entity);
+    }
 
-    // // context.log("clearOldAuthenticatorChannels: items", items);
+    // context.log("clearOldAuthenticatorChannels: items", items);
 
-    // const keys = items.map(item => item.rowKey)
-    // if (keys.length === 0) {
-    //     return
-    // }
+    const keys = items.map(item => item.rowKey)
+    if (keys.length === 0) {
+        return
+    }
 
-    // // Remove these entities
-    // const transaction = new TableTransaction();
-    // keys.forEach(key => transaction.deleteEntity(authenticatorPartitionKey, key))
-    // await table.client(authenticatorTableName).submitTransaction(transaction.actions);
+    // Remove these entities
+    const transaction = new TableTransaction();
+    keys.forEach(key => transaction.deleteEntity(authenticatorPartitionKey, key))
+    await table.client(authenticatorTableName).submitTransaction(transaction.actions);
 
     // // const entityItems = keys.map(key => table.toDeleteEntity(key, authenticatorPartitionKey))
     // // const batch = new azure.TableBatch()
