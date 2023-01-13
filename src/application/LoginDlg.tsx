@@ -208,7 +208,7 @@ type QRCodeProps = {
 
 const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
   // Make the QR clickable in developer mode.
-  const qrElement = isDeveloperMode ? (
+  const qrElement = true || isDeveloperMode ? (
     <Link href={url} target="_blank">
       {<QRCode value={url} style={{ height: "170", width: "170" }} />}
     </Link>
