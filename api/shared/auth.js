@@ -447,7 +447,7 @@ async function clearOldSessions(context) {
     //const items = await table.queryEntities(sessionsTableName, tableQuery, null)
 
     const entities = table.client(sessionsTableName).listEntities({
-        queryOptions: { filter: odata`PartitionKey eq ${sessionsPartitionKey} && Timestamp le ${dateVal}` }
+        queryOptions: { filter: odata`PartitionKey eq ${sessionsPartitionKey} and Timestamp le ${dateVal}` }
     })
 
     const items = []
@@ -483,7 +483,7 @@ async function clearOldAuthenticatorChannels(context) {
 
     // const items = await table.queryEntities(authenticatorTableName, tableQuery, null)
     const entities = table.client(authenticatorTableName).listEntities({
-        queryOptions: { filter: odata`PartitionKey eq ${authenticatorPartitionKey} && Timestamp le ${dateVal}` }
+        queryOptions: { filter: odata`PartitionKey eq ${authenticatorPartitionKey} and Timestamp le ${dateVal}` }
     })
 
     const items = []
