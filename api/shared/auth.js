@@ -75,6 +75,9 @@ exports.loginDeviceSet = async (context, body, userId) => {
 // Called by devices trying to retrieve Authenticator response set by loginDeviceSet
 exports.loginDevice = async (context, body) => {
     try {
+        context.log('env:', process.env)
+        //context.log("context@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", context)
+        context.log("Host !!!!!!!!!!", process.env.WEBSITE_HOSTNAME)
         const { channelId } = body
 
         try {
