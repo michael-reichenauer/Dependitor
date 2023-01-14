@@ -72,6 +72,8 @@ exports.loginDevice = async (context, body) => {
     try {
         const { channelId } = body
 
+        context.log('Target branch:', config.targetBranch)
+
         try {
             const entity = await table.retrieveEntity(authenticatorTableName, authenticatorPartitionKey, channelId)
             if (entity.authData) {
