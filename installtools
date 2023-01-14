@@ -17,3 +17,4 @@ echo 'export PATH=$PATH:~/gmd' >>~/.profile
 . ~/.profile
 
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+az bicep install && az bicep upgrade
