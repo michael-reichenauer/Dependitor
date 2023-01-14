@@ -16,7 +16,19 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v2
-      - uses: nelonoel/branch-name@v1.0.1
+
+      - name: Get branch name (merge)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+
+      - name: Get branch name (pull request)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: echo "BRANCH_NAME=$(echo ${GITHUB_HEAD_REF} | tr / -)" >> $GITHUB_ENV
+
+      - name: Debug
+        run: echo ${{ env.BRANCH_NAME }}
    
       # Update .env and manifest file with current build time and git sha id to support
       # version handling of the web site to automatically upgrade to latest version faster
@@ -26,7 +38,6 @@ jobs:
           BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00"
           APIKEY="$(uuidgen)"
           echo Build $BUILD_TIME ${{github.sha}}
-          echo Branch: ${BRANCH_NAME}
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" .env
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" public/manifest.json
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" .env
