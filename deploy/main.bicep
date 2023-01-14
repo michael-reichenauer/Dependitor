@@ -29,6 +29,12 @@ resource staticWebSite 'Microsoft.Web/staticSites@2022-03-01' = {
     allowConfigFileUpdates: true
     provider: 'GitHub'
   }
+
+  resource symbolicname 'config' = {
+    name: 'appsettings'
+    kind: 'string'
+    properties: {}
+  }
 }
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
