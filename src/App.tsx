@@ -14,14 +14,14 @@ import { isAuthenticatorApp } from "./authenticator/AuthenticatorProtocol";
 import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
 import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 import { restoreVirtualConsoleState } from "./common/virtualConsole";
-import { ThemeProvider, Theme, StyledEngineProvider, createMuiTheme } from '@mui/material/styles';
+import { ThemeProvider, Theme, StyledEngineProvider, createTheme } from '@mui/material/styles';
+
 
 declare module '@mui/styles/defaultTheme' {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface DefaultTheme extends Theme { }
 }
-
-const theme = createMuiTheme();
+const theme = createTheme();
 
 restoreVirtualConsoleState();
 

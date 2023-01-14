@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
-import { QRCode } from "react-qrcode-logo";
+//import { QRCode } from "react-qrcode-logo";
 import { setErrorMessage } from "../common/MessageSnackbar";
 import { isDeveloperMode, isMobileDevice } from "../utils/build";
 import {
@@ -23,6 +23,7 @@ import { IOnlineKey } from "./Online";
 import { di } from "../common/di";
 import { useLocalStorage } from "../common/useLocalStorage";
 import { showQuestionAlert } from "../common/AlertDialog";
+import QRCode from "react-qr-code";
 
 const dialogWidth = 290;
 const dialogHeight = 410;
@@ -206,13 +207,13 @@ type QRCodeProps = {
 };
 
 const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
-  // Make the QR clickable in developer mode
-  const qrElement = isDeveloperMode ? (
+  // Make the QR clickable in developer mode.
+  const qrElement = true || isDeveloperMode ? (
     <Link href={url} target="_blank">
-      <QRCode value={url} />
+      {<QRCode value={url} style={{ height: "170", width: "170" }} />}
     </Link>
   ) : (
-    <QRCode value={url} />
+    <QRCode value={url} style={{ height: "170", width: "170" }} />
   );
 
   return (
