@@ -36,7 +36,7 @@ exports.verifyApiKey = context => {
     }
 }
 
-// Called by client to api is upp and running and client has been logged in
+// Called by client to api is upp and running and client has been logged in.
 exports.check = async (context, body, userId) => {
     // Verify authentication
     if (!userId) {
