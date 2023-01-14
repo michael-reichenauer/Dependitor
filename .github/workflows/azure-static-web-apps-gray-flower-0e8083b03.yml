@@ -16,7 +16,8 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v2
-
+      - uses: nelonoel/branch-name@v1.0.1
+   
       # Update .env and manifest file with current build time and git sha id to support
       # version handling of the web site to automatically upgrade to latest version faster
       - name: Update git sha and build time
@@ -25,6 +26,7 @@ jobs:
           BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00"
           APIKEY="$(uuidgen)"
           echo Build $BUILD_TIME ${{github.sha}}
+          echo Branch: ${BRANCH_NAME}
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" .env
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" public/manifest.json
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" .env
