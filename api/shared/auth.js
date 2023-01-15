@@ -27,7 +27,7 @@ const cryptoAlgorithm = "aes-256-cbc";
 
 
 // Call in every server api function to verify that client has expected api key,
-// Which changes for every build
+// Which changes for every build.
 exports.verifyApiKey = context => {
     const req = context.req
     const apiKey = req.headers['x-api-key']
