@@ -15,8 +15,18 @@ jobs:
 
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
+      - name: Get branch name 
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: echo "TARGET_BRANCH=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+
+      - name: Get branch name (pull request)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: echo "TARGET_BRANCH=$(echo ${GITHUB_BASE_REF} | tr / -)" >> $GITHUB_ENV
+   
       # Update .env and manifest file with current build time and git sha id to support
       # version handling of the web site to automatically upgrade to latest version faster
       - name: Update git sha and build time
@@ -25,12 +35,14 @@ jobs:
           BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%S')+00:00"
           APIKEY="$(uuidgen)"
           echo Build $BUILD_TIME ${{github.sha}}
+          echo Target branch: ${{ env.TARGET_BRANCH }}
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" .env
           sed -i "s/%REACT_APP_BUILD_TIME%/$BUILD_TIME/g" public/manifest.json
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" .env
           sed -i "s/%REACT_APP_SHA%/${{github.sha}}/g" public/manifest.json
           sed -i "s/0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade/$APIKEY/g" src/config.ts
           sed -i "s/0624bc00-fcf7-4f31-8f3e-3bdc3eba7ade/$APIKEY/g" api/config.js
+          sed -i "s/TARGET_BRANCH/${{ env.TARGET_BRANCH }}/g" api/config.js
           git log -3 --format=full
 
       # Build Azure Static Web App and deploy to Azure

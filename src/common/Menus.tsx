@@ -1,8 +1,8 @@
 import React from "react";
-import { ListItemIcon, ListItemText, Menu, MenuItem } from "@material-ui/core";
-import NestedMenuItem from "material-ui-nested-menu-item";
+import { ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
+import { NestedMenuItem } from "mui-nested-menu";
 
-const padding = 3;
+const padding = 1;
 
 // Normal menu item.
 export const menuItem = (
@@ -93,11 +93,10 @@ const getMenuItems = (items: any[], onClick: any) => {
       if (item instanceof Item) {
         return (
           <MenuItem
-            style={{ paddingTop: padding, paddingBottom: padding }}
+            style={{ paddingLeft: 13, paddingTop: padding, paddingBottom: padding }}
             key={`item-${i}`}
             onClick={() => onClick(item)}
             disabled={!item.isEnabled}
-            dense
           >
             {item.icon && (
               <ListItemIcon>
@@ -110,12 +109,11 @@ const getMenuItems = (items: any[], onClick: any) => {
       } else if (item instanceof NestedItem) {
         return (
           <NestedMenuItem
-            style={{ paddingTop: padding, paddingBottom: padding }}
+            style={{ paddingTop: padding, paddingBottom: padding, }}
             key={`item-${i}`}
             label={item.text}
             parentMenuOpen={!!item.isEnabled}
             disabled={!item.isEnabled}
-            dense
           >
             {getMenuItems(item.items, onClick)}
           </NestedMenuItem>

@@ -1,17 +1,15 @@
-const azure = require('azure-storage');
+const { TableTransaction } = require("@azure/data-tables");
 const table = require('../shared/table.js');
 const util = require('../shared/util.js');
 
-const entGen = azure.TableUtilities.entityGenerator;
 
-const dataBaseTableName = 'data'
-const dataPartitionKey = 'data'
 const maxValueChunkSize = 30000
 
 
 exports.tryReadBatch = async (context, body, userId) => {
     try {
-        const tableName = dataBaseTableName + userId
+        const tableName = table.dataTableName
+        const dataPartitionKey = userId
 
         // context.log('body', body, tableName)
         const queries = body
@@ -20,12 +18,22 @@ exports.tryReadBatch = async (context, body, userId) => {
             return []
         }
 
+        const tableClient = table.client(tableName);
+        let items = [];
+        for (let i = 0; i < keys.length; i++) {
+            try {
+                items.push(await tableClient.getEntity(dataPartitionKey, keys[i]))
+            } catch {
+                // Ignore errors
+            }
+        }
+
         // Read all requested rows
-        const rkq = ' (RowKey == ?string?' + ' || RowKey == ?string?'.repeat(keys.length - 1) + ')'
-        let tableQuery = new azure.TableQuery()
-            .where('PartitionKey == ?string? && ' + rkq,
-                dataPartitionKey, ...keys);
-        const items = await table.queryEntities(tableName, tableQuery, null)
+        // const rkq = ' (RowKey == ?string?' + ' || RowKey == ?string?'.repeat(keys.length - 1) + ')'
+        // let tableQuery = new azure.TableQuery()
+        //     .where('PartitionKey == ?string? && ' + rkq,
+        //         dataPartitionKey, ...keys);
+        // const items = await table.queryEntities(tableName, tableQuery, null)
 
         // Replace not modified values with status=notModified 
         const entities = items.map(item => toDataEntity(item))
@@ -46,17 +54,19 @@ exports.tryReadBatch = async (context, body, userId) => {
 exports.writeBatch = async (context, body, userId) => {
     try {
         const entities = body
-        const tableName = dataBaseTableName + userId
+        const tableName = table.dataTableName
+        const dataPartitionKey = userId
         // context.log('entities:', entities, tableName)
 
         // Write all entities
-        const entityItems = entities.map(entity => toDataTableEntity(entity))
-        const batch = new azure.TableBatch()
-        entityItems.forEach(entity => batch.insertOrReplaceEntity(entity))
+        const entityItems = entities.map(entity => toDataTableEntity(entity, dataPartitionKey))
+
+        const transaction = new TableTransaction();
+        entityItems.forEach(entity => transaction.upsertEntity(entity, "Replace"))
 
         // Extract etags for written entities
-        const tableResponses = await table.executeBatch(tableName, batch)
-        const responses = tableResponses.map((rsp, i) => {
+        const tableResponses = await table.client(tableName).submitTransaction(transaction.actions)
+        const responses = tableResponses.subResponses.map((rsp, i) => {
             if (!rsp.response || !rsp.response.isSuccessful) {
                 return {
                     key: entities[i].key,
@@ -79,16 +89,16 @@ exports.writeBatch = async (context, body, userId) => {
 exports.removeBatch = async (context, body, userId) => {
     try {
         const keys = body
-        const tableName = dataBaseTableName + userId
+        const tableName = table.dataTableName
+        const dataPartitionKey = userId
         // context.log('keys:', keys, tableName)
 
-        const entityItems = keys.map(key => table.toDeleteEntity(key, dataPartitionKey))
-
         // Removing items individually to handle already removed items
-        for (let i = 0; i < entityItems.length; i++) {
-            const entity = entityItems[i];
+        const tableClient = table.client(tableName);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
             try {
-                await table.deleteEntity(tableName, entity)
+                await tableClient.deleteEntity(dataPartitionKey, key)
             } catch (err) {
                 if (err.code === 'ResourceNotFound') {
                     // Element already removed, not an error
@@ -105,22 +115,21 @@ exports.removeBatch = async (context, body, userId) => {
 }
 
 
-// // // -----------------------------------------------------------------
+//  -----------------------------------------------------------------
 
-
-function toDataTableEntity(entity) {
+// Converts an entity posted from client browser to a data table entity
+function toDataTableEntity(entity, dataPartitionKey) {
     const { key, value } = entity
 
-    // Convert value to string and chunk if value is big
+    // Convert value to string and chunk if value is big (avoid table value size limit)
     const valueText = JSON.stringify(value)
-    const chunks = stringChunks(valueText, maxValueChunkSize)
+    const chunks = stringToChunks(valueText, maxValueChunkSize)
 
     const item = {
-        RowKey: entGen.String(key),
-        PartitionKey: entGen.String(dataPartitionKey),
-
-        chunks: entGen.Int32(chunks.length),
-        value: entGen.String(chunks[0]),
+        partitionKey: dataPartitionKey,
+        rowKey: key,
+        chunks: chunks.length,
+        value: chunks[0],
     }
 
     // Add possible additional chunks as value1, value2, ... properties
@@ -132,13 +141,14 @@ function toDataTableEntity(entity) {
 }
 
 
+// Convert a table entity to a data entity, that can ve returned to client browser
 function toDataEntity(item) {
     let valueText = '{}'
     if (item.value) {
         valueText = item.value
     }
 
-    // Concat possible value1, value2, ... properties for big values
+    // Concat possible value1, value2, ... properties for big values (table value size limit)
     for (let i = 1; i < item.chunks; i++) {
         valueText = valueText.concat(item['value' + i])
     }
@@ -147,7 +157,9 @@ function toDataEntity(item) {
     return { key: item.RowKey, etag: item['odata.etag'], value: value }
 }
 
-function stringChunks(text, size) {
+
+// Splits a text string into chunks (needed to avoid table value size limit)
+function stringToChunks(text, size) {
     if (text === '') {
         return ['']
     }

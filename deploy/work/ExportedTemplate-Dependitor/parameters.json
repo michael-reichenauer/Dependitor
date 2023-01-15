@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "staticSites_Dependitor_name": {
+            "value": null
+        },
+        "components_Dependitor_name": {
+            "value": null
+        },
+        "storageAccounts_dependitor_name": {
+            "value": null
+        },
+        "storageAccounts_dependitordev_name": {
+            "value": null
+        },
+        "smartdetectoralertrules_failure_anomalies___dependitor_name": {
+            "value": null
+        },
+        "actiongroups_application_insights_smart_detection_externalid": {
+            "value": null
+        },
+        "workspaces_defaultworkspace_98c1af49_6962_439b_bb35_6ce36e4c7dd1_weu_externalid": {
+            "value": null
+        }
+    }
+}

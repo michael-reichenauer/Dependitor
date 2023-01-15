@@ -14,6 +14,14 @@ import { isAuthenticatorApp } from "./authenticator/AuthenticatorProtocol";
 import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
 import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 import { restoreVirtualConsoleState } from "./common/virtualConsole";
+import { ThemeProvider, Theme, StyledEngineProvider, createTheme } from '@mui/material/styles';
+
+
+declare module '@mui/styles/defaultTheme' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface DefaultTheme extends Theme { }
+}
+const theme = createTheme();
 
 restoreVirtualConsoleState();
 
@@ -28,28 +36,32 @@ const App: React.FC = () => {
   if (isAuthenticatorApp()) {
     return (
       <>
-        <AuthenticatorBar height={55} />
-        <AuthenticatorPage />
-        <PromptDialog />
-        <About />
-        <AlertDialog />
+        <ThemeProvider theme={theme}>
+          <AuthenticatorBar height={55} />
+          <AuthenticatorPage />
+          <PromptDialog />
+          <About />
+          <AlertDialog />
+        </ThemeProvider>
       </>
     );
   }
 
-  return (
-    <>
-      <ApplicationBar height={55} />
-      <Diagram width={size.width} height={size.height - 55} />
-      <About />
-      <LoginDlg />
-      <Nodes />
-      <AlertDialog />
-      <PromptDialog />
-      <NodeLabelDialog />
-      <Activity />
-    </>
-  );
+  return <>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <ApplicationBar height={55} />
+        <Diagram width={size.width} height={size.height - 55} />
+        <About />
+        <LoginDlg />
+        <Nodes />
+        <AlertDialog />
+        <PromptDialog />
+        <NodeLabelDialog />
+        <Activity />
+      </ThemeProvider>
+    </StyledEngineProvider>
+  </>;
 };
 
 export default App;
