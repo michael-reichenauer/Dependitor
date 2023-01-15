@@ -17,6 +17,19 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v2
 
+      - name: Get branch name (merge)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+
+      - name: Get branch name (pull request)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: echo "BRANCH_NAME=$(echo ${GITHUB_HEAD_REF} | tr / -)" >> $GITHUB_ENV
+
+      - name: Debug
+        run: echo ${{ env.BRANCH_NAME }}
+   
       # Update .env and manifest file with current build time and git sha id to support
       # version handling of the web site to automatically upgrade to latest version faster
       - name: Update git sha and build time
