@@ -80,6 +80,8 @@ exports.loginDevice = async (context, body) => {
         context.log("Host !!!!!!!!!!", process.env.WEBSITE_HOSTNAME)
         const { channelId } = body
 
+        context.log('Target branch:', config.targetBranch)
+
         try {
             const entity = await table.client(authenticatorTableName).getEntity(authenticatorPartitionKey, channelId)
 
