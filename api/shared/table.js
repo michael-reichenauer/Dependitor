@@ -41,7 +41,7 @@ const account = ''
 //   );
 
 
-exports.service = () => {
+const tableService = () => {
     if (process.env.AZURE_STORAGE_CONNECTION_STRING) {
         return TableServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
     }
@@ -51,6 +51,12 @@ exports.service = () => {
         credential
     );
 }
+
+exports.createTable = (tableName) => {
+    return tableService().createTable(tableName)
+}
+
+
 
 exports.client = (tableName) => {
     if (process.env.AZURE_STORAGE_CONNECTION_STRING) {

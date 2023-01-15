@@ -48,7 +48,7 @@ exports.check = async (context, body, userId) => {
 exports.loginDeviceSet = async (context, body, userId) => {
     try {
         const { channelId, authData } = body
-        await table.service().createTable(authenticatorTableName)
+        await table.createTable(authenticatorTableName)
         await clearOldAuthenticatorChannels(context)
 
         // Creating a new client id and session for the other device 
@@ -75,9 +75,9 @@ exports.loginDeviceSet = async (context, body, userId) => {
 // Called by devices trying to retrieve Authenticator response set by loginDeviceSet
 exports.loginDevice = async (context, body) => {
     try {
-        context.log('env:', process.env)
-        //context.log("context@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", context)
-        context.log("Host !!!!!!!!!!", process.env.WEBSITE_HOSTNAME)
+        // context.log('env:', process.env)
+        // //context.log("context@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", context)
+        // context.log("Host !!!!!!!!!!", process.env.WEBSITE_HOSTNAME)
         const { channelId } = body
 
         context.log('Target branch:', config.targetBranch)
@@ -109,7 +109,7 @@ exports.loginDevice = async (context, body) => {
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     try {
         // Make sure the user table exists.
-        await table.service().createTable(usersTableName)
+        await table.createTable(usersTableName)
 
         let { username } = data
         if (!username) {
@@ -401,8 +401,8 @@ async function insertOrReplaceUser(userId, user, username) {
 async function createSession(context, userId) {
     // Create user data table if it does not already exist
     const dataTableName = dataBaseTableName + userId
-    await table.service().createTable(dataTableName)
-    await table.service().createTable(sessionsTableName)
+    await table.createTable(dataTableName)
+    await table.createTable(sessionsTableName)
 
     // Clear previous sessions from this client
     await clearOldSessions(context)
