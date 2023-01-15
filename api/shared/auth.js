@@ -10,7 +10,7 @@ const ServiceName = 'Dependitor';
 const defaultTransports = ['internal', 'usb', 'ble', 'nfc'] // possible: ['internal', 'usb', 'ble', 'nfc']
 const maxUserDeviceRegistrations = 20
 
-const dataBaseTableName = 'data'
+
 const usersTableName = 'users'
 const authenticatorTableName = 'authenticator'
 const sessionsTableName = 'sessions'
@@ -400,8 +400,7 @@ async function insertOrReplaceUser(userId, user, username) {
 
 async function createSession(context, userId) {
     // Create user data table if it does not already exist
-    const dataTableName = dataBaseTableName + userId
-    await table.createTable(dataTableName)
+    await table.createTable(table.dataTableName)
     await table.createTable(sessionsTableName)
 
     // Clear previous sessions from this client
@@ -409,7 +408,7 @@ async function createSession(context, userId) {
 
     // Create new session id and store
     const sessionId = makeRandomId()
-    //const sessionTableEntity = toSessionTableEntity(sessionId, userId)
+
     const sessionTableEntity = {
         partitionKey: sessionsPartitionKey,
         rowKey: sessionId,
@@ -417,8 +416,6 @@ async function createSession(context, userId) {
     }
 
     await table.client(sessionsTableName).createEntity(sessionTableEntity)
-
-    // await table.insertEntity(sessionsTableName, sessionTableEntity)
 
     return sessionId
 }
@@ -557,37 +554,6 @@ function randomString(count) {
     return randomText;
 };
 
-
-
-// function toUserTableEntity(userId, user) {
-//     return {
-//         RowKey: table.String(userId),
-//         PartitionKey: table.String(userPartitionKey),
-
-//         user: table.String(user),
-//     }
-// }
-
-
-// function toAuthenticatorAuthTableEntity(id, authData, sessionId) {
-//     return {
-//         RowKey: table.String(id),
-//         PartitionKey: table.String(authenticatorPartitionKey),
-
-//         authData: table.String(authData),
-//         sessionId: table.String(sessionId),
-//     }
-// }
-
-
-// function toSessionTableEntity(sessionId, userId) {
-//     return {
-//         RowKey: table.String(sessionId),
-//         PartitionKey: table.String(sessionsPartitionKey),
-
-//         userId: table.String(userId),
-//     }
-// }
 
 
 function sha256(message) {
