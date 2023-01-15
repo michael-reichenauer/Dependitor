@@ -10,7 +10,7 @@ const ServiceName = 'Dependitor';
 const defaultTransports = ['internal', 'usb', 'ble', 'nfc'] // possible: ['internal', 'usb', 'ble', 'nfc']
 const maxUserDeviceRegistrations = 20
 
-const dataBaseTableName = 'data'
+
 const usersTableName = 'users'
 const authenticatorTableName = 'authenticator'
 const sessionsTableName = 'sessions'
@@ -48,7 +48,7 @@ exports.check = async (context, body, userId) => {
 exports.loginDeviceSet = async (context, body, userId) => {
     try {
         const { channelId, authData } = body
-        await table.service().createTable(authenticatorTableName)
+        await table.createTable(authenticatorTableName)
         await clearOldAuthenticatorChannels(context)
 
         // Creating a new client id and session for the other device 
@@ -75,9 +75,6 @@ exports.loginDeviceSet = async (context, body, userId) => {
 // Called by devices trying to retrieve Authenticator response set by loginDeviceSet
 exports.loginDevice = async (context, body) => {
     try {
-        context.log('env:', process.env)
-        //context.log("context@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", context)
-        context.log("Host !!!!!!!!!!", process.env.WEBSITE_HOSTNAME)
         const { channelId } = body
 
         try {
@@ -107,7 +104,7 @@ exports.loginDevice = async (context, body) => {
 exports.getWebAuthnRegistrationOptions = async (context, data) => {
     try {
         // Make sure the user table exists.
-        await table.service().createTable(usersTableName)
+        await table.createTable(usersTableName)
 
         let { username } = data
         if (!username) {
@@ -398,16 +395,15 @@ async function insertOrReplaceUser(userId, user, username) {
 
 async function createSession(context, userId) {
     // Create user data table if it does not already exist
-    const dataTableName = dataBaseTableName + userId
-    await table.service().createTable(dataTableName)
-    await table.service().createTable(sessionsTableName)
+    await table.createTable(table.dataTableName)
+    await table.createTable(sessionsTableName)
 
     // Clear previous sessions from this client
     await clearOldSessions(context)
 
     // Create new session id and store
     const sessionId = makeRandomId()
-    //const sessionTableEntity = toSessionTableEntity(sessionId, userId)
+
     const sessionTableEntity = {
         partitionKey: sessionsPartitionKey,
         rowKey: sessionId,
@@ -415,8 +411,6 @@ async function createSession(context, userId) {
     }
 
     await table.client(sessionsTableName).createEntity(sessionTableEntity)
-
-    // await table.insertEntity(sessionsTableName, sessionTableEntity)
 
     return sessionId
 }
@@ -555,37 +549,6 @@ function randomString(count) {
     return randomText;
 };
 
-
-
-// function toUserTableEntity(userId, user) {
-//     return {
-//         RowKey: table.String(userId),
-//         PartitionKey: table.String(userPartitionKey),
-
-//         user: table.String(user),
-//     }
-// }
-
-
-// function toAuthenticatorAuthTableEntity(id, authData, sessionId) {
-//     return {
-//         RowKey: table.String(id),
-//         PartitionKey: table.String(authenticatorPartitionKey),
-
-//         authData: table.String(authData),
-//         sessionId: table.String(sessionId),
-//     }
-// }
-
-
-// function toSessionTableEntity(sessionId, userId) {
-//     return {
-//         RowKey: table.String(sessionId),
-//         PartitionKey: table.String(sessionsPartitionKey),
-
-//         userId: table.String(userId),
-//     }
-// }
 
 
 function sha256(message) {
