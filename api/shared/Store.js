@@ -17,6 +17,7 @@ exports.tryReadBatch = async (context, body, userId) => {
         if (keys.length === 0) {
             return []
         }
+        //context.log("Read Keys", keys);
 
         const tableClient = table.client(tableName);
         let items = [];
@@ -27,6 +28,7 @@ exports.tryReadBatch = async (context, body, userId) => {
                 // Ignore errors
             }
         }
+        //context.log("Read Items", items)
 
         // Read all requested rows
         // const rkq = ' (RowKey == ?string?' + ' || RowKey == ?string?'.repeat(keys.length - 1) + ')'
@@ -43,6 +45,8 @@ exports.tryReadBatch = async (context, body, userId) => {
             }
             return entity
         })
+
+        //context.log("Read resp", responses)
 
         return responses
     } catch (err) {
@@ -154,7 +158,7 @@ function toDataEntity(item) {
     }
 
     const value = JSON.parse(valueText)
-    return { key: item.RowKey, etag: item['odata.etag'], value: value }
+    return { key: item.rowKey, etag: item.etag, value: value }
 }
 
 

@@ -6,6 +6,7 @@ import { Query } from "../Api";
 import assert from "assert";
 import { Time } from "../../utils/time";
 import { NotFoundError } from "../CustomError";
+import { jsonStringify } from "../../utils/text";
 
 // Key-value database, that syncs locally stored entities with a remote server
 export const IStoreDBKey = diKey<IStoreDB>();
@@ -200,6 +201,7 @@ export class StoreDB implements IStoreDB {
       console.log("Nothing to sync");
       return;
     }
+    // console.log("query:", jsonStringify(queries));
 
     // Getting remote entities to compare with local entities
     const remoteEntities = await this.remoteDB.tryReadBatch(queries);
@@ -208,6 +210,7 @@ export class StoreDB implements IStoreDB {
       this.setSyncStatus(remoteEntities);
       return remoteEntities;
     }
+    // console.log("remote Entities:", remoteEntities);
 
     this.setSyncStatus();
     const localEntities = this.localDB.tryReadBatch(syncKeys);
@@ -301,11 +304,14 @@ export class StoreDB implements IStoreDB {
       `Syncing toLocal: ${localToUpdate.length}, toRemote: ${remoteToUpload.length},` +
         ` toRemove: ${removedKeys.length}, (merged: ${mergedEntities.length})`
     );
+    // console.log("toUodate", localToUpdate)
+    // console.log("ToRemote", remoteToUpload)
 
     this.updateLocalEntities(localToUpdate);
 
     const uploadResult = await this.uploadEntities(remoteToUpload);
     if (isError(uploadResult)) {
+      // console.log("Failed to update", uploadResult);
       return uploadResult;
     }
 
