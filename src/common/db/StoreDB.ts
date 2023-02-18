@@ -6,7 +6,6 @@ import { Query } from "../Api";
 import assert from "assert";
 import { Time } from "../../utils/time";
 import { NotFoundError } from "../CustomError";
-import { jsonStringify } from "../../utils/text";
 
 // Key-value database, that syncs locally stored entities with a remote server
 export const IStoreDBKey = diKey<IStoreDB>();
