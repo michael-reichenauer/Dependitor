@@ -104,7 +104,7 @@ exports.removeBatch = async (context, body, userId) => {
             try {
                 await tableClient.deleteEntity(dataPartitionKey, key)
             } catch (err) {
-                if (err.code === 'ResourceNotFound') {
+                if (err.statusCode === 404) {
                     // Element already removed, not an error
                     continue
                 }
