@@ -354,7 +354,8 @@ export class Online implements IOnline {
   async showLoginPrompt(): Promise<boolean> {
     return await showQuestionAlert(
       "Login Device Sync",
-      `Would you like log in to enable device sync?`,
+      `Would you like log in to enable device sync?\n
+      (Click 'NO' to work offline)`,
       {
         okText: "Yes",
         cancelText: "No",
