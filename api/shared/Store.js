@@ -70,8 +70,9 @@ exports.writeBatch = async (context, body, userId) => {
 
         // Extract etags for written entities
         const tableResponses = await table.client(tableName).submitTransaction(transaction.actions)
+        // context.log("TableWrite rsp:", tableResponses)
         const responses = tableResponses.subResponses.map((rsp, i) => {
-            if (!rsp.response || !rsp.response.isSuccessful) {
+            if (!rsp.status === 202) {
                 return {
                     key: entities[i].key,
                     status: 'error'
@@ -80,7 +81,7 @@ exports.writeBatch = async (context, body, userId) => {
 
             return {
                 key: entities[i].key,
-                etag: rsp.entity['.metadata'].etag
+                etag: rsp.etag
             }
         })
 
