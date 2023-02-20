@@ -60,7 +60,7 @@ export class LocalDB implements ILocalDB {
       key: this.toLocalKey(entity.key),
       value: entity,
     }));
-    console.log("Local Write", localEntities)
+    // console.log("Local Write", localEntities)
     this.localStore.writeBatch(localEntities);
 
     // Ensure possible previously removed keys are no longer considered removed
