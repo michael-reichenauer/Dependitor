@@ -355,10 +355,10 @@ export class Online implements IOnline {
     return await showQuestionAlert(
       "Login Device Sync",
       `Would you like log in to enable device sync?\n
-      (Click 'NO' to work offline)`,
+      You can also continue to work offline.`,
       {
         okText: "Yes",
-        cancelText: "No",
+        cancelText: "Later",
       }
     );
   }
