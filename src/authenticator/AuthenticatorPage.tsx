@@ -75,9 +75,7 @@ async function showDeviceAuthenticatedMessage() {
     await showSuccessAlert(
       "Device Authenticated",
       `The device is now authenticated
-     and allowed to sync with all your devices.
-     
-     You will now be redirected to the Dependitor app.`
+      and can sync with all your devices.`
     )
   ) {
     resetUrl();
