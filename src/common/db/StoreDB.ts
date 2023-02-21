@@ -7,6 +7,7 @@ import assert from "assert";
 import { Time } from "../../utils/time";
 import { NotFoundError } from "../CustomError";
 
+
 // Key-value database, that syncs locally stored entities with a remote server
 export const IStoreDBKey = diKey<IStoreDB>();
 export interface IStoreDB {
@@ -105,6 +106,7 @@ export class StoreDB implements IStoreDB {
 
   public writeBatch(entities: Entity[]): void {
     const keys = entities.map((entity) => entity.key);
+    // console.log('Write', keys)
     const etag = this.generateEtag();
 
     const localEntities = this.localDB.tryReadBatch(keys);
@@ -142,6 +144,7 @@ export class StoreDB implements IStoreDB {
   }
 
   public removeBatch(keys: string[]): void {
+    console.log('Remove', keys)
     this.localDB.preRemoveBatch(keys);
     if (!this.configuration.isSyncEnabled) {
       // If not sync is enabled, the entities are just remove locally
@@ -200,6 +203,7 @@ export class StoreDB implements IStoreDB {
       console.log("Nothing to sync");
       return;
     }
+    // console.log("query:", jsonStringify(queries));
 
     // Getting remote entities to compare with local entities
     const remoteEntities = await this.remoteDB.tryReadBatch(queries);
@@ -208,6 +212,8 @@ export class StoreDB implements IStoreDB {
       this.setSyncStatus(remoteEntities);
       return remoteEntities;
     }
+    
+   // console.log("remote Entities:", remoteEntities);
 
     this.setSyncStatus();
     const localEntities = this.localDB.tryReadBatch(syncKeys);
@@ -302,10 +308,14 @@ export class StoreDB implements IStoreDB {
         ` toRemove: ${removedKeys.length}, (merged: ${mergedEntities.length})`
     );
 
+    // console.log("toLocal", localToUpdate)
+    // console.log("ToRemote", remoteToUpload)
+
     this.updateLocalEntities(localToUpdate);
 
     const uploadResult = await this.uploadEntities(remoteToUpload);
     if (isError(uploadResult)) {
+      // console.log("Failed to update", uploadResult);
       return uploadResult;
     }
 
@@ -396,6 +406,7 @@ export class StoreDB implements IStoreDB {
       this.setSyncStatus(responses);
       return responses;
     }
+    // console.log("uploaded rsp:", responses)
 
     this.setSyncStatus();
 

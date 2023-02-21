@@ -1,8 +1,8 @@
 import Colors from "./diagram/Colors";
-import React, { useState, useEffect } from "react";
+import React, { FC, useState, useEffect } from "react";
 import { atom, useAtom } from "jotai";
 import PubSub from "pubsub-js";
-import { makeStyles } from "@material-ui/core/styles";
+import { makeStyles } from "@mui/styles";
 import {
   Box,
   Dialog,
@@ -13,8 +13,9 @@ import {
   Menu,
   MenuItem,
   Tooltip,
-} from "@material-ui/core";
-import SearchBar from "material-ui-search-bar";
+  TextField,
+} from "@mui/material";
+
 import {
   defaultIconKey,
   greenNumberIconKey,
@@ -23,9 +24,10 @@ import {
 } from "../common/icons";
 import { FixedSizeList } from "react-window";
 import { useLocalStorage } from "../common/useLocalStorage";
-import CheckIcon from "@material-ui/icons/Check";
-import CheckBoxOutlineBlank from "@material-ui/icons/CheckBoxOutlineBlank";
-import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
+import CheckIcon from "@mui/icons-material/Check";
+import CheckBoxOutlineBlank from "@mui/icons-material/CheckBoxOutlineBlank";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+
 
 const subItemsSize = 12;
 const mruSize = 8;
@@ -39,7 +41,27 @@ const defaultIconSets = ["Azure", "Aws", "OSA"];
 const nodesAtom = atom(false);
 const useNodes = () => useAtom(nodesAtom);
 
-const useStyles = makeStyles((theme) => ({
+type SearchBarPar = {
+  value: string;
+  onChange: any;
+};
+
+const SearchBar: FC<SearchBarPar> = ({ value, onChange }) => (
+  <form>
+    <TextField fullWidth
+      id="search-bar"
+      className="text"
+      onInput={(e: any) => { onChange(e.target.value); }}
+      label=""
+      defaultValue={value}
+      variant="outlined"
+      placeholder="Search..."
+      size="small"
+    />
+  </form>
+);
+
+const useStyles = makeStyles((theme: any) => ({
   root: {
     width: "100%",
     maxWidth: 360,
@@ -96,7 +118,9 @@ export default function Nodes() {
   }
 
   // Handle search
+  // eslint-disable-next-line 
   const onChangeSearch = (value: string) => setFilter(value.toLowerCase());
+  // eslint-disable-next-line 
   const cancelSearch = () => setFilter("");
 
   const titleType = groupType ? "Container" : "Icon";
@@ -260,11 +284,10 @@ export default function Nodes() {
           </MenuItem>
         </Menu>
 
-        <SearchBar
+        {<SearchBar
           value={filter}
-          onChange={(searchVal) => onChangeSearch(searchVal)}
-          onCancelSearch={() => cancelSearch()}
-        />
+          onChange={(searchVal: string) => onChangeSearch(searchVal)}
+        />}
 
         {NodesList(iconSets, mru, filter, groupType, clickedIconItem)}
       </Box>

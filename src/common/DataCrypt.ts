@@ -63,7 +63,7 @@ export class DataCrypt {
     return toBase64(bits);
   }
 
-  // Creates a data encryption key (DEK) to encrypt and decrypt encrypted text block
+  // Creates a data encryption key (DEK) to encrypt and decrypt encrypted text block.
   public async deriveDataEncryptionKey(user: User): Promise<CryptoKey> {
     // using hash of username as salt. Usually a salt is a random number, but in this case, it
     // is sufficient and convenient to use the username as salt

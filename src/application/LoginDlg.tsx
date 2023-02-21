@@ -8,10 +8,10 @@ import {
   Link,
   Tooltip,
   Typography,
-} from "@material-ui/core";
+} from "@mui/material";
 import { isError } from "../common/Result";
 import { SetAtom } from "jotai/core/types";
-import { QRCode } from "react-qrcode-logo";
+//import { QRCode } from "react-qrcode-logo";
 import { setErrorMessage } from "../common/MessageSnackbar";
 import { isDeveloperMode, isMobileDevice } from "../utils/build";
 import {
@@ -23,6 +23,7 @@ import { IOnlineKey } from "./Online";
 import { di } from "../common/di";
 import { useLocalStorage } from "../common/useLocalStorage";
 import { showQuestionAlert } from "../common/AlertDialog";
+import QRCode from "react-qr-code";
 
 const dialogWidth = 290;
 const dialogHeight = 410;
@@ -38,7 +39,7 @@ export function showLoginDlg(provider: ILoginProvider) {
   setLoginFunc(provider);
 }
 
-let setLoginFunc: SetAtom<ILoginProvider> = () => {};
+let setLoginFunc: SetAtom<ILoginProvider> = () => { };
 type loginProvider = ILoginProvider | null;
 const loginAtom = atom(null as loginProvider);
 const useLogin = (): [loginProvider, SetAtom<loginProvider>] => {
@@ -84,7 +85,7 @@ export const LoginDlg: FC = () => {
   const qrCodeUrl = login?.getAuthenticatorUrl() ?? "";
 
   return (
-    <Dialog open={login !== null} onClose={() => {}}>
+    <Dialog open={login !== null} onClose={() => { }}>
       <Box style={{ width: dialogWidth, height: dialogHeight, padding: 20 }}>
         <LinearProgress style={{ marginBottom: 5 }} />
         <Typography variant="h5" style={{ paddingBottom: 0 }}>
@@ -206,13 +207,14 @@ type QRCodeProps = {
 };
 
 const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
-  // Make the QR clickable in developer mode
-  const qrElement = isDeveloperMode ? (
+  // Make the QR clickable in developer mode.
+  url = url.replaceAll("127.0.0.1", "localhost")
+  const qrElement = true || isDeveloperMode ? (
     <Link href={url} target="_blank">
-      <QRCode value={url} />
+      {<QRCode value={url} style={{ height: "170", width: "170" }} />}
     </Link>
   ) : (
-    <QRCode value={url} />
+    <QRCode value={url} style={{ height: "170", width: "170" }} />
   );
 
   return (
@@ -253,7 +255,7 @@ async function showFirstTimeSyncPrompt() {
       "Setup Device Sync",
       `Would you like setup device sync with your other devices?
   
-      You can, of course, setup sync at a later time.`,
+      You can work offline and setup sync at a later time.`,
       {
         okText: "Yes",
         cancelText: "Later",

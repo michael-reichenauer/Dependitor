@@ -9,7 +9,7 @@ import {
   Link,
   Tooltip,
   Typography,
-} from "@material-ui/core";
+} from "@mui/material";
 import { localBuildTime, localShortSha } from "../common/appVersion";
 import { SetAtom } from "jotai/core/types";
 import { isProduction } from "../utils/build";
