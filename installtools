@@ -16,5 +16,8 @@ curl -sS -L --create-dirs -o ~/gmd/gmd "https://github.com/michael-reichenauer/g
 echo 'export PATH=$PATH:~/gmd' >>~/.profile
 . ~/.profile
 
+echo "Install Azure cli ..."
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+echo "Install Azure Bicep ..."
 az bicep install && az bicep upgrade

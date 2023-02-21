@@ -208,6 +208,7 @@ type QRCodeProps = {
 
 const QRCodeElement: FC<QRCodeProps> = ({ url }) => {
   // Make the QR clickable in developer mode.
+  url = url.replaceAll("127.0.0.1", "localhost")
   const qrElement = true || isDeveloperMode ? (
     <Link href={url} target="_blank">
       {<QRCode value={url} style={{ height: "170", width: "170" }} />}
@@ -254,7 +255,7 @@ async function showFirstTimeSyncPrompt() {
       "Setup Device Sync",
       `Would you like setup device sync with your other devices?
   
-      You can, of course, setup sync at a later time.`,
+      You can work offline and setup sync at a later time.`,
       {
         okText: "Yes",
         cancelText: "Later",

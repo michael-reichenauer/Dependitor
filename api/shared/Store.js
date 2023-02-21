@@ -17,6 +17,7 @@ exports.tryReadBatch = async (context, body, userId) => {
         if (keys.length === 0) {
             return []
         }
+        //context.log("Read Keys", keys);
 
         const tableClient = table.client(tableName);
         let items = [];
@@ -27,6 +28,7 @@ exports.tryReadBatch = async (context, body, userId) => {
                 // Ignore errors
             }
         }
+        //context.log("Read Items", items)
 
         // Read all requested rows
         // const rkq = ' (RowKey == ?string?' + ' || RowKey == ?string?'.repeat(keys.length - 1) + ')'
@@ -43,6 +45,8 @@ exports.tryReadBatch = async (context, body, userId) => {
             }
             return entity
         })
+
+        //context.log("Read resp", responses)
 
         return responses
     } catch (err) {
@@ -66,8 +70,9 @@ exports.writeBatch = async (context, body, userId) => {
 
         // Extract etags for written entities
         const tableResponses = await table.client(tableName).submitTransaction(transaction.actions)
+        // context.log("TableWrite rsp:", tableResponses)
         const responses = tableResponses.subResponses.map((rsp, i) => {
-            if (!rsp.response || !rsp.response.isSuccessful) {
+            if (!rsp.status === 202) {
                 return {
                     key: entities[i].key,
                     status: 'error'
@@ -76,7 +81,7 @@ exports.writeBatch = async (context, body, userId) => {
 
             return {
                 key: entities[i].key,
-                etag: rsp.entity['.metadata'].etag
+                etag: rsp.etag
             }
         })
 
@@ -100,7 +105,7 @@ exports.removeBatch = async (context, body, userId) => {
             try {
                 await tableClient.deleteEntity(dataPartitionKey, key)
             } catch (err) {
-                if (err.code === 'ResourceNotFound') {
+                if (err.statusCode === 404) {
                     // Element already removed, not an error
                     continue
                 }
@@ -154,7 +159,7 @@ function toDataEntity(item) {
     }
 
     const value = JSON.parse(valueText)
-    return { key: item.RowKey, etag: item['odata.etag'], value: value }
+    return { key: item.rowKey, etag: item.etag, value: value }
 }
 
 
