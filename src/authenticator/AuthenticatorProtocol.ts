@@ -8,6 +8,14 @@ export function isAuthenticatorApp(): boolean {
   return window.location.pathname.startsWith(authenticatorUrlPath);
 }
 
+export function isAuthenticatorAppDone(): boolean {
+  return window.location.pathname === authenticatorUrlPath;
+}
+
+export function authenticatorAppDonePath(): string {
+  return `${window.location.protocol}//${window.location.host}${authenticatorUrlPath}`;
+}
+
 // IAuthenticatorProtocol defines the protocol between the authenticator server and client
 export const IAuthenticatorProtocolKey = diKey<IAuthenticatorProtocol>();
 export interface IAuthenticatorProtocol {

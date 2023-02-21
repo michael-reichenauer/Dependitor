@@ -255,7 +255,7 @@ async function showFirstTimeSyncPrompt() {
       "Setup Device Sync",
       `Would you like setup device sync with your other devices?
   
-      You can also work offline and setup sync at a later time.`,
+      You can work offline and setup sync at a later time.`,
       {
         okText: "Yes",
         cancelText: "Later",

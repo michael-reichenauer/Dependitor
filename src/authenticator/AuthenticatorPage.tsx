@@ -23,6 +23,7 @@ import {
   showInfoAlert,
   showSuccessAlert,
 } from "../common/AlertDialog";
+import { authenticatorAppDonePath, isAuthenticatorAppDone } from "./AuthenticatorProtocol";
 
 export const AuthenticatorPage: FC = () => {
   const authenticator = di(IAuthenticatorKey);
@@ -47,6 +48,10 @@ export const AuthenticatorPage: FC = () => {
 
   useEffect(() => {
     document.title = "Authenticator";
+    if (isAuthenticatorAppDone()) {
+      showClosePageAlert()
+      return;
+    }
     authenticator
       .handleAuthenticateRequest()
       .then((rsp) => showResponseMessage(rsp));
@@ -154,7 +159,5 @@ function toErrorMessage(error?: Error): string {
 }
 
 function resetUrl(): void {
-  window.location.replace(
-    `${window.location.protocol}//${window.location.host}`
-  );
+  window.location.replace(authenticatorAppDonePath());
 }
