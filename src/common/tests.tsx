@@ -23,7 +23,7 @@ export function isTestsApp(): boolean {
 export const TestsApp: FC = () => {
   useEffect(() => {
     const runner = new TestsRunner();
-    runner.run();
+    runner.runAsync();
   }, []);
 
   return (
@@ -72,8 +72,10 @@ class TestsRunner {
   private errorCount: number = 0;
 
 
-  public run(): void {
-    tests.forEach(t => this.runTestClass(t))
+  public async runAsync(): Promise<void> {
+    for (let i = 0; i < tests.length; i++) {
+      await this.runTestClassAsync(tests[i])
+    }
 
     if (this.errorCount === 0) {
       console.log(`%cTests done, total ${this.count} tests`, "color: #84d95f");
@@ -83,7 +85,7 @@ class TestsRunner {
   }
 
 
-  private runTestClass(factory: any): void {
+  private async runTestClassAsync(factory: any): Promise<void> {
     clearAllDiInstances();
 
     const testsStore = new LocalSubStore("tests");
@@ -94,28 +96,43 @@ class TestsRunner {
     const name = this.getTestClassName(instance)
 
     console.log(`Test class # ${this.count} '${name}' (with ${testMethods.length} tests)`);
-    testMethods.forEach((methodName, index) => this.runTestMethod(name, instance, methodName, index + 1))
+    for (let i = 0; i < testMethods.length; i++) {
+      await this.runTestMethodAsync(name, instance, testMethods[i], i + 1)
+    }
 
     testsStore.clear()
     clearAllDiInstances();
   }
 
-  private runTestMethod(className: string, instance: any, methodName: any, index: number): void {
+  private async runTestMethodAsync(className: string, instance: any, methodName: any, index: number): Promise<void> {
     try {
+      // A workaround to minimize assert call stack and make same for both async and sync tests
+      await new Promise(r => setTimeout(r, 0));
+
       this.count++;
       console.log(`  Test: # ${index} ${className}.${methodName}`)
-      instance[methodName]()
-    } catch (err) {
-      this.errorCount++;
-      console.error(err);
+      if (methodName.endsWith("Test")) {
+        instance[methodName]()
+        return
+      }
+
+      await instance[methodName]();
+    } catch (err: any) {
+      this.logTestError(err, className, instance, methodName, index);
     }
+  }
+
+  private logTestError(err: Error, className: string, instance: any, methodName: any, index: number) {
+    this.errorCount++;
+    console.error(`Failed test: ${className}.${methodName}:`, err, "\n  Test class instance:", instance);
   }
 
   private getTestMethodNames(instance: any) {
     const prototype = Object.getPrototypeOf(instance)
     console.log(prototype)
     return Object.getOwnPropertyNames(prototype)
-      .filter(item => typeof prototype[item] === 'function' && item.endsWith("Test"))
+      .filter(item => typeof prototype[item] === 'function' &&
+        (item.endsWith("Test") || item.endsWith("TestAsync")))
   }
 
   private getTestClassName(instance: any) {
