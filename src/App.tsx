@@ -15,6 +15,7 @@ import { AuthenticatorPage } from "./authenticator/AuthenticatorPage";
 import { AuthenticatorBar } from "./authenticator/AuthenticatorBar";
 import { restoreVirtualConsoleState } from "./common/virtualConsole";
 import { ThemeProvider, Theme, StyledEngineProvider, createTheme } from '@mui/material/styles';
+import { isTestsApp, TestsApp } from "./common/tests";
 
 
 declare module '@mui/styles/defaultTheme' {
@@ -26,26 +27,36 @@ const theme = createTheme();
 restoreVirtualConsoleState();
 
 const App: React.FC = () => {
+  if (isTestsApp()) {
+    return (
+      <>
+        <StyledEngineProvider injectFirst>
+          <ThemeProvider theme={theme}>
+            <TestsApp />
+          </ThemeProvider>
+        </StyledEngineProvider>
+      </>
+    );
+  }
+
+
+  // If the authenticator app is requested, show that ui.
+  if (isAuthenticatorApp()) {
+    return (
+      <AuthenticatorApp />
+    );
+  }
+
+  return <DependitorApp />
+};
+
+
+const DependitorApp: React.FC = () => {
   const [size] = useWindowSize();
 
   // Enable user activity detection (e.g. moving mouse ) and new available web site at server detection
   useActivityMonitor();
   useAppVersionMonitor();
-
-  // If the authenticator app is requested, show that ui.
-  if (isAuthenticatorApp()) {
-    return (
-      <>
-        <ThemeProvider theme={theme}>
-          <AuthenticatorBar height={55} />
-          <AuthenticatorPage />
-          <PromptDialog />
-          <About />
-          <AlertDialog />
-        </ThemeProvider>
-      </>
-    );
-  }
 
   return <>
     <StyledEngineProvider injectFirst>
@@ -62,6 +73,25 @@ const App: React.FC = () => {
       </ThemeProvider>
     </StyledEngineProvider>
   </>;
+};
+
+
+const AuthenticatorApp: React.FC = () => {
+  // Enable user activity detection (e.g. moving mouse ) and new available web site at server detection
+  useActivityMonitor();
+  useAppVersionMonitor();
+
+  return (
+    <>
+      <ThemeProvider theme={theme}>
+        <AuthenticatorBar height={55} />
+        <AuthenticatorPage />
+        <PromptDialog />
+        <About />
+        <AlertDialog />
+      </ThemeProvider>
+    </>
+  );
 };
 
 export default App;

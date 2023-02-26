@@ -10,7 +10,7 @@ interface registryItem {
 }
 
 // Specified a class type with a constructor (when registering classes)
-type Class = { new (...args: any[]): any };
+type Class = { new(...args: any[]): any };
 
 // A typed symbol used to define interface keys, (TInterface is not used directly, but indirectly
 // when registering class in decorator and when resolving instance using di<T>(key))
@@ -54,7 +54,6 @@ export function di<TInterface>(key: InterfaceKey<TInterface>): TInterface {
 
     item.instance = item.factory();
 
-    item.factory = undefined;
     if (!item?.instance) {
       assert.fail(
         `DI class instance factory did not create an instance. Implementation must specify a @singleton(interfaceKey) decorator`
@@ -77,6 +76,26 @@ export function registerSingleton<TInterface>(
 
   registry.set(key.id, item);
   additionalKeys.forEach((key) => registry.set(key.id, item));
+}
+
+export function registerInstance<TInterface>(
+  key: InterfaceKey<TInterface>,
+  instance: any,
+  additionalKeys: InterfaceKey<TInterface>[] = []
+) {
+  const item: registryItem = {
+    factory: () => instance,
+  };
+
+  registry.set(key.id, item);
+  additionalKeys.forEach((key) => registry.set(key.id, item));
+}
+
+export function clearAllDiInstances() {
+  for (let entry of Array.from(registry.entries())) {
+    let value = entry[1];
+    value.instance = undefined;
+  }
 }
 
 // function cleanseAssertionOperators(parsedName: string): string {

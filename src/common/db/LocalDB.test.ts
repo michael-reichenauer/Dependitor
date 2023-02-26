@@ -2,7 +2,7 @@ import { ILocalDB, LocalDB } from "./LocalDB";
 import { expectValue, isError } from "../Result";
 
 describe("Test LocalData", () => {
-  test("Test", () => {
+  test("Tests", () => {
     const local: ILocalDB = new LocalDB();
 
     // Write one entity '0' and verify that it can be read with correct key
@@ -10,7 +10,7 @@ describe("Test LocalData", () => {
       key: "0",
       etag: "1",
       syncedEtag: "",
-      remoteEtag: "",
+      remoteEtag: "", 
       value: "aa",
       version: 0,
     });
